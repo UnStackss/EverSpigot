@@ -897,6 +897,7 @@ public class Chunk extends IChunkAccess {
                         GameProfilerFiller gameprofilerfiller = Chunk.this.level.getProfiler();
 
                         gameprofilerfiller.push(this::getType);
+                        this.blockEntity.tickTimer.startTiming(); // Spigot
                         IBlockData iblockdata = Chunk.this.getBlockState(blockposition);
 
                         if (this.blockEntity.getType().isValid(iblockdata)) {
@@ -914,6 +915,10 @@ public class Chunk extends IChunkAccess {
 
                         this.blockEntity.fillCrashReportCategory(crashreportsystemdetails);
                         throw new ReportedException(crashreport);
+                        // Spigot start
+                    } finally {
+                        this.blockEntity.tickTimer.stopTiming();
+                        // Spigot end
                     }
                 }
             }

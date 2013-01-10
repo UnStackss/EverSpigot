@@ -472,10 +472,13 @@ public class ChunkRegionLoader {
         NBTTagList nbttaglist1 = getListOfCompoundsOrNull(nbttagcompound, "block_entities");
 
         return nbttaglist == null && nbttaglist1 == null ? null : (chunk) -> {
+            worldserver.timings.syncChunkLoadEntitiesTimer.startTiming(); // Spigot
             if (nbttaglist != null) {
                 worldserver.addLegacyChunkEntities(EntityTypes.loadEntitiesRecursive(nbttaglist, worldserver));
             }
+            worldserver.timings.syncChunkLoadEntitiesTimer.stopTiming(); // Spigot
 
+            worldserver.timings.syncChunkLoadTileEntitiesTimer.startTiming(); // Spigot
             if (nbttaglist1 != null) {
                 for (int i = 0; i < nbttaglist1.size(); ++i) {
                     NBTTagCompound nbttagcompound1 = nbttaglist1.getCompound(i);
@@ -493,6 +496,7 @@ public class ChunkRegionLoader {
                     }
                 }
             }
+            worldserver.timings.syncChunkLoadTileEntitiesTimer.stopTiming(); // Spigot
 
         };
     }

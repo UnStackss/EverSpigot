@@ -198,6 +198,8 @@ import org.bukkit.craftbukkit.Main;
 import org.bukkit.event.server.ServerLoadEvent;
 // CraftBukkit end
 
+import org.bukkit.craftbukkit.SpigotTimings; // Spigot
+
 public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTask> implements ServerInfo, ChunkIOErrorReporter, ICommandListener, AutoCloseable {
 
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -1277,6 +1279,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
     }
 
     public void tickServer(BooleanSupplier booleansupplier) {
+        SpigotTimings.serverTickTimer.startTiming(); // Spigot
         long i = SystemUtils.getNanos();
 
         ++this.tickCount;
@@ -1292,11 +1295,13 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
         if (this.autosavePeriod > 0 && this.ticksUntilAutosave <= 0) {
             this.ticksUntilAutosave = this.autosavePeriod;
             // CraftBukkit end
+            SpigotTimings.worldSaveTimer.startTiming(); // Spigot
             MinecraftServer.LOGGER.debug("Autosave started");
             this.profiler.push("save");
             this.saveEverything(true, false, false);
             this.profiler.pop();
             MinecraftServer.LOGGER.debug("Autosave finished");
+            SpigotTimings.worldSaveTimer.stopTiming(); // Spigot
         }
 
         this.profiler.push("tallying");
@@ -1309,6 +1314,8 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
         this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float) j / (float) TimeRange.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
         this.logTickMethodTime(i);
         this.profiler.pop();
+        SpigotTimings.serverTickTimer.stopTiming(); // Spigot
+        org.spigotmc.CustomTimingsHandler.tick(); // Spigot
     }
 
     private void logTickMethodTime(long i) {
@@ -1379,18 +1386,25 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
         this.getPlayerList().getPlayers().forEach((entityplayer) -> {
             entityplayer.connection.suspendFlushing();
         });
+        SpigotTimings.schedulerTimer.startTiming(); // Spigot
         this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
+        SpigotTimings.schedulerTimer.stopTiming(); // Spigot
         this.profiler.push("commandFunctions");
+        SpigotTimings.commandFunctionsTimer.startTiming(); // Spigot
         this.getFunctions().tick();
+        SpigotTimings.commandFunctionsTimer.stopTiming(); // Spigot
         this.profiler.popPush("levels");
         Iterator iterator = this.getAllLevels().iterator();
 
         // CraftBukkit start
         // Run tasks that are waiting on processing
+        SpigotTimings.processQueueTimer.startTiming(); // Spigot
         while (!processQueue.isEmpty()) {
             processQueue.remove().run();
         }
+        SpigotTimings.processQueueTimer.stopTiming(); // Spigot
 
+        SpigotTimings.timeUpdateTimer.startTiming(); // Spigot
         // Send time updates to everyone, it will get the right time from the world the player is in.
         if (this.tickCount % 20 == 0) {
             for (int i = 0; i < this.getPlayerList().players.size(); ++i) {
@@ -1398,6 +1412,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
                 entityplayer.connection.send(new PacketPlayOutUpdateTime(entityplayer.level().getGameTime(), entityplayer.getPlayerTime(), entityplayer.level().getGameRules().getBoolean(GameRules.RULE_DAYLIGHT))); // Add support for per player time
             }
         }
+        SpigotTimings.timeUpdateTimer.stopTiming(); // Spigot
 
         while (iterator.hasNext()) {
             WorldServer worldserver = (WorldServer) iterator.next();
@@ -1418,7 +1433,9 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
             this.profiler.push("tick");
 
             try {
+                worldserver.timings.doTick.startTiming(); // Spigot
                 worldserver.tick(booleansupplier);
+                worldserver.timings.doTick.stopTiming(); // Spigot
             } catch (Throwable throwable) {
                 CrashReport crashreport = CrashReport.forThrowable(throwable, "Exception ticking world");
 
@@ -1431,18 +1448,24 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
         }
 
         this.profiler.popPush("connection");
+        SpigotTimings.connectionTimer.startTiming(); // Spigot
         this.getConnection().tick();
+        SpigotTimings.connectionTimer.stopTiming(); // Spigot
         this.profiler.popPush("players");
+        SpigotTimings.playerListTimer.startTiming(); // Spigot
         this.playerList.tick();
+        SpigotTimings.playerListTimer.stopTiming(); // Spigot
         if (SharedConstants.IS_RUNNING_IN_IDE && this.tickRateManager.runsNormally()) {
             GameTestHarnessTicker.SINGLETON.tick();
         }
 
         this.profiler.popPush("server gui refresh");
 
+        SpigotTimings.tickablesTimer.startTiming(); // Spigot
         for (int i = 0; i < this.tickables.size(); ++i) {
             ((Runnable) this.tickables.get(i)).run();
         }
+        SpigotTimings.tickablesTimer.stopTiming(); // Spigot
 
         this.profiler.popPush("send chunks");
         iterator = this.playerList.getPlayers().iterator();
