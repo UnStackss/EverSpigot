@@ -296,7 +296,7 @@ public class RegionFile implements AutoCloseable {
                     return true;
                 }
             } catch (IOException ioexception) {
-                com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(ioexception); // Paper - ServerExceptionEvent
+                com.destroystokyo.paper.util.SneakyThrow.sneaky(ioexception); // Paper - Chunk save reattempt; we want the upper try/catch to retry this
                 return false;
             }
         }
