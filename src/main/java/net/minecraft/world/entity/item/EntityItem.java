@@ -247,7 +247,10 @@ public class EntityItem extends Entity implements TraceableEntity {
 
     private void mergeWithNeighbours() {
         if (this.isMergable()) {
-            List<EntityItem> list = this.level().getEntitiesOfClass(EntityItem.class, this.getBoundingBox().inflate(0.5D, 0.0D, 0.5D), (entityitem) -> {
+            // Spigot start
+            double radius = this.level().spigotConfig.itemMerge;
+            List<EntityItem> list = this.level().getEntitiesOfClass(EntityItem.class, this.getBoundingBox().inflate(radius, radius - 0.5D, radius), (entityitem) -> {
+                // Spigot end
                 return entityitem != this && entityitem.isMergable();
             });
             Iterator iterator = list.iterator();
@@ -277,7 +280,7 @@ public class EntityItem extends Entity implements TraceableEntity {
         ItemStack itemstack1 = entityitem.getItem();
 
         if (Objects.equals(this.target, entityitem.target) && areMergable(itemstack, itemstack1)) {
-            if (itemstack1.getCount() < itemstack.getCount()) {
+            if (true || itemstack1.getCount() < itemstack.getCount()) { // Spigot
                 merge(this, itemstack, entityitem, itemstack1);
             } else {
                 merge(entityitem, itemstack1, this, itemstack);
