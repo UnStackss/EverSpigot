@@ -705,6 +705,11 @@ public abstract class PlayerList {
         } else {
             dimensiontransition = new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3D.ZERO, location.getYaw(), location.getPitch(), DimensionTransition.DO_NOTHING);
         }
+        // Spigot Start
+        if (dimensiontransition == null) {
+            return entityplayer;
+        }
+        // Spigot End
         WorldServer worldserver = dimensiontransition.newLevel();
         entityplayer1.spawnIn(worldserver);
         entityplayer1.unsetRemoved();
