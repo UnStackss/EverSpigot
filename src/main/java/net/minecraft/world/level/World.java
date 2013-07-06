@@ -154,6 +154,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
     public List<EntityItem> captureDrops;
     public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
     public boolean populating;
+    public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
 
     public CraftWorld getWorld() {
         return this.world;
@@ -166,6 +167,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
     public abstract ResourceKey<WorldDimension> getTypeKey();
 
     protected World(WorldDataMutable worlddatamutable, ResourceKey<World> resourcekey, IRegistryCustom iregistrycustom, Holder<DimensionManager> holder, Supplier<GameProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env) {
+        this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.WorldDataServer) worlddatamutable).getLevelName()); // Spigot
         this.generator = gen;
         this.world = new CraftWorld((WorldServer) this, gen, biomeProvider, env);
 
