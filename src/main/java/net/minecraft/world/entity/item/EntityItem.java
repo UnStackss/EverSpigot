@@ -215,7 +215,7 @@ public class EntityItem extends Entity implements TraceableEntity {
                 }
             }
 
-            if (!this.level().isClientSide && this.age >= 6000) {
+            if (!this.level().isClientSide && this.age >= this.level().spigotConfig.itemDespawnRate) { // Spigot
                 // CraftBukkit start - fire ItemDespawnEvent
                 if (CraftEventFactory.callItemDespawnEvent(this).isCancelled()) {
                     this.age = 0;
@@ -550,7 +550,7 @@ public class EntityItem extends Entity implements TraceableEntity {
 
     public void makeFakeItem() {
         this.setNeverPickUp();
-        this.age = 5999;
+        this.age = this.level().spigotConfig.itemDespawnRate - 1; // Spigot
     }
 
     public float getSpin(float f) {
