@@ -1795,7 +1795,7 @@ public class PlayerConnection extends ServerCommonPacketListenerImpl implements 
             }
             // CraftBukkit end
             this.performUnsignedChatCommand(serverboundchatcommandpacket.command());
-            this.detectRateSpam();
+            this.detectRateSpam("/" + serverboundchatcommandpacket.command()); // Spigot
         }, true); // CraftBukkit - sync commands
     }
 
@@ -1834,7 +1834,7 @@ public class PlayerConnection extends ServerCommonPacketListenerImpl implements 
                 }
                 // CraftBukkit end
                 this.performSignedChatCommand(serverboundchatcommandsignedpacket, (LastSeenMessages) optional.get());
-                this.detectRateSpam();
+                this.detectRateSpam("/" + serverboundchatcommandsignedpacket.command()); // Spigot
             }, true); // CraftBukkit - sync commands
         }
     }
@@ -2128,11 +2128,22 @@ public class PlayerConnection extends ServerCommonPacketListenerImpl implements 
         }
         // this.server.getPlayerList().broadcastChatMessage(playerchatmessage, this.player, ChatMessageType.bind(ChatMessageType.CHAT, (Entity) this.player));
         // CraftBukkit end
-        this.detectRateSpam();
+        this.detectRateSpam(s); // Spigot
     }
 
-    private void detectRateSpam() {
+    // Spigot start - spam exclusions
+    private void detectRateSpam(String s) {
         // CraftBukkit start - replaced with thread safe throttle
+        boolean counted = true;
+        for ( String exclude : org.spigotmc.SpigotConfig.spamExclusions )
+        {
+            if ( exclude != null && s.startsWith( exclude ) )
+            {
+                counted = false;
+                break;
+            }
+        }
+        // Spigot end
         // this.chatSpamTickCount += 20;
         if (this.chatSpamTickCount.addAndGet(20) > 200 && !this.server.getPlayerList().isOp(this.player.getGameProfile()) && !this.server.isSingleplayerOwner(this.player.getGameProfile())) {
             // CraftBukkit end
