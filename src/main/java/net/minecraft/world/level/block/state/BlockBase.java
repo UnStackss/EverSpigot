@@ -158,7 +158,9 @@ public abstract class BlockBase implements FeatureElement {
         PacketDebug.sendNeighborsUpdatePacket(world, blockposition);
     }
 
-    protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {}
+    protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
+        org.spigotmc.AsyncCatcher.catchOp("block onPlace"); // Spigot
+    }
 
     // CraftBukkit start
     protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag, @Nullable ItemActionContext context) {
@@ -167,6 +169,7 @@ public abstract class BlockBase implements FeatureElement {
     // CraftBukkit end
 
     protected void onRemove(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
+        org.spigotmc.AsyncCatcher.catchOp("block remove"); // Spigot
         if (iblockdata.hasBlockEntity() && !iblockdata.is(iblockdata1.getBlock())) {
             world.removeBlockEntity(blockposition);
         }
