@@ -661,6 +661,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
         timings.tileEntityTick.stopTiming(); // Spigot
         this.tickingBlockEntities = false;
         gameprofilerfiller.pop();
+        spigotConfig.currentPrimedTnt = 0; // Spigot
     }
 
     public <T extends Entity> void guardEntityTick(Consumer<T> consumer, T t0) {
