@@ -267,6 +267,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.error.MarkedYAMLException;
 
+import net.md_5.bungee.api.chat.BaseComponent; // Spigot
+
 public final class CraftServer implements Server {
     private final String serverName = "CraftBukkit";
     private final String serverVersion;
@@ -2572,6 +2574,20 @@ public final class CraftServer implements Server {
         @Override
         public void restart() {
             org.spigotmc.RestartCommand.restart();
+        }
+
+        @Override
+        public void broadcast(BaseComponent component) {
+            for (Player player : getOnlinePlayers()) {
+                player.spigot().sendMessage(component);
+            }
+        }
+
+        @Override
+        public void broadcast(BaseComponent... components) {
+            for (Player player : getOnlinePlayers()) {
+                player.spigot().sendMessage(components);
+            }
         }
     };
 
