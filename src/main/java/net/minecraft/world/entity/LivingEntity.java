@@ -3858,10 +3858,11 @@ public abstract class LivingEntity extends Entity implements Attackable {
                     this.triggerItemUseEffects(this.useItem, 16);
                     // CraftBukkit start - fire PlayerItemConsumeEvent
                     ItemStack itemstack;
+                    PlayerItemConsumeEvent event = null; // Paper
                     if (this instanceof ServerPlayer) {
                         org.bukkit.inventory.ItemStack craftItem = CraftItemStack.asBukkitCopy(this.useItem);
                         org.bukkit.inventory.EquipmentSlot hand = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(enumhand);
-                        PlayerItemConsumeEvent event = new PlayerItemConsumeEvent((Player) this.getBukkitEntity(), craftItem, hand);
+                        event = new PlayerItemConsumeEvent((Player) this.getBukkitEntity(), craftItem, hand); // Paper
                         this.level().getCraftServer().getPluginManager().callEvent(event);
 
                         if (event.isCancelled()) {
@@ -3875,6 +3876,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
                     } else {
                         itemstack = this.useItem.finishUsingItem(this.level(), this);
                     }
+                    // Paper start - save the default replacement item and change it if necessary
+                    final ItemStack defaultReplacement = itemstack;
+                    if (event != null && event.getReplacement() != null) {
+                        itemstack = CraftItemStack.asNMSCopy(event.getReplacement());
+                    }
+                    // Paper end
                     // CraftBukkit end
 
                     if (itemstack != this.useItem) {
@@ -3882,6 +3889,11 @@ public abstract class LivingEntity extends Entity implements Attackable {
                     }
 
                     this.stopUsingItem();
+                    // Paper start - if the replacement is anything but the default, update the client inventory
+                    if (this instanceof ServerPlayer && !com.google.common.base.Objects.equal(defaultReplacement, itemstack)) {
+                        ((ServerPlayer) this).getBukkitEntity().updateInventory();
+                    }
+                    // Paper end
                 }
 
             }
