@@ -808,7 +808,13 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
     @Override
     public void readAdditionalSaveData(CompoundTag nbt) {
-        this.internalSetAbsorptionAmount(nbt.getFloat("AbsorptionAmount"));
+        // Paper start - Check for NaN
+        float absorptionAmount = nbt.getFloat("AbsorptionAmount");
+        if (Float.isNaN(absorptionAmount)) {
+            absorptionAmount = 0;
+        }
+        this.internalSetAbsorptionAmount(absorptionAmount);
+        // Paper end - Check for NaN
         if (nbt.contains("attributes", 9) && this.level() != null && !this.level().isClientSide) {
             this.getAttributes().load(nbt.getList("attributes", 10));
         }
@@ -1342,6 +1348,10 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     public void setHealth(float health) {
+        // Paper start - Check for NaN
+        if (Float.isNaN(health)) { health = getMaxHealth(); if (this.valid) {
+            System.err.println("[NAN-HEALTH] " + getScoreboardName() + " had NaN health set");
+        } } // Paper end - Check for NaN
         // CraftBukkit start - Handle scaled health
         if (this instanceof ServerPlayer) {
             org.bukkit.craftbukkit.entity.CraftPlayer player = ((ServerPlayer) this).getBukkitEntity();
@@ -3688,7 +3698,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     public final void setAbsorptionAmount(float absorptionAmount) {
-        this.internalSetAbsorptionAmount(Mth.clamp(absorptionAmount, 0.0F, this.getMaxAbsorption()));
+        this.internalSetAbsorptionAmount(!Float.isNaN(absorptionAmount) ? Mth.clamp(absorptionAmount, 0.0F, this.getMaxAbsorption()) : 0.0F); // Paper - Check for NaN
     }
 
     protected void internalSetAbsorptionAmount(float absorptionAmount) {
