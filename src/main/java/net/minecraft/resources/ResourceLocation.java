@@ -32,6 +32,7 @@ public final class ResourceLocation implements Comparable<ResourceLocation> {
     public static final char NAMESPACE_SEPARATOR = ':';
     public static final String DEFAULT_NAMESPACE = "minecraft";
     public static final String REALMS_NAMESPACE = "realms";
+    public static final String PAPER_NAMESPACE = "paper"; // Paper
     private final String namespace;
     private final String path;
 

@@ -43,6 +43,7 @@ public abstract class AbstractTestingBase {
     public static final Registry<Biome> BIOMES;
 
     static {
+        System.setProperty("Paper.pushPaperAssetsRoot", "true"); // Paper
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         // Populate available packs
