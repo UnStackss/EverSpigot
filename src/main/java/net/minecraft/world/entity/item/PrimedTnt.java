@@ -99,6 +99,12 @@ public class PrimedTnt extends Entity implements TraceableEntity {
         this.handlePortal();
         this.applyGravity();
         this.move(MoverType.SELF, this.getDeltaMovement());
+        // Paper start - Configurable TNT height nerf
+        if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
+            this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
+            return;
+        }
+        // Paper end - Configurable TNT height nerf
         this.setDeltaMovement(this.getDeltaMovement().scale(0.98D));
         if (this.onGround()) {
             this.setDeltaMovement(this.getDeltaMovement().multiply(0.7D, -0.5D, 0.7D));
