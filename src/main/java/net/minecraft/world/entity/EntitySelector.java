@@ -30,6 +30,11 @@ public final class EntitySelector {
     public static final Predicate<Entity> CAN_BE_COLLIDED_WITH = EntitySelector.NO_SPECTATORS.and(Entity::canBeCollidedWith);
 
     private EntitySelector() {}
+    // Paper start - Affects Spawning API
+    public static final Predicate<Entity> PLAYER_AFFECTS_SPAWNING = (entity) -> {
+        return !entity.isSpectator() && entity.isAlive() && entity instanceof Player player && player.affectsSpawning;
+    };
+    // Paper end - Affects Spawning API
 
     public static Predicate<Entity> withinDistance(double x, double y, double z, double max) {
         double d4 = max * max;

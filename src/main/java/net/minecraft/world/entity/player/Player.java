@@ -195,6 +195,7 @@ public abstract class Player extends LivingEntity {
     public Entity currentExplosionCause;
     private boolean ignoreFallDamageFromCurrentImpulse;
     private int currentImpulseContextResetGraceTime;
+    public boolean affectsSpawning = true; // Paper - Affects Spawning API
 
     // CraftBukkit start
     public boolean fauxSleeping;

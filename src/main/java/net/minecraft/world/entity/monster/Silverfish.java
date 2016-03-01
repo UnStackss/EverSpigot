@@ -118,7 +118,7 @@ public class Silverfish extends Monster {
         if (checkAnyLightMonsterSpawnRules(type, world, spawnReason, pos, random)) {
             Player entityhuman = world.getNearestPlayer((double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, 5.0D, true);
 
-            return entityhuman == null;
+            return !(entityhuman != null && !entityhuman.affectsSpawning) && entityhuman == null; // Paper - Affects Spawning API
         } else {
             return false;
         }

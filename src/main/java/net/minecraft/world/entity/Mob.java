@@ -860,7 +860,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
         if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
             this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
         } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
-            Player entityhuman = this.level().getNearestPlayer(this, -1.0D);
+            Player entityhuman = this.level().findNearbyPlayer(this, -1.0D, EntitySelector.PLAYER_AFFECTS_SPAWNING); // Paper - Affects Spawning API
 
             if (entityhuman != null) {
                 // Paper start - Configurable despawn distances

@@ -58,7 +58,7 @@ public abstract class BaseSpawner {
     }
 
     public boolean isNearPlayer(Level world, BlockPos pos) {
-        return world.hasNearbyAlivePlayer((double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, (double) this.requiredPlayerRange);
+        return world.hasNearbyAlivePlayerThatAffectsSpawning((double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, (double) this.requiredPlayerRange); // Paper - Affects Spawning API
     }
 
     public void clientTick(Level world, BlockPos pos) {

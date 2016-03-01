@@ -27,7 +27,7 @@ public class SkeletonTrapGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        return this.horse.level().hasNearbyAlivePlayer(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0D);
+        return this.horse.level().hasNearbyAlivePlayerThatAffectsSpawning(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0D); // Paper - Affects Spawning API
     }
 
     @Override
