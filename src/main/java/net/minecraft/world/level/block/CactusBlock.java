@@ -61,7 +61,7 @@ public class CactusBlock extends Block {
                 ;
             }
 
-            if (i < 3) {
+            if (i < world.paperConfig().maxGrowthHeight.cactus) { // Paper - Configurable cactus/bamboo/reed growth height
                 int j = (Integer) state.getValue(CactusBlock.AGE);
 
                 int modifier = world.spigotConfig.cactusModifier; // Spigot - SPIGOT-7159: Better modifier resolution
