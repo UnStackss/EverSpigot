@@ -453,6 +453,11 @@ public final class CraftMagicNumbers implements UnsafeValues {
     public String getTimingsServerName() {
         return io.papermc.paper.configuration.GlobalConfiguration.get().timings.serverName;
     }
+
+    @Override
+    public com.destroystokyo.paper.util.VersionFetcher getVersionFetcher() {
+        return new com.destroystokyo.paper.PaperVersionFetcher();
+    }
     // Paper end
 
     @Override
