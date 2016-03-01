@@ -124,6 +124,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
     private final BodyRotationControl bodyRotationControl;
     protected PathNavigation navigation;
     public GoalSelector goalSelector;
+    @Nullable public net.minecraft.world.entity.ai.goal.FloatGoal goalFloat; // Paper - Allow nerfed mobs to jump and float
     public GoalSelector targetSelector;
     @Nullable
     private LivingEntity target;
@@ -888,7 +889,15 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
     @Override
     protected final void serverAiStep() {
         ++this.noActionTime;
-        if (!this.aware) return; // CraftBukkit
+        // Paper start - Allow nerfed mobs to jump and float
+        if (!this.aware) {
+            if (goalFloat != null) {
+                if (goalFloat.canUse()) goalFloat.tick();
+                this.getJumpControl().tick();
+            }
+            return;
+        }
+        // Paper end - Allow nerfed mobs to jump and float
         ProfilerFiller gameprofilerfiller = this.level().getProfiler();
 
         gameprofilerfiller.push("sensing");

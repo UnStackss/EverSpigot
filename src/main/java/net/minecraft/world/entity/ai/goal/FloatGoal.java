@@ -9,6 +9,7 @@ public class FloatGoal extends Goal {
 
     public FloatGoal(Mob mob) {
         this.mob = mob;
+        if (mob.getCommandSenderWorld().paperConfig().entities.behavior.spawnerNerfedMobsShouldJump) mob.goalFloat = this; // Paper - Allow nerfed mobs to jump and float
         this.setFlags(EnumSet.of(Goal.Flag.JUMP));
         mob.getNavigation().setCanFloat(true);
     }
