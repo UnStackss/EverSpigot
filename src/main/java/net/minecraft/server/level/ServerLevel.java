@@ -646,11 +646,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
 
         gameprofilerfiller.popPush("iceandsnow");
 
+        if (!this.paperConfig().environment.disableIceAndSnow) { // Paper - Option to disable ice and snow
         for (int l = 0; l < randomTickSpeed; ++l) {
             if (this.random.nextInt(48) == 0) {
                 this.tickPrecipitation(this.getBlockRandomPos(j, 0, k, 15));
             }
         }
+        } // Paper - Option to disable ice and snow
 
         gameprofilerfiller.popPush("tickBlocks");
         timings.chunkTicksBlocks.startTiming(); // Paper
