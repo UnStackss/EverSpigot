@@ -328,7 +328,27 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     public long activatedTick = Integer.MIN_VALUE;
     public void inactiveTick() { }
     // Spigot end
+    // Paper start - Entity origin API
+    @javax.annotation.Nullable
+    private org.bukkit.util.Vector origin;
+    @javax.annotation.Nullable
+    private UUID originWorld;
 
+    public void setOrigin(@javax.annotation.Nonnull Location location) {
+        this.origin = location.toVector();
+        this.originWorld = location.getWorld().getUID();
+    }
+
+    @javax.annotation.Nullable
+    public org.bukkit.util.Vector getOriginVector() {
+        return this.origin != null ? this.origin.clone() : null;
+    }
+
+    @javax.annotation.Nullable
+    public UUID getOriginWorld() {
+        return this.originWorld;
+    }
+    // Paper end - Entity origin API
     public float getBukkitYaw() {
         return this.yRot;
     }
@@ -2153,6 +2173,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                 this.bukkitEntity.storeBukkitValues(nbttagcompound);
             }
             // CraftBukkit end
+            // Paper start
+            if (this.origin != null) {
+                UUID originWorld = this.originWorld != null ? this.originWorld : this.level != null ? this.level.getWorld().getUID() : null;
+                if (originWorld != null) {
+                    nbttagcompound.putUUID("Paper.OriginWorld", originWorld);
+                }
+                nbttagcompound.put("Paper.Origin", this.newDoubleList(origin.getX(), origin.getY(), origin.getZ()));
+            }
+            // Paper end
             return nbttagcompound;
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
@@ -2279,6 +2308,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                 this.persistentInvisibility = bukkitInvisible;
             }
             // CraftBukkit end
+
+            // Paper start
+            ListTag originTag = nbt.getList("Paper.Origin", net.minecraft.nbt.Tag.TAG_DOUBLE);
+            if (!originTag.isEmpty()) {
+                UUID originWorld = null;
+                if (nbt.contains("Paper.OriginWorld")) {
+                    originWorld = nbt.getUUID("Paper.OriginWorld");
+                } else if (this.level != null) {
+                    originWorld = this.level.getWorld().getUID();
+                }
+                this.originWorld = originWorld;
+                origin = new org.bukkit.util.Vector(originTag.getDouble(0), originTag.getDouble(1), originTag.getDouble(2));
+            }
+            // Paper end
 
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
