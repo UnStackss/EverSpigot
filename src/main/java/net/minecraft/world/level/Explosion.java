@@ -285,7 +285,7 @@ public class Explosion {
                         if (entity instanceof LivingEntity) {
                             LivingEntity entityliving = (LivingEntity) entity;
 
-                            d13 = d12 * (1.0D - entityliving.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE));
+                            d13 = entity instanceof Player && this.level.paperConfig().environment.disableExplosionKnockback ? 0 : d12 * (1.0D - entityliving.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE));
                         } else {
                             d13 = d12;
                         }
@@ -310,7 +310,7 @@ public class Explosion {
                         if (entity instanceof Player) {
                             Player entityhuman = (Player) entity;
 
-                            if (!entityhuman.isSpectator() && (!entityhuman.isCreative() || !entityhuman.getAbilities().flying)) {
+                            if (!entityhuman.isSpectator() && (!entityhuman.isCreative() || !entityhuman.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Option to disable explosion knockback
                                 this.hitPlayers.put(entityhuman, vec3d1);
                             }
                         }
