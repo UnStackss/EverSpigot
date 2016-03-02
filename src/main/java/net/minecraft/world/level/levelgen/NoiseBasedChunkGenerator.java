@@ -206,7 +206,7 @@ public final class NoiseBasedChunkGenerator extends ChunkGenerator {
     @Override
     public void buildSurface(WorldGenRegion region, StructureManager structures, RandomState noiseConfig, ChunkAccess chunk) {
         if (!SharedConstants.debugVoidTerrain(chunk.getPos())) {
-            WorldGenerationContext worldgenerationcontext = new WorldGenerationContext(this, region);
+            WorldGenerationContext worldgenerationcontext = new WorldGenerationContext(this, region, region.getMinecraftWorld()); // Paper - Flat bedrock generator settings
 
             this.buildSurface(chunk, worldgenerationcontext, noiseConfig, structures, region.getBiomeManager(), region.registryAccess().registryOrThrow(Registries.BIOME), Blender.of(region));
         }
@@ -234,7 +234,7 @@ public final class NoiseBasedChunkGenerator extends ChunkGenerator {
             return this.createNoiseChunk(ichunkaccess1, structureAccessor, Blender.of(chunkRegion), noiseConfig);
         });
         Aquifer aquifer = noisechunk.aquifer();
-        CarvingContext carvingcontext = new CarvingContext(this, chunkRegion.registryAccess(), chunk.getHeightAccessorForGeneration(), noisechunk, noiseConfig, ((NoiseGeneratorSettings) this.settings.value()).surfaceRule());
+        CarvingContext carvingcontext = new CarvingContext(this, chunkRegion.registryAccess(), chunk.getHeightAccessorForGeneration(), noisechunk, noiseConfig, ((NoiseGeneratorSettings) this.settings.value()).surfaceRule(), chunkRegion.getMinecraftWorld()); // Paper - Flat bedrock generator settings
         CarvingMask carvingmask = ((ProtoChunk) chunk).getOrCreateCarvingMask(carverStep);
 
         for (int j = -8; j <= 8; ++j) {

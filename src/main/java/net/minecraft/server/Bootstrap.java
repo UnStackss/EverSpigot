@@ -76,6 +76,7 @@ public class Bootstrap {
                     CauldronInteraction.bootStrap();
                     // Paper start
                     BuiltInRegistries.bootStrap(() -> {
+                        io.papermc.paper.world.worldgen.OptionallyFlatBedrockConditionSource.bootstrap(); // Paper - Flat bedrock generator settings
                     });
                     // Paper end
                     CreativeModeTabs.validate();

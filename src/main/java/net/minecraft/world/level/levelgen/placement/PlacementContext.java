@@ -18,7 +18,7 @@ public class PlacementContext extends WorldGenerationContext {
     private final Optional<PlacedFeature> topFeature;
 
     public PlacementContext(WorldGenLevel world, ChunkGenerator generator, Optional<PlacedFeature> placedFeature) {
-        super(generator, world);
+        super(generator, world, world.getLevel()); // Paper - Flat bedrock generator settings
         this.level = world;
         this.generator = generator;
         this.topFeature = placedFeature;
