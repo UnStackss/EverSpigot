@@ -49,6 +49,7 @@ public abstract class BaseSpawner {
     public int maxNearbyEntities = 6;
     public int requiredPlayerRange = 16;
     public int spawnRange = 4;
+    private int tickDelay = 0; // Paper - Configurable mob spawner tick rate
 
     public BaseSpawner() {}
 
@@ -83,13 +84,18 @@ public abstract class BaseSpawner {
     }
 
     public void serverTick(ServerLevel world, BlockPos pos) {
+        // Paper start - Configurable mob spawner tick rate
+        if (spawnDelay > 0 && --tickDelay > 0) return;
+        tickDelay = world.paperConfig().tickRates.mobSpawner;
+        if (tickDelay == -1) { return; } // If disabled
+        // Paper end - Configurable mob spawner tick rate
         if (this.isNearPlayer(world, pos)) {
-            if (this.spawnDelay == -1) {
+            if (this.spawnDelay < -tickDelay) { // Paper - Configurable mob spawner tick rate
                 this.delay(world, pos);
             }
 
             if (this.spawnDelay > 0) {
-                --this.spawnDelay;
+                this.spawnDelay -= tickDelay; // Paper - Configurable mob spawner tick rate
             } else {
                 boolean flag = false;
                 RandomSource randomsource = world.getRandom();
