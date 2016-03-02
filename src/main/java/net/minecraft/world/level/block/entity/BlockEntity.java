@@ -272,7 +272,12 @@ public abstract class BlockEntity {
     public void fillCrashReportCategory(CrashReportCategory crashReportSection) {
         crashReportSection.setDetail("Name", this::getNameForReporting);
         if (this.level != null) {
-            CrashReportCategory.populateBlockDetails(crashReportSection, this.level, this.worldPosition, this.getBlockState());
+            // Paper start - Prevent block entity and entity crashes
+            BlockState block = this.getBlockState();
+            if (block != null) {
+                CrashReportCategory.populateBlockDetails(crashReportSection, this.level, this.worldPosition, block);
+            }
+            // Paper end - Prevent block entity and entity crashes
             CrashReportCategory.populateBlockDetails(crashReportSection, this.level, this.worldPosition, this.level.getBlockState(this.worldPosition));
         }
     }

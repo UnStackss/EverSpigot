@@ -953,11 +953,11 @@ public class LevelChunk extends ChunkAccess {
 
                         gameprofilerfiller.pop();
                     } catch (Throwable throwable) {
-                        CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking block entity");
-                        CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Block entity being ticked");
-
-                        this.blockEntity.fillCrashReportCategory(crashreportsystemdetails);
-                        throw new ReportedException(crashreport);
+                        // Paper start - Prevent block entity and entity crashes
+                        final String msg = String.format("BlockEntity threw exception at %s:%s,%s,%s", LevelChunk.this.getLevel().getWorld().getName(), this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
+                        net.minecraft.server.MinecraftServer.LOGGER.error(msg, throwable);
+                        LevelChunk.this.removeBlockEntity(this.getPos());
+                        // Paper end - Prevent block entity and entity crashes
                         // Spigot start
                     } finally {
                         this.blockEntity.tickTimer.stopTiming();
