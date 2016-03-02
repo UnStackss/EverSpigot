@@ -706,7 +706,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public void checkBelowWorld() {
-        if (this.getY() < (double) (this.level().getMinBuildHeight() - 64)) {
+        // Paper start - Configurable nether ceiling damage
+        if (this.getY() < (double) (this.level.getMinBuildHeight() - 64) || (this.level.getWorld().getEnvironment() == org.bukkit.World.Environment.NETHER
+            && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.test(v -> this.getY() >= v)
+            && (!(this instanceof Player player) || !player.getAbilities().invulnerable))) {
+            // Paper end - Configurable nether ceiling damage
             this.onBelowWorld();
         }
 

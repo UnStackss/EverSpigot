@@ -58,7 +58,7 @@ public class PortalForcer {
         }, blockposition, i, PoiManager.Occupancy.ANY).map(PoiRecord::getPos);
 
         Objects.requireNonNull(worldborder);
-        return stream.filter(worldborder::isWithinBounds).filter((blockposition1) -> {
+        return stream.filter(worldborder::isWithinBounds).filter(pos -> !(this.level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.test(v -> pos.getY() >= v))).filter((blockposition1) -> { // Paper - Configurable nether ceiling damage
             return this.level.getBlockState(blockposition1).hasProperty(BlockStateProperties.HORIZONTAL_AXIS);
         }).min(Comparator.comparingDouble((BlockPos blockposition1) -> { // CraftBukkit - decompile error
             return blockposition1.distSqr(blockposition);
@@ -79,6 +79,11 @@ public class PortalForcer {
         BlockPos blockposition2 = null;
         WorldBorder worldborder = this.level.getWorldBorder();
         int i = Math.min(this.level.getMaxBuildHeight(), this.level.getMinBuildHeight() + this.level.getLogicalHeight()) - 1;
+        // Paper start - Configurable nether ceiling damage; make sure the max height doesn't exceed the void damage height
+        if (this.level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.enabled()) {
+            i = Math.min(i, this.level.paperConfig().environment.netherCeilingVoidDamageHeight.intValue() - 1);
+        }
+        // Paper end - Configurable nether ceiling damage
         boolean flag = true;
         BlockPos.MutableBlockPos blockposition_mutableblockposition = blockposition.mutable();
         Iterator iterator = BlockPos.spiralAround(blockposition, createRadius, Direction.EAST, Direction.SOUTH).iterator(); // CraftBukkit
