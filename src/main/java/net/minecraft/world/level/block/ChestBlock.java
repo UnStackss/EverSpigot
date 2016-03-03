@@ -349,6 +349,11 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements 
     }
 
     private static boolean isCatSittingOnChest(LevelAccessor world, BlockPos pos) {
+        // Paper start - Option to disable chest cat detection
+        if (world.getMinecraftWorld().paperConfig().entities.behavior.disableChestCatDetection) {
+            return false;
+        }
+        // Paper end - Option to disable chest cat detection
         List<Cat> list = world.getEntitiesOfClass(Cat.class, new AABB((double) pos.getX(), (double) (pos.getY() + 1), (double) pos.getZ(), (double) (pos.getX() + 1), (double) (pos.getY() + 2), (double) (pos.getZ() + 1)));
 
         if (!list.isEmpty()) {
