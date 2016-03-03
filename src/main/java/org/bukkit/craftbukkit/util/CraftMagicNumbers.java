@@ -197,6 +197,12 @@ public final class CraftMagicNumbers implements UnsafeValues {
         return CraftNamespacedKey.toMinecraft(mat.getKey());
     }
     // ========================================================================
+    // Paper start
+    @Override
+    public void reportTimings() {
+        co.aikar.timings.TimingsExport.reportTimings();
+    }
+    // Paper end
 
     public static byte toLegacyData(BlockState data) {
         return CraftLegacy.toLegacyData(data);
@@ -442,6 +448,12 @@ public final class CraftMagicNumbers implements UnsafeValues {
     public DamageSource.Builder createDamageSourceBuilder(DamageType damageType) {
         return new CraftDamageSourceBuilder(damageType);
     }
+    // Paper start
+    @Override
+    public String getTimingsServerName() {
+        return io.papermc.paper.configuration.GlobalConfiguration.get().timings.serverName;
+    }
+    // Paper end
 
     @Override
     public String get(Class<?> aClass, String s) {

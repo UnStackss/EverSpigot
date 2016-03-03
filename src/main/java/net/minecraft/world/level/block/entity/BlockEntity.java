@@ -34,10 +34,12 @@ import org.bukkit.inventory.InventoryHolder;
 // CraftBukkit end
 
 import org.spigotmc.CustomTimingsHandler; // Spigot
+import co.aikar.timings.MinecraftTimings; // Paper
+import co.aikar.timings.Timing; // Paper
 
 public abstract class BlockEntity {
 
-    public CustomTimingsHandler tickTimer = org.bukkit.craftbukkit.SpigotTimings.getTileEntityTimings(this); // Spigot
+    public Timing tickTimer = MinecraftTimings.getTileEntityTimings(this); // Paper
     // CraftBukkit start - data containers
     private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
     public CraftPersistentDataContainer persistentDataContainer;

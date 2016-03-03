@@ -472,13 +472,10 @@ public class ChunkSerializer {
         ListTag nbttaglist1 = ChunkSerializer.getListOfCompoundsOrNull(nbt, "block_entities");
 
         return nbttaglist == null && nbttaglist1 == null ? null : (chunk) -> {
-            world.timings.syncChunkLoadEntitiesTimer.startTiming(); // Spigot
             if (nbttaglist != null) {
                 world.addLegacyChunkEntities(EntityType.loadEntitiesRecursive(nbttaglist, world));
             }
-            world.timings.syncChunkLoadEntitiesTimer.stopTiming(); // Spigot
 
-            world.timings.syncChunkLoadTileEntitiesTimer.startTiming(); // Spigot
             if (nbttaglist1 != null) {
                 for (int i = 0; i < nbttaglist1.size(); ++i) {
                     CompoundTag nbttagcompound1 = nbttaglist1.getCompound(i);
@@ -496,7 +493,6 @@ public class ChunkSerializer {
                     }
                 }
             }
-            world.timings.syncChunkLoadTileEntitiesTimer.stopTiming(); // Spigot
 
         };
     }

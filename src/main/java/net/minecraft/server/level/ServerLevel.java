@@ -1,6 +1,8 @@
 package net.minecraft.server.level;
 
 import com.google.common.annotations.VisibleForTesting;
+import co.aikar.timings.TimingHistory; // Paper
+import co.aikar.timings.Timings; // Paper
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.datafixers.util.Pair;
@@ -173,7 +175,6 @@ import net.minecraft.world.ticks.LevelTicks;
 import org.slf4j.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.WeatherType;
-import org.bukkit.craftbukkit.SpigotTimings; // Spigot
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.generator.CustomWorldChunkManager;
 import org.bukkit.craftbukkit.util.WorldUUID;
@@ -478,7 +479,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
         }
 
         gameprofilerfiller.popPush("tickPending");
-        this.timings.doTickPending.startTiming(); // Spigot
+        this.timings.scheduledBlocks.startTiming(); // Paper
         if (!this.isDebug() && flag) {
             j = this.getGameTime();
             gameprofilerfiller.push("blockTicks");
@@ -487,15 +488,19 @@ public class ServerLevel extends Level implements WorldGenLevel {
             this.fluidTicks.tick(j, 65536, this::tickFluid);
             gameprofilerfiller.pop();
         }
-        this.timings.doTickPending.stopTiming(); // Spigot
+        this.timings.scheduledBlocks.stopTiming(); // Paper
 
         gameprofilerfiller.popPush("raid");
         if (flag) {
+            this.timings.raids.startTiming(); // Paper - timings
             this.raids.tick();
+            this.timings.raids.stopTiming(); // Paper - timings
         }
 
         gameprofilerfiller.popPush("chunkSource");
+        this.timings.chunkProviderTick.startTiming(); // Paper - timings
         this.getChunkSource().tick(shouldKeepTicking, true);
+        this.timings.chunkProviderTick.stopTiming(); // Paper - timings
         gameprofilerfiller.popPush("blockEvents");
         if (flag) {
             this.timings.doSounds.startTiming(); // Spigot
@@ -648,6 +653,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
         }
 
         gameprofilerfiller.popPush("tickBlocks");
+        timings.chunkTicksBlocks.startTiming(); // Paper
         if (randomTickSpeed > 0) {
             LevelChunkSection[] achunksection = chunk.getSections();
 
@@ -680,6 +686,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
             }
         }
 
+        timings.chunkTicksBlocks.stopTiming(); // Paper
         gameprofilerfiller.pop();
     }
 
@@ -956,14 +963,22 @@ public class ServerLevel extends Level implements WorldGenLevel {
     }
 
     public void tickNonPassenger(Entity entity) {
+        ++TimingHistory.entityTicks; // Paper - timings
         // Spigot start
+        co.aikar.timings.Timing timer; // Paper
         if (!org.spigotmc.ActivationRange.checkIfActive(entity)) {
             entity.tickCount++;
+            timer = entity.getType().inactiveTickTimer.startTiming(); try { // Paper - timings
             entity.inactiveTick();
+            } finally { timer.stopTiming(); } // Paper
             return;
         }
         // Spigot end
-        entity.tickTimer.startTiming(); // Spigot
+        // Paper start- timings
+        TimingHistory.activatedEntityTicks++;
+        timer = entity.getVehicle() != null ? entity.getType().passengerTickTimer.startTiming() : entity.getType().tickTimer.startTiming();
+        try {
+        // Paper end - timings
         entity.setOldPosAndRot();
         ProfilerFiller gameprofilerfiller = this.getProfiler();
 
@@ -982,7 +997,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
 
             this.tickPassenger(entity, entity1);
         }
-        entity.tickTimer.stopTiming(); // Spigot
+        } finally { timer.stopTiming(); } // Paper - timings
 
     }
 
@@ -1024,6 +1039,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
 
         if (!savingDisabled) {
             org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(this.getWorld())); // CraftBukkit
+            try (co.aikar.timings.Timing ignored = timings.worldSave.startTiming()) { // Paper
             if (progressListener != null) {
                 progressListener.progressStartNoAbort(Component.translatable("menu.savingLevel"));
             }
@@ -1033,7 +1049,10 @@ public class ServerLevel extends Level implements WorldGenLevel {
                 progressListener.progressStage(Component.translatable("menu.savingChunks"));
             }
 
+                timings.worldSaveChunks.startTiming(); // Paper
             chunkproviderserver.save(flush);
+                timings.worldSaveChunks.stopTiming(); // Paper
+            }// Paper
             if (flush) {
                 this.entityManager.saveAll();
             } else {

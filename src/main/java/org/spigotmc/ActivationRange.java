@@ -27,7 +27,7 @@ import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import org.bukkit.craftbukkit.SpigotTimings;
+import co.aikar.timings.MinecraftTimings;
 
 public class ActivationRange
 {
@@ -74,8 +74,8 @@ public class ActivationRange
     /**
      * These entities are excluded from Activation range checks.
      *
-     * @param entity
-     * @param config
+     * @param entity Entity to initialize
+     * @param config Spigot config to determine ranges
      * @return boolean If it should always tick.
      */
     public static boolean initializeEntityActivationState(Entity entity, SpigotWorldConfig config)
@@ -110,7 +110,7 @@ public class ActivationRange
      */
     public static void activateEntities(Level world)
     {
-        SpigotTimings.entityActivationCheckTimer.startTiming();
+        MinecraftTimings.entityActivationCheckTimer.startTiming();
         final int miscActivationRange = world.spigotConfig.miscActivationRange;
         final int raiderActivationRange = world.spigotConfig.raiderActivationRange;
         final int animalActivationRange = world.spigotConfig.animalActivationRange;
@@ -137,7 +137,7 @@ public class ActivationRange
 
             world.getEntities().get(ActivationRange.maxBB, ActivationRange::activateEntity);
         }
-        SpigotTimings.entityActivationCheckTimer.stopTiming();
+        MinecraftTimings.entityActivationCheckTimer.stopTiming();
     }
 
     /**
@@ -232,10 +232,8 @@ public class ActivationRange
      */
     public static boolean checkIfActive(Entity entity)
     {
-        SpigotTimings.checkIfActiveTimer.startTiming();
         // Never safe to skip fireworks or entities not yet added to chunk
         if ( entity instanceof FireworkRocketEntity ) {
-            SpigotTimings.checkIfActiveTimer.stopTiming();
             return true;
         }
 
@@ -259,7 +257,6 @@ public class ActivationRange
         {
             isActive = false;
         }
-        SpigotTimings.checkIfActiveTimer.stopTiming();
         return isActive;
     }
 }

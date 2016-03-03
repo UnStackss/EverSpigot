@@ -1,5 +1,6 @@
 package net.minecraft.server.players;
 
+import co.aikar.timings.MinecraftTimings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -1007,10 +1008,11 @@ public abstract class PlayerList {
     }
 
     public void saveAll() {
+        MinecraftTimings.savePlayers.startTiming(); // Paper
         for (int i = 0; i < this.players.size(); ++i) {
             this.save((ServerPlayer) this.players.get(i));
         }
-
+        MinecraftTimings.savePlayers.stopTiming(); // Paper
     }
 
     public UserWhiteList getWhiteList() {
