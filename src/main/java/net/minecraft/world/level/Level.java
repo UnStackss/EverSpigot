@@ -733,6 +733,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             // Paper start - Prevent block entity and entity crashes
             final String msg = String.format("Entity threw exception at %s:%s,%s,%s", entity.level().getWorld().getName(), entity.getX(), entity.getY(), entity.getZ());
             MinecraftServer.LOGGER.error(msg, throwable);
+            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
             entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
             // Paper end - Prevent block entity and entity crashes
         }

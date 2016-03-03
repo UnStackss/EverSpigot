@@ -356,7 +356,11 @@ public class OldUsersConverter {
                         try {
                             root = NbtIo.readCompressed(new java.io.FileInputStream(file5), NbtAccounter.unlimitedHeap());
                         } catch (Exception exception) {
-                            io.papermc.paper.util.TraceUtil.printStackTrace(exception); // Paper
+                            // Paper start
+                            io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception);
+                            exception.printStackTrace();
+                            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception);
+                            // Paper end
                         }
 
                         if (root != null) {
@@ -369,7 +373,11 @@ public class OldUsersConverter {
                             try {
                                 NbtIo.writeCompressed(root, new java.io.FileOutputStream(file2));
                             } catch (Exception exception) {
-                                io.papermc.paper.util.TraceUtil.printStackTrace(exception); // Paper
+                                // Paper start
+                                io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(exception);
+                                exception.printStackTrace();
+                                com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception);
+                                // Paper end
                             }
                        }
                         // CraftBukkit end

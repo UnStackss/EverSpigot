@@ -274,6 +274,7 @@ public final class NaturalSpawner {
             NaturalSpawner.LOGGER.warn("Can't spawn entity of type: {}", BuiltInRegistries.ENTITY_TYPE.getKey(type));
         } catch (Exception exception) {
             NaturalSpawner.LOGGER.warn("Failed to create mob", exception);
+            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception); // Paper - ServerExceptionEvent
         }
 
         return null;
@@ -362,6 +363,7 @@ public final class NaturalSpawner {
                                     entity = biomesettingsmobs_c.type.create(world.getLevel());
                                 } catch (Exception exception) {
                                     NaturalSpawner.LOGGER.warn("Failed to create mob", exception);
+                                    com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception); // Paper - ServerExceptionEvent
                                     continue;
                                 }
 

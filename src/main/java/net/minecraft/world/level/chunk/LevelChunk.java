@@ -471,8 +471,13 @@ public class LevelChunk extends ChunkAccess {
         BlockState iblockdata = this.getBlockState(blockposition);
 
         if (!iblockdata.hasBlockEntity()) {
-            LevelChunk.LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", new Object[]{blockEntity, blockposition, iblockdata});
-            new Exception().printStackTrace(); // CraftBukkit
+            // Paper start - ServerExceptionEvent
+            com.destroystokyo.paper.exception.ServerInternalException e = new com.destroystokyo.paper.exception.ServerInternalException(
+                "Trying to set block entity %s at position %s, but state %s does not allow it".formatted(blockEntity, blockposition, iblockdata)
+            );
+            e.printStackTrace();
+            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(e);
+            // Paper end - ServerExceptionEvent
         } else {
             BlockState iblockdata1 = blockEntity.getBlockState();
 
@@ -956,6 +961,7 @@ public class LevelChunk extends ChunkAccess {
                         // Paper start - Prevent block entity and entity crashes
                         final String msg = String.format("BlockEntity threw exception at %s:%s,%s,%s", LevelChunk.this.getLevel().getWorld().getName(), this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
                         net.minecraft.server.MinecraftServer.LOGGER.error(msg, throwable);
+                        net.minecraft.world.level.chunk.LevelChunk.this.level.getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, throwable))); // Paper - ServerExceptionEvent
                         LevelChunk.this.removeBlockEntity(this.getPos());
                         // Paper end - Prevent block entity and entity crashes
                         // Spigot start

@@ -296,6 +296,7 @@ public class RegionFile implements AutoCloseable {
                     return true;
                 }
             } catch (IOException ioexception) {
+                com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(ioexception); // Paper - ServerExceptionEvent
                 return false;
             }
         }
@@ -377,6 +378,7 @@ public class RegionFile implements AutoCloseable {
             ((java.nio.Buffer) buf).position(5); // CraftBukkit - decompile error
             filechannel.write(buf);
         } catch (Throwable throwable) {
+            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(throwable); // Paper - ServerExceptionEvent
             if (filechannel != null) {
                 try {
                     filechannel.close();
