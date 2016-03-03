@@ -268,6 +268,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     public final Object object;
     private int containerCounter;
     public boolean wonGame;
+    private int containerUpdateDelay; // Paper - Configurable container update tick rate
 
     // CraftBukkit start
     public CraftPlayer.TransferCookieConnection transferCookieConnection;
@@ -696,7 +697,12 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             --this.invulnerableTime;
         }
 
-        this.containerMenu.broadcastChanges();
+        // Paper start - Configurable container update tick rate
+        if (--containerUpdateDelay <= 0) {
+            this.containerMenu.broadcastChanges();
+            containerUpdateDelay = this.level().paperConfig().tickRates.containerUpdate;
+        }
+        // Paper end - Configurable container update tick rate
         if (!this.level().isClientSide && !this.containerMenu.stillValid(this)) {
             this.closeContainer();
             this.containerMenu = this.inventoryMenu;
