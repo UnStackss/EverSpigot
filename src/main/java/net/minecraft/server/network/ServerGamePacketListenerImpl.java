@@ -2013,7 +2013,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         }
         OutgoingChatMessage outgoing = OutgoingChatMessage.create(original);
 
-        if (!async && s.startsWith("/")) {
+        if (false && !async && s.startsWith("/")) { // Paper - Don't handle commands in chat logic
             this.handleCommand(s);
         } else if (this.player.getChatVisibility() == ChatVisiblity.SYSTEM) {
             // Do nothing, this is coming from a plugin
@@ -2100,7 +2100,8 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         }
     }
 
-    private void handleCommand(String s) {
+    public void handleCommand(String s) { // Paper - private -> public
+        org.spigotmc.AsyncCatcher.catchOp("Command Dispatched Async: " + s); // Paper - Add async catcher
         co.aikar.timings.MinecraftTimings.playerCommandTimer.startTiming(); // Paper
         if ( org.spigotmc.SpigotConfig.logCommands ) // Spigot
         this.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + s);
