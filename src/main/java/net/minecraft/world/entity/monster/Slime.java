@@ -350,7 +350,7 @@ public class Slime extends Mob implements Enemy {
                 }
 
                 ChunkPos chunkcoordintpair = new ChunkPos(pos);
-                boolean flag = WorldgenRandom.seedSlimeChunk(chunkcoordintpair.x, chunkcoordintpair.z, ((WorldGenLevel) world).getSeed(), world.getMinecraftWorld().spigotConfig.slimeSeed).nextInt(10) == 0; // Spigot
+                boolean flag = world.getMinecraftWorld().paperConfig().entities.spawning.allChunksAreSlimeChunks || WorldgenRandom.seedSlimeChunk(chunkcoordintpair.x, chunkcoordintpair.z, ((WorldGenLevel) world).getSeed(), world.getMinecraftWorld().spigotConfig.slimeSeed).nextInt(10) == 0; // Spigot // Paper
 
                 if (random.nextInt(10) == 0 && flag && pos.getY() < 40) {
                     return checkMobSpawnRules(type, world, spawnReason, pos, random);
