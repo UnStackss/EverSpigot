@@ -234,7 +234,10 @@ public abstract class PlayerList {
 
         player.spawnIn(worldserver1);
         player.gameMode.setLevel((ServerLevel) player.level());
-        player.absMoveTo(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+        // Paper start - set raw so we aren't fully joined to the world (not added to chunk or world)
+        player.setPosRaw(loc.getX(), loc.getY(), loc.getZ());
+        player.setRot(loc.getYaw(), loc.getPitch());
+        // Paper end - set raw so we aren't fully joined to the world
         // Spigot end
 
         // CraftBukkit - Moved message to after join
