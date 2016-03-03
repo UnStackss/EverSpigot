@@ -97,14 +97,18 @@ public class ProtoChunk extends ChunkAccess {
 
     @Override
     public BlockState getBlockState(BlockPos pos) {
-        int i = pos.getY();
-        if (this.isOutsideBuildHeight(i)) {
+        // Paper start
+        return getBlockState(pos.getX(), pos.getY(), pos.getZ());
+    }
+    public BlockState getBlockState(final int x, final int y, final int z) {
+        if (this.isOutsideBuildHeight(y)) {
             return Blocks.VOID_AIR.defaultBlockState();
         } else {
-            LevelChunkSection levelChunkSection = this.getSection(this.getSectionIndex(i));
-            return levelChunkSection.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : levelChunkSection.getBlockState(pos.getX() & 15, i & 15, pos.getZ() & 15);
+            LevelChunkSection levelChunkSection = this.getSections()[this.getSectionIndex(y)];
+            return levelChunkSection.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : levelChunkSection.getBlockState(x & 15, y & 15, z & 15);
         }
     }
+    // Paper end
 
     @Override
     public FluidState getFluidState(BlockPos pos) {

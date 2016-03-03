@@ -189,6 +189,7 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
         return GameEventListenerRegistry.NOOP;
     }
 
+    public abstract BlockState getBlockState(final int x, final int y, final int z); // Paper
     @Nullable
     public abstract BlockState setBlockState(BlockPos pos, BlockState state, boolean moved);
 

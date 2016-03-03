@@ -28,6 +28,12 @@ public class Vec3i implements Comparable<Vec3i> {
         );
     }
 
+    // Paper start
+    public final boolean isInsideBuildHeightAndWorldBoundsHorizontal(net.minecraft.world.level.LevelHeightAccessor levelHeightAccessor) {
+        return getX() >= -30000000 && getZ() >= -30000000 && getX() < 30000000 && getZ() < 30000000 && !levelHeightAccessor.isOutsideBuildHeight(getY());
+    }
+    // Paper end
+
     public Vec3i(int x, int y, int z) {
         this.x = x;
         this.y = y;

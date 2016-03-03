@@ -99,6 +99,12 @@ public class ImposterProtoChunk extends ProtoChunk implements ca.spottedleaf.moo
     public BlockState getBlockState(BlockPos pos) {
         return this.wrapped.getBlockState(pos);
     }
+    // Paper start
+    @Override
+    public final BlockState getBlockState(final int x, final int y, final int z) {
+        return this.wrapped.getBlockStateFinal(x, y, z);
+    }
+    // Paper end
 
     @Override
     public FluidState getFluidState(BlockPos pos) {
