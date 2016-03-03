@@ -139,8 +139,14 @@ public class NetherPortalBlock extends Block implements Portal {
             WorldBorder worldborder = worldserver1.getWorldBorder();
             double d0 = DimensionType.getTeleportationScale(world.dimensionType(), worldserver1.dimensionType());
             BlockPos blockposition1 = worldborder.clampToBounds(entity.getX() * d0, entity.getY(), entity.getZ() * d0);
+            // Paper start - Configurable portal search radius
+            int portalSearchRadius = worldserver1.paperConfig().environment.portalSearchRadius;
+            if (entity.level().paperConfig().environment.portalSearchVanillaDimensionScaling && flag) { // flag = is going to nether
+                portalSearchRadius = (int) (portalSearchRadius / worldserver1.dimensionType().coordinateScale());
+            }
+            // Paper end - Configurable portal search radius
             // CraftBukkit start
-            CraftPortalEvent event = entity.callPortalEvent(entity, CraftLocation.toBukkit(blockposition1, worldserver1.getWorld()), PlayerTeleportEvent.TeleportCause.NETHER_PORTAL, flag ? 16 : 128, 16);
+            CraftPortalEvent event = entity.callPortalEvent(entity, CraftLocation.toBukkit(blockposition1, worldserver1.getWorld()), PlayerTeleportEvent.TeleportCause.NETHER_PORTAL, portalSearchRadius, worldserver1.paperConfig().environment.portalCreateRadius); // Paper - use custom portal search radius
             if (event == null) {
                 return null;
             }

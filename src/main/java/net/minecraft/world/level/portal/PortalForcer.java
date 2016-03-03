@@ -42,6 +42,7 @@ public class PortalForcer {
         this.level = world;
     }
 
+    @io.papermc.paper.annotation.DoNotUse // Paper
     public Optional<BlockPos> findClosestPortalPosition(BlockPos pos, boolean destIsNether, WorldBorder worldBorder) {
         // CraftBukkit start
         return this.findClosestPortalPosition(pos, worldBorder, destIsNether ? 16 : 128); // Search Radius
