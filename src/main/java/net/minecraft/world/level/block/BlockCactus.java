@@ -65,13 +65,14 @@ public class BlockCactus extends Block {
             if (i < 3) {
                 int j = (Integer) iblockdata.getValue(BlockCactus.AGE);
 
-                if (j == 15) {
+                int modifier = worldserver.spigotConfig.cactusModifier; // Spigot - SPIGOT-7159: Better modifier resolution
+                if (j >= 15 || (modifier != 100 && randomsource.nextFloat() < (modifier / (100.0f * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
                     CraftEventFactory.handleBlockGrowEvent(worldserver, blockposition1, this.defaultBlockState()); // CraftBukkit
                     IBlockData iblockdata1 = (IBlockData) iblockdata.setValue(BlockCactus.AGE, 0);
 
                     worldserver.setBlock(blockposition, iblockdata1, 4);
                     worldserver.neighborChanged(iblockdata1, blockposition1, this, blockposition, false);
-                } else {
+                } else if (modifier == 100 || randomsource.nextFloat() < (modifier / (100.0f * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
                     worldserver.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockCactus.AGE, j + 1), 4);
                 }
 
