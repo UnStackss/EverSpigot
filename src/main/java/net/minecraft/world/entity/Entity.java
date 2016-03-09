@@ -2934,6 +2934,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     @Nullable
     public PlayerTeam getTeam() {
+        if (!this.level().paperConfig().scoreboards.allowNonPlayerEntitiesOnScoreboards && !(this instanceof Player)) { return null; } // Paper - Perf: Disable Scoreboards for non players by default
         return this.level().getScoreboard().getPlayersTeam(this.getScoreboardName());
     }
 
