@@ -71,6 +71,7 @@ public class EndPortalBlock extends BaseEntityBlock implements Portal {
             if (!world.isClientSide && world.dimension() == Level.END && entity instanceof ServerPlayer) {
                 ServerPlayer entityplayer = (ServerPlayer) entity;
 
+                if (world.paperConfig().misc.disableEndCredits) entityplayer.seenCredits = true; // Paper - Option to disable end credits
                 if (!entityplayer.seenCredits) {
                     entityplayer.showEndCredits();
                     return;
