@@ -341,6 +341,22 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         return chunk == null ? null : chunk.getFluidState(blockposition);
     }
 
+    public final boolean isLoadedAndInBounds(BlockPos blockposition) { // Paper - final for inline
+        return getWorldBorder().isWithinBounds(blockposition) && getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4) != null;
+    }
+
+    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) { // Overridden in WorldServer for ABI compat which has final
+        return ((ServerLevel) this).getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+    }
+    public final @Nullable LevelChunk getChunkIfLoaded(BlockPos blockposition) {
+        return ((ServerLevel) this).getChunkSource().getChunkAtIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
+    }
+
+    //  reduces need to do isLoaded before getType
+    public final @Nullable BlockState getBlockStateIfLoadedAndInBounds(BlockPos blockposition) {
+        return getWorldBorder().isWithinBounds(blockposition) ? getBlockStateIfLoaded(blockposition) : null;
+    }
+
     @Override
     public ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
         // Paper end
