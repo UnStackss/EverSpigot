@@ -621,7 +621,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
 
             if (this.isRainingAt(blockposition)) {
                 DifficultyInstance difficultydamagescaler = this.getCurrentDifficultyAt(blockposition);
-                boolean flag1 = this.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && this.random.nextDouble() < (double) difficultydamagescaler.getEffectiveDifficulty() * 0.01D && !this.getBlockState(blockposition.below()).is(Blocks.LIGHTNING_ROD);
+                boolean flag1 = this.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && this.random.nextDouble() < (double) difficultydamagescaler.getEffectiveDifficulty() * this.paperConfig().entities.spawning.skeletonHorseThunderSpawnChance.or(0.01D) && !this.getBlockState(blockposition.below()).is(Blocks.LIGHTNING_ROD); // Paper - Configurable spawn chances for skeleton horses
 
                 if (flag1) {
                     SkeletonHorse entityhorseskeleton = (SkeletonHorse) EntityType.SKELETON_HORSE.create(this);
