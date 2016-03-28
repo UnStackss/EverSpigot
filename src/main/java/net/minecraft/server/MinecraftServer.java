@@ -1544,6 +1544,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
 
         while (iterator.hasNext()) {
             ServerLevel worldserver = (ServerLevel) iterator.next();
+            worldserver.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
 
             this.profiler.push(() -> {
                 String s = String.valueOf(worldserver);

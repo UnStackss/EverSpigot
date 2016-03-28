@@ -102,7 +102,7 @@ public class DoublePlantBlock extends BushBlock {
 
     protected static void preventDropFromBottomPart(Level world, BlockPos pos, BlockState state, Player player) {
         // CraftBukkit start
-        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(world, pos).isCancelled()) {
+        if (((net.minecraft.server.level.ServerLevel)world).hasPhysicsEvent && org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(world, pos).isCancelled()) { // Paper
             return;
         }
         // CraftBukkit end
