@@ -39,7 +39,7 @@ public final class RegionFileStorage implements AutoCloseable {
         if (regionfile != null) {
             return regionfile;
         } else {
-            if (this.regionCache.size() >= 256) {
+            if (this.regionCache.size() >= io.papermc.paper.configuration.GlobalConfiguration.get().misc.regionFileCacheSize) { // Paper - Sanitise RegionFileCache and make configurable
                 ((RegionFile) this.regionCache.removeLast()).close();
             }
 
