@@ -16,9 +16,9 @@ public class WallClimberNavigation extends GroundPathNavigation {
     }
 
     @Override
-    public Path createPath(BlockPos target, int distance) {
+    public Path createPath(BlockPos target, @Nullable Entity entity, int distance) { // Paper - EntityPathfindEvent
         this.pathToPosition = target;
-        return super.createPath(target, distance);
+        return super.createPath(target, entity, distance); // Paper - EntityPathfindEvent
     }
 
     @Override

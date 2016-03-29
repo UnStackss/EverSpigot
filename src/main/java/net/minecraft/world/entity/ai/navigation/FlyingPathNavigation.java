@@ -40,7 +40,7 @@ public class FlyingPathNavigation extends PathNavigation {
 
     @Override
     public Path createPath(Entity entity, int distance) {
-        return this.createPath(entity.blockPosition(), distance);
+        return this.createPath(entity.blockPosition(), entity, distance); // Paper - EntityPathfindEvent
     }
 
     @Override
