@@ -310,6 +310,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     public final double[] recentTps = new double[ 3 ];
     // Spigot end
     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
+    public static long currentTickLong = 0L; // Paper - track current tick as a long
 
     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
         AtomicReference<S> atomicreference = new AtomicReference();
@@ -973,6 +974,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             MinecraftServer.LOGGER.error("Failed to unlock level {}", this.storageSource.getLevelId(), ioexception1);
         }
         // Spigot start
+        io.papermc.paper.util.MCUtil.asyncExecutor.shutdown(); // Paper
+        try { io.papermc.paper.util.MCUtil.asyncExecutor.awaitTermination(30, java.util.concurrent.TimeUnit.SECONDS); // Paper
+        } catch (java.lang.InterruptedException ignored) {} // Paper
         if (org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) {
             MinecraftServer.LOGGER.info("Saving usercache.json");
             this.getProfileCache().save();
@@ -1046,6 +1050,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                     }
                 }
                 // Spigot start
+                ++MinecraftServer.currentTickLong; // Paper - track current tick as a long
                 if ( tickCount++ % MinecraftServer.SAMPLE_INTERVAL == 0 )
                 {
                     long curTime = Util.getMillis();
@@ -1337,7 +1342,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             MinecraftServer.LOGGER.debug("Autosave finished");
             SpigotTimings.worldSaveTimer.stopTiming(); // Spigot
         }
-
         this.profiler.push("tallying");
         long j = Util.getNanos() - i;
         int k = this.tickCount % 100;

@@ -95,6 +95,7 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.SpigotTimings; // Spigot
 import org.bukkit.craftbukkit.block.CapturedBlockState;
+import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.bukkit.entity.SpawnCategory;
@@ -274,6 +275,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         return null;
     }
 
+    // Paper start
+    public net.minecraft.world.phys.BlockHitResult.Type clipDirect(Vec3 start, Vec3 end, net.minecraft.world.phys.shapes.CollisionContext context) {
+        // To be patched over
+        return this.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, context)).getType();
+    }
+    // Paper end
+
     public boolean isInWorldBounds(BlockPos pos) {
         return !this.isOutsideBuildHeight(pos) && Level.isInWorldBoundsHorizontal(pos);
     }
@@ -290,18 +298,52 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         return y < -20000000 || y >= 20000000;
     }
 
-    public LevelChunk getChunkAt(BlockPos pos) {
+    public final LevelChunk getChunkAt(BlockPos pos) { // Paper - help inline
         return this.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
     }
 
     @Override
-    public LevelChunk getChunk(int chunkX, int chunkZ) {
-        return (LevelChunk) this.getChunk(chunkX, chunkZ, ChunkStatus.FULL);
+    public final LevelChunk getChunk(int chunkX, int chunkZ) { // Paper - final to help inline
+        return (LevelChunk) this.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true); // Paper - avoid a method jump
     }
 
+    // Paper start - if loaded
     @Nullable
     @Override
+    public final ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
+        return ((ServerLevel)this).chunkSource.getChunkAtIfLoadedImmediately(x, z);
+    }
+
+    @Override
+    @Nullable
+    public final BlockState getBlockStateIfLoaded(BlockPos pos) {
+        // CraftBukkit start - tree generation
+        if (this.captureTreeGeneration) {
+            CraftBlockState previous = this.capturedBlockStates.get(pos);
+            if (previous != null) {
+                return previous.getHandle();
+            }
+        }
+        // CraftBukkit end
+        if (this.isOutsideBuildHeight(pos)) {
+            return Blocks.VOID_AIR.defaultBlockState();
+        } else {
+            ChunkAccess chunk = this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4);
+
+            return chunk == null ? null : chunk.getBlockState(pos);
+        }
+    }
+
+    @Override
+    public final FluidState getFluidIfLoaded(BlockPos blockposition) {
+        ChunkAccess chunk = this.getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
+
+        return chunk == null ? null : chunk.getFluidState(blockposition);
+    }
+
+    @Override
     public ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
+        // Paper end
         ChunkAccess ichunkaccess = this.getChunkSource().getChunk(chunkX, chunkZ, leastStatus, create);
 
         if (ichunkaccess == null && create) {
@@ -551,7 +593,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         if (this.isOutsideBuildHeight(pos)) {
             return Blocks.VOID_AIR.defaultBlockState();
         } else {
-            LevelChunk chunk = this.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
+            ChunkAccess chunk = this.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.FULL, true); // Paper - manually inline to reduce hops and avoid unnecessary null check to reduce total byte code size, this should never return null and if it does we will see it the next line but the real stack trace will matter in the chunk engine
 
             return chunk.getBlockState(pos);
         }

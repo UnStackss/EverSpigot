@@ -91,6 +91,18 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     private boolean addEntity(T entity, boolean existing) {
+        // Paper start - chunk system hooks
+        if (existing) {
+            // I don't want to know why this is a generic type.
+            Entity entityCasted = (Entity)entity;
+            boolean wasRemoved = entityCasted.isRemoved();
+            boolean screened = ca.spottedleaf.moonrise.common.util.ChunkSystem.screenEntity((net.minecraft.server.level.ServerLevel)entityCasted.level(), entityCasted);
+            if ((!wasRemoved && entityCasted.isRemoved()) || !screened) {
+                // removed by callback
+                return false;
+            }
+        }
+        // Paper end - chunk system hooks
         if (!this.addEntityUuid(entity)) {
             return false;
         } else {

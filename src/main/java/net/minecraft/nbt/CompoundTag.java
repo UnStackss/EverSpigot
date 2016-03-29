@@ -235,6 +235,10 @@ public class CompoundTag implements Tag {
         this.tags.put(key, NbtUtils.createUUID(value));
     }
 
+
+    /**
+     * You must use {@link #hasUUID(String)} before or else it <b>will</b> throw an NPE.
+     */
     public UUID getUUID(String key) {
         return NbtUtils.loadUUID(this.get(key));
     }

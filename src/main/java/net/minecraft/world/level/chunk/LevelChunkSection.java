@@ -19,7 +19,7 @@ public class LevelChunkSection {
     public static final int SECTION_HEIGHT = 16;
     public static final int SECTION_SIZE = 4096;
     public static final int BIOME_CONTAINER_BITS = 2;
-    private short nonEmptyBlockCount;
+    short nonEmptyBlockCount; // Paper - package private
     private short tickingBlockCount;
     private short tickingFluidCount;
     public final PalettedContainer<BlockState> states;

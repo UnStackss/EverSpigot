@@ -339,6 +339,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         return this.level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
     }
     // CraftBukkit end
+    // Paper start
+    public final AABB getBoundingBoxAt(double x, double y, double z) {
+        return this.dimensions.makeBoundingBox(x, y, z);
+    }
+    // Paper end
 
     public Entity(EntityType<?> type, Level world) {
         this.id = Entity.ENTITY_COUNTER.incrementAndGet();

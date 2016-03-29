@@ -841,12 +841,14 @@ public abstract class BlockBehaviour implements FeatureElement {
             }
         }
 
+        protected boolean shapeExceedsCube = true; // Paper - moved from actual method to here
         public void initCache() {
             this.fluidState = ((Block) this.owner).getFluidState(this.asState());
             this.isRandomlyTicking = ((Block) this.owner).isRandomlyTicking(this.asState());
             if (!this.getBlock().hasDynamicShape()) {
                 this.cache = new BlockBehaviour.BlockStateBase.Cache(this.asState());
             }
+            this.shapeExceedsCube = this.cache == null || this.cache.largeCollisionShape; // Paper - moved from actual method to here
 
             this.legacySolid = this.calculateSolid();
         }
@@ -893,8 +895,8 @@ public abstract class BlockBehaviour implements FeatureElement {
             return this.getBlock().getOcclusionShape(this.asState(), world, pos);
         }
 
-        public boolean hasLargeCollisionShape() {
-            return this.cache == null || this.cache.largeCollisionShape;
+        public final boolean hasLargeCollisionShape() { // Paper
+            return this.shapeExceedsCube; // Paper - moved into shape cache init
         }
 
         public boolean useShapeForLightOcclusion() {

@@ -121,6 +121,18 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
     BandwidthDebugMonitor bandwidthDebugMonitor;
     public String hostname = ""; // CraftBukkit - add field
 
+    // Paper start - add utility methods
+    public final net.minecraft.server.level.ServerPlayer getPlayer() {
+        if (this.packetListener instanceof net.minecraft.server.network.ServerGamePacketListenerImpl impl) {
+            return impl.player;
+        } else if (this.packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl impl) {
+            org.bukkit.craftbukkit.entity.CraftPlayer player = impl.getCraftPlayer();
+            return player == null ? null : player.getHandle();
+        }
+        return null;
+    }
+    // Paper end - add utility methods
+
     public Connection(PacketFlow side) {
         this.receiving = side;
     }

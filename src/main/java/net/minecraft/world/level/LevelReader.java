@@ -26,6 +26,9 @@ public interface LevelReader extends BlockAndTintGetter, CollisionGetter, Signal
     @Nullable
     ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create);
 
+    @Nullable ChunkAccess getChunkIfLoadedImmediately(int x, int z); // Paper - ifLoaded api (we need this since current impl blocks if the chunk is loading)
+    @Nullable default ChunkAccess getChunkIfLoadedImmediately(BlockPos pos) { return this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4);}
+
     @Deprecated
     boolean hasChunk(int chunkX, int chunkZ);
 

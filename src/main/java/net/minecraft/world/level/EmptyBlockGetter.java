@@ -17,6 +17,18 @@ public enum EmptyBlockGetter implements BlockGetter {
         return null;
     }
 
+    // Paper start - If loaded util
+    @Override
+    public final FluidState getFluidIfLoaded(BlockPos blockposition) {
+        return Fluids.EMPTY.defaultFluidState();
+    }
+
+    @Override
+    public final BlockState getBlockStateIfLoaded(BlockPos blockposition) {
+        return Blocks.AIR.defaultBlockState();
+    }
+    // Paper end
+
     @Override
     public BlockState getBlockState(BlockPos pos) {
         return Blocks.AIR.defaultBlockState();

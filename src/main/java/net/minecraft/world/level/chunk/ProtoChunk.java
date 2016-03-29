@@ -83,6 +83,18 @@ public class ProtoChunk extends ChunkAccess {
         return new ChunkAccess.TicksToSave(this.blockTicks, this.fluidTicks);
     }
 
+    // Paper start - If loaded util
+    @Override
+    public final FluidState getFluidIfLoaded(BlockPos blockposition) {
+        return this.getFluidState(blockposition);
+    }
+
+    @Override
+    public final BlockState getBlockStateIfLoaded(BlockPos blockposition) {
+        return this.getBlockState(blockposition);
+    }
+    // Paper end
+
     @Override
     public BlockState getBlockState(BlockPos pos) {
         int i = pos.getY();

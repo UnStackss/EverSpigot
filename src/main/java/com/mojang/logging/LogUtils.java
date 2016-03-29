@@ -61,4 +61,9 @@ public class LogUtils {
     public static Logger getLogger() {
         return LoggerFactory.getLogger(STACK_WALKER.getCallerClass());
     }
+    // Paper start
+    public static Logger getClassLogger() {
+        return LoggerFactory.getLogger(STACK_WALKER.getCallerClass().getSimpleName());
+    }
+    // Paper end
 }

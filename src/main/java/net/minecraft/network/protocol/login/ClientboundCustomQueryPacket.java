@@ -47,4 +47,14 @@ public record ClientboundCustomQueryPacket(int transactionId, CustomQueryPayload
     public void handle(ClientLoginPacketListener listener) {
         listener.handleCustomQuery(this);
     }
+
+    // Paper start - MC Utils - default query payloads
+    public static record PlayerInfoChannelPayload(ResourceLocation id, FriendlyByteBuf buffer) implements CustomQueryPayload {
+
+        @Override
+        public void write(final FriendlyByteBuf buf) {
+            buf.writeBytes(this.buffer.copy());
+        }
+    }
+    // Paper end - MC Utils - default query payloads
 }

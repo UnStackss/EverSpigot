@@ -37,9 +37,9 @@ public class ChunkHolder extends GenerationChunkHolder {
     public static final ChunkResult<LevelChunk> UNLOADED_LEVEL_CHUNK = ChunkResult.error("Unloaded level chunk");
     private static final CompletableFuture<ChunkResult<LevelChunk>> UNLOADED_LEVEL_CHUNK_FUTURE = CompletableFuture.completedFuture(ChunkHolder.UNLOADED_LEVEL_CHUNK);
     private final LevelHeightAccessor levelHeightAccessor;
-    private volatile CompletableFuture<ChunkResult<LevelChunk>> fullChunkFuture;
-    private volatile CompletableFuture<ChunkResult<LevelChunk>> tickingChunkFuture;
-    private volatile CompletableFuture<ChunkResult<LevelChunk>> entityTickingChunkFuture;
+    private volatile CompletableFuture<ChunkResult<LevelChunk>> fullChunkFuture; private int fullChunkCreateCount; private volatile boolean isFullChunkReady; // Paper - cache chunk ticking stage
+    private volatile CompletableFuture<ChunkResult<LevelChunk>> tickingChunkFuture; private volatile boolean isTickingReady; // Paper - cache chunk ticking stage
+    private volatile CompletableFuture<ChunkResult<LevelChunk>> entityTickingChunkFuture; private volatile boolean isEntityTickingReady; // Paper - cache chunk ticking stage
     public int oldTicketLevel;
     private int ticketLevel;
     private int queueLevel;
@@ -101,7 +101,7 @@ public class ChunkHolder extends GenerationChunkHolder {
     }
 
     @Nullable
-    public LevelChunk getTickingChunk() {
+    public final LevelChunk getTickingChunk() { // Paper - final for inline
         return (LevelChunk) ((ChunkResult) this.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK)).orElse(null); // CraftBukkit - decompile error
     }
 
@@ -337,12 +337,28 @@ public class ChunkHolder extends GenerationChunkHolder {
 
         this.wasAccessibleSinceLastSave |= flag1;
         if (!flag && flag1) {
+            int expectCreateCount = ++this.fullChunkCreateCount; // Paper
             this.fullChunkFuture = chunkLoadingManager.prepareAccessibleChunk(this);
             this.scheduleFullChunkPromotion(chunkLoadingManager, this.fullChunkFuture, executor, FullChunkStatus.FULL);
+            // Paper start - cache ticking ready status
+            this.fullChunkFuture.thenAccept(chunkResult -> {
+                chunkResult.ifSuccess(chunk -> {
+                    if (ChunkHolder.this.fullChunkCreateCount == expectCreateCount) {
+                        ChunkHolder.this.isFullChunkReady = true;
+                        ca.spottedleaf.moonrise.common.util.ChunkSystem.onChunkBorder(chunk, this);
+                    }
+                });
+            });
+            // Paper end - cache ticking ready status
             this.addSaveDependency(this.fullChunkFuture);
         }
 
         if (flag && !flag1) {
+            // Paper start
+            if (this.isFullChunkReady) {
+                ca.spottedleaf.moonrise.common.util.ChunkSystem.onChunkNotBorder(this.fullChunkFuture.join().orElseThrow(IllegalStateException::new), this); // Paper
+            }
+            // Paper end
             this.fullChunkFuture.complete(ChunkHolder.UNLOADED_LEVEL_CHUNK);
             this.fullChunkFuture = ChunkHolder.UNLOADED_LEVEL_CHUNK_FUTURE;
         }
@@ -353,11 +369,25 @@ public class ChunkHolder extends GenerationChunkHolder {
         if (!flag2 && flag3) {
             this.tickingChunkFuture = chunkLoadingManager.prepareTickingChunk(this);
             this.scheduleFullChunkPromotion(chunkLoadingManager, this.tickingChunkFuture, executor, FullChunkStatus.BLOCK_TICKING);
+            // Paper start - cache ticking ready status
+            this.tickingChunkFuture.thenAccept(chunkResult -> {
+                chunkResult.ifSuccess(chunk -> {
+                    // note: Here is a very good place to add callbacks to logic waiting on this.
+                    ChunkHolder.this.isTickingReady = true;
+                    ca.spottedleaf.moonrise.common.util.ChunkSystem.onChunkTicking(chunk, this);
+                });
+            });
+            // Paper end
             this.addSaveDependency(this.tickingChunkFuture);
         }
 
         if (flag2 && !flag3) {
-            this.tickingChunkFuture.complete(ChunkHolder.UNLOADED_LEVEL_CHUNK);
+            // Paper start
+            if (this.isTickingReady) {
+                ca.spottedleaf.moonrise.common.util.ChunkSystem.onChunkNotTicking(this.tickingChunkFuture.join().orElseThrow(IllegalStateException::new), this); // Paper
+            }
+            // Paper end
+            this.tickingChunkFuture.complete(ChunkHolder.UNLOADED_LEVEL_CHUNK); this.isTickingReady = false; // Paper - cache chunk ticking stage
             this.tickingChunkFuture = ChunkHolder.UNLOADED_LEVEL_CHUNK_FUTURE;
         }
 
@@ -371,11 +401,24 @@ public class ChunkHolder extends GenerationChunkHolder {
 
             this.entityTickingChunkFuture = chunkLoadingManager.prepareEntityTickingChunk(this);
             this.scheduleFullChunkPromotion(chunkLoadingManager, this.entityTickingChunkFuture, executor, FullChunkStatus.ENTITY_TICKING);
+            // Paper start - cache ticking ready status
+            this.entityTickingChunkFuture.thenAccept(chunkResult -> {
+                chunkResult.ifSuccess(chunk -> {
+                    ChunkHolder.this.isEntityTickingReady = true;
+                    ca.spottedleaf.moonrise.common.util.ChunkSystem.onChunkEntityTicking(chunk, this);
+                });
+            });
+            // Paper end
             this.addSaveDependency(this.entityTickingChunkFuture);
         }
 
         if (flag4 && !flag5) {
-            this.entityTickingChunkFuture.complete(ChunkHolder.UNLOADED_LEVEL_CHUNK);
+            // Paper start
+            if (this.isEntityTickingReady) {
+                ca.spottedleaf.moonrise.common.util.ChunkSystem.onChunkNotEntityTicking(this.entityTickingChunkFuture.join().orElseThrow(IllegalStateException::new), this);
+            }
+            // Paper end
+            this.entityTickingChunkFuture.complete(ChunkHolder.UNLOADED_LEVEL_CHUNK); this.isEntityTickingReady = false; // Paper - cache chunk ticking stage
             this.entityTickingChunkFuture = ChunkHolder.UNLOADED_LEVEL_CHUNK_FUTURE;
         }
 

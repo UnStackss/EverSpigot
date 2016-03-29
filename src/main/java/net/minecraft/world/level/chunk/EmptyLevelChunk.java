@@ -25,6 +25,12 @@ public class EmptyLevelChunk extends LevelChunk {
     public BlockState getBlockState(BlockPos pos) {
         return Blocks.VOID_AIR.defaultBlockState();
     }
+    // Paper start
+    @Override
+    public BlockState getBlockState(final int x, final int y, final int z) {
+        return Blocks.VOID_AIR.defaultBlockState();
+    }
+    // Paper end
 
     @Nullable
     @Override

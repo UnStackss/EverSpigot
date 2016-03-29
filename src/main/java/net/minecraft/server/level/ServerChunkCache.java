@@ -48,6 +48,7 @@ import net.minecraft.world.level.storage.LevelStorageSource;
 
 public class ServerChunkCache extends ChunkSource {
 
+    public static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger(); // Paper
     private static final List<ChunkStatus> CHUNK_STATUSES = ChunkStatus.getStatusList();
     private final DistanceManager distanceManager;
     final ServerLevel level;
@@ -66,6 +67,10 @@ public class ServerChunkCache extends ChunkSource {
     @Nullable
     @VisibleForDebug
     private NaturalSpawner.SpawnState lastSpawnState;
+    // Paper start
+    private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>();
+    long chunkFutureAwaitCounter;
+    // Paper end
 
     public ServerChunkCache(ServerLevel world, LevelStorageSource.LevelStorageAccess session, DataFixer dataFixer, StructureTemplateManager structureTemplateManager, Executor workerExecutor, ChunkGenerator chunkGenerator, int viewDistance, int simulationDistance, boolean dsync, ChunkProgressListener worldGenerationProgressListener, ChunkStatusUpdateListener chunkStatusChangeListener, Supplier<DimensionDataStorage> persistentStateManagerFactory) {
         this.level = world;
@@ -91,6 +96,54 @@ public class ServerChunkCache extends ChunkSource {
         return chunk.getFullChunkNow() != null;
     }
     // CraftBukkit end
+    // Paper start
+    public void addLoadedChunk(LevelChunk chunk) {
+        this.fullChunks.put(chunk.coordinateKey, chunk);
+    }
+
+    public void removeLoadedChunk(LevelChunk chunk) {
+        this.fullChunks.remove(chunk.coordinateKey);
+    }
+
+    @Nullable
+    public ChunkAccess getChunkAtImmediately(int x, int z) {
+        ChunkHolder holder = this.chunkMap.getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
+        if (holder == null) {
+            return null;
+        }
+
+        return holder.getLatestChunk();
+    }
+
+    public <T> void addTicketAtLevel(TicketType<T> ticketType, ChunkPos chunkPos, int ticketLevel, T identifier) {
+        this.distanceManager.addTicket(ticketType, chunkPos, ticketLevel, identifier);
+    }
+
+    public <T> void removeTicketAtLevel(TicketType<T> ticketType, ChunkPos chunkPos, int ticketLevel, T identifier) {
+        this.distanceManager.removeTicket(ticketType, chunkPos, ticketLevel, identifier);
+    }
+
+    // "real" get chunk if loaded
+    // Note: Partially copied from the getChunkAt method below
+    @Nullable
+    public LevelChunk getChunkAtIfCachedImmediately(int x, int z) {
+        long k = ChunkPos.asLong(x, z);
+
+        // Note: Bypass cache since we need to check ticket level, and to make this MT-Safe
+
+        ChunkHolder playerChunk = this.getVisibleChunkIfPresent(k);
+        if (playerChunk == null) {
+            return null;
+        }
+
+        return playerChunk.getFullChunkNowUnchecked();
+    }
+
+    @Nullable
+    public LevelChunk getChunkAtIfLoadedImmediately(int x, int z) {
+        return this.fullChunks.get(ChunkPos.asLong(x, z));
+    }
+    // Paper end
 
     @Override
     public ThreadedLevelLightEngine getLightEngine() {
@@ -286,7 +339,7 @@ public class ServerChunkCache extends ChunkSource {
         return this.mainThreadProcessor.pollTask();
     }
 
-    boolean runDistanceManagerUpdates() {
+    public boolean runDistanceManagerUpdates() { // Paper - public
         boolean flag = this.distanceManager.runAllUpdates(this.chunkMap);
         boolean flag1 = this.chunkMap.promoteChunkMap();
 
@@ -298,6 +351,12 @@ public class ServerChunkCache extends ChunkSource {
             return true;
         }
     }
+
+    // Paper start
+    public boolean isPositionTicking(Entity entity) {
+        return this.isPositionTicking(ChunkPos.asLong(net.minecraft.util.Mth.floor(entity.getX()) >> 4, net.minecraft.util.Mth.floor(entity.getZ()) >> 4));
+    }
+    // Paper end
 
     public boolean isPositionTicking(long pos) {
         ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos);

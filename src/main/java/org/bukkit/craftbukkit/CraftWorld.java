@@ -252,8 +252,8 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public Chunk[] getLoadedChunks() {
-        Long2ObjectLinkedOpenHashMap<ChunkHolder> chunks = this.world.getChunkSource().chunkMap.visibleChunkMap;
-        return chunks.values().stream().map(ChunkHolder::getFullChunkNow).filter(Objects::nonNull).map(CraftChunk::new).toArray(Chunk[]::new);
+        List<ChunkHolder> chunks = ca.spottedleaf.moonrise.common.util.ChunkSystem.getVisibleChunkHolders(this.world); // Paper
+        return chunks.stream().map(ChunkHolder::getFullChunkNow).filter(Objects::nonNull).map(CraftChunk::new).toArray(Chunk[]::new);
     }
 
     @Override
@@ -328,7 +328,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean refreshChunk(int x, int z) {
-        ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.visibleChunkMap.get(ChunkPos.asLong(x, z));
+        ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
         if (playerChunk == null) return false;
 
         playerChunk.getTickingChunkFuture().thenAccept(either -> {
@@ -2100,4 +2100,55 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         return this.spigot;
     }
     // Spigot end
+    // Paper start
+    public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
+        if (Bukkit.isPrimaryThread()) {
+            net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+            if (immediate != null) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
+            }
+        }
+
+        ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority priority;
+        if (urgent) {
+            priority = ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHER;
+        } else {
+            priority = ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.NORMAL;
+        }
+
+        java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
+
+        ca.spottedleaf.moonrise.common.util.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
+            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
+                net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
+                ret.complete(chunk == null ? null : new CraftChunk(chunk));
+            });
+        });
+
+        return ret;
+    }
+
+    @Override
+    public void setViewDistance(final int viewDistance) {
+        if (viewDistance < 2 || viewDistance > 32) {
+            throw new IllegalArgumentException("View distance " + viewDistance + " is out of range of [2, 32]");
+        }
+        this.getHandle().chunkSource.chunkMap.setServerViewDistance(viewDistance);
+    }
+
+    @Override
+    public void setSimulationDistance(final int simulationDistance) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    @Override
+    public int getSendViewDistance() {
+        return this.getViewDistance();
+    }
+
+    @Override
+    public void setSendViewDistance(final int viewDistance) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+    // Paper end
 }

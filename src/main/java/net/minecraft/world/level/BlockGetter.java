@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -30,6 +31,15 @@ public interface BlockGetter extends LevelHeightAccessor {
     }
 
     BlockState getBlockState(BlockPos pos);
+    // Paper start - if loaded util
+    @Nullable BlockState getBlockStateIfLoaded(BlockPos blockposition);
+
+    default @Nullable Block getBlockIfLoaded(BlockPos blockposition) {
+        BlockState type = this.getBlockStateIfLoaded(blockposition);
+        return type == null ? null : type.getBlock();
+    }
+    @Nullable FluidState getFluidIfLoaded(BlockPos blockposition);
+    // Paper end
 
     FluidState getFluidState(BlockPos pos);
 

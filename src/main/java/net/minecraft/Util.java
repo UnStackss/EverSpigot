@@ -133,7 +133,7 @@ public class Util {
     }
 
     public static long getNanos() {
-        return timeSource.getAsLong();
+        return System.nanoTime(); // Paper
     }
 
     public static long getEpochMillis() {

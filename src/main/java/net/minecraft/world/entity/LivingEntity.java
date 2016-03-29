@@ -282,6 +282,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     public boolean collides = true;
     public Set<UUID> collidableExemptions = new HashSet<>();
     public boolean bukkitPickUpLoot;
+    public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
 
     @Override
     public float getBukkitYaw() {

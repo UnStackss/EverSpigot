@@ -116,6 +116,10 @@ public class LevelChunk extends ChunkAccess {
     public boolean needsDecoration;
     // CraftBukkit end
 
+    // Paper start
+    boolean loadedTicketLevel;
+    // Paper end
+
     public LevelChunk(ServerLevel world, ProtoChunk protoChunk, @Nullable LevelChunk.PostLoadProcessor entityLoader) {
         this(world, protoChunk.getPos(), protoChunk.getUpgradeData(), protoChunk.unpackBlockTicks(), protoChunk.unpackFluidTicks(), protoChunk.getInhabitedTime(), protoChunk.getSections(), entityLoader, protoChunk.getBlendingData());
         Iterator iterator = protoChunk.getBlockEntities().values().iterator();
@@ -181,8 +185,25 @@ public class LevelChunk extends ChunkAccess {
         }
     }
 
+    // Paper start - Perf: Reduce instructions and provide final method
+    public BlockState getBlockState(final int x, final int y, final int z) {
+        return this.getBlockStateFinal(x, y, z);
+    }
+    public BlockState getBlockStateFinal(final int x, final int y, final int z) {
+        // Copied and modified from below
+        final int sectionIndex = this.getSectionIndex(y);
+        if (sectionIndex < 0 || sectionIndex >= this.sections.length
+            || this.sections[sectionIndex].nonEmptyBlockCount == 0) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        return this.sections[sectionIndex].states.get((y & 15) << 8 | (z & 15) << 4 | x & 15);
+    }
     @Override
     public BlockState getBlockState(BlockPos pos) {
+        if (true) {
+            return this.getBlockStateFinal(pos.getX(), pos.getY(), pos.getZ());
+        }
+        // Paper end - Perf: Reduce instructions and provide final method
         int i = pos.getX();
         int j = pos.getY();
         int k = pos.getZ();
@@ -223,6 +244,18 @@ public class LevelChunk extends ChunkAccess {
             }
         }
     }
+
+    // Paper start - If loaded util
+    @Override
+    public final FluidState getFluidIfLoaded(BlockPos blockposition) {
+        return this.getFluidState(blockposition);
+    }
+
+    @Override
+    public final BlockState getBlockStateIfLoaded(BlockPos blockposition) {
+        return this.getBlockState(blockposition);
+    }
+    // Paper end
 
     @Override
     public FluidState getFluidState(BlockPos pos) {
@@ -554,7 +587,11 @@ public class LevelChunk extends ChunkAccess {
 
     // CraftBukkit start
     public void loadCallback() {
+        // Paper start
+        this.loadedTicketLevel = true;
+        // Paper end
         org.bukkit.Server server = this.level.getCraftServer();
+        this.level.getChunkSource().addLoadedChunk(this); // Paper
         if (server != null) {
             /*
              * If it's a new world, the first few chunks are generated inside
@@ -595,6 +632,10 @@ public class LevelChunk extends ChunkAccess {
         server.getPluginManager().callEvent(unloadEvent);
         // note: saving can be prevented, but not forced if no saving is actually required
         this.mustNotSave = !unloadEvent.isSaveChunk();
+        this.level.getChunkSource().removeLoadedChunk(this); // Paper
+        // Paper start
+        this.loadedTicketLevel = false;
+        // Paper end
     }
 
     @Override

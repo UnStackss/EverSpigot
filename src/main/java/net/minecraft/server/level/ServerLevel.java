@@ -236,6 +236,98 @@ public class ServerLevel extends Level implements WorldGenLevel {
         return this.convertable.dimensionType;
     }
 
+    // Paper start
+    public final boolean areChunksLoadedForMove(AABB axisalignedbb) {
+        // copied code from collision methods, so that we can guarantee that they wont load chunks (we don't override
+        // ICollisionAccess methods for VoxelShapes)
+        // be more strict too, add a block (dumb plugins in move events?)
+        int minBlockX = Mth.floor(axisalignedbb.minX - 1.0E-7D) - 3;
+        int maxBlockX = Mth.floor(axisalignedbb.maxX + 1.0E-7D) + 3;
+
+        int minBlockZ = Mth.floor(axisalignedbb.minZ - 1.0E-7D) - 3;
+        int maxBlockZ = Mth.floor(axisalignedbb.maxZ + 1.0E-7D) + 3;
+
+        int minChunkX = minBlockX >> 4;
+        int maxChunkX = maxBlockX >> 4;
+
+        int minChunkZ = minBlockZ >> 4;
+        int maxChunkZ = maxBlockZ >> 4;
+
+        ServerChunkCache chunkProvider = this.getChunkSource();
+
+        for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
+                if (chunkProvider.getChunkAtIfLoadedImmediately(cx, cz) == null) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public final void loadChunksForMoveAsync(AABB axisalignedbb, ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority priority,
+                                             java.util.function.Consumer<List<net.minecraft.world.level.chunk.ChunkAccess>> onLoad) {
+        if (Thread.currentThread() != this.thread) {
+            this.getChunkSource().mainThreadProcessor.execute(() -> {
+                this.loadChunksForMoveAsync(axisalignedbb, priority, onLoad);
+            });
+            return;
+        }
+        List<net.minecraft.world.level.chunk.ChunkAccess> ret = new java.util.ArrayList<>();
+        it.unimi.dsi.fastutil.ints.IntArrayList ticketLevels = new it.unimi.dsi.fastutil.ints.IntArrayList();
+
+        int minBlockX = Mth.floor(axisalignedbb.minX - 1.0E-7D) - 3;
+        int maxBlockX = Mth.floor(axisalignedbb.maxX + 1.0E-7D) + 3;
+
+        int minBlockZ = Mth.floor(axisalignedbb.minZ - 1.0E-7D) - 3;
+        int maxBlockZ = Mth.floor(axisalignedbb.maxZ + 1.0E-7D) + 3;
+
+        int minChunkX = minBlockX >> 4;
+        int maxChunkX = maxBlockX >> 4;
+
+        int minChunkZ = minBlockZ >> 4;
+        int maxChunkZ = maxBlockZ >> 4;
+
+        ServerChunkCache chunkProvider = this.getChunkSource();
+
+        int requiredChunks = (maxChunkX - minChunkX + 1) * (maxChunkZ - minChunkZ + 1);
+        int[] loadedChunks = new int[1];
+
+        Long holderIdentifier = Long.valueOf(chunkProvider.chunkFutureAwaitCounter++);
+
+        java.util.function.Consumer<net.minecraft.world.level.chunk.ChunkAccess> consumer = (net.minecraft.world.level.chunk.ChunkAccess chunk) -> {
+            if (chunk != null) {
+                int ticketLevel = Math.max(33, chunkProvider.chunkMap.getUpdatingChunkIfPresent(chunk.getPos().toLong()).getTicketLevel());
+                ret.add(chunk);
+                ticketLevels.add(ticketLevel);
+                chunkProvider.addTicketAtLevel(TicketType.FUTURE_AWAIT, chunk.getPos(), ticketLevel, holderIdentifier);
+            }
+            if (++loadedChunks[0] == requiredChunks) {
+                try {
+                    onLoad.accept(java.util.Collections.unmodifiableList(ret));
+                } finally {
+                    for (int i = 0, len = ret.size(); i < len; ++i) {
+                        ChunkPos chunkPos = ret.get(i).getPos();
+                        int ticketLevel = ticketLevels.getInt(i);
+
+                        chunkProvider.addTicketAtLevel(TicketType.UNKNOWN, chunkPos, ticketLevel, chunkPos);
+                        chunkProvider.removeTicketAtLevel(TicketType.FUTURE_AWAIT, chunkPos, ticketLevel, holderIdentifier);
+                    }
+                }
+            }
+        };
+
+        for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
+                ca.spottedleaf.moonrise.common.util.ChunkSystem.scheduleChunkLoad(
+                    this, cx, cz, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, true, priority, consumer
+                );
+            }
+        }
+    }
+    // Paper end
+
     // Add env and gen to constructor, IWorldDataServer -> WorldDataServer
     public ServerLevel(MinecraftServer minecraftserver, Executor executor, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PrimaryLevelData iworlddataserver, ResourceKey<Level> resourcekey, LevelStem worlddimension, ChunkProgressListener worldloadlistener, boolean flag, long i, List<CustomSpawner> list, boolean flag1, @Nullable RandomSequences randomsequences, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider) {
         // IRegistryCustom.Dimension iregistrycustom_dimension = minecraftserver.registryAccess(); // CraftBukkit - decompile error

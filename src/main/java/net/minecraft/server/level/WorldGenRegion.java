@@ -169,6 +169,26 @@ public class WorldGenRegion implements WorldGenLevel {
         return k < this.generatingStep.directDependencies().size();
     }
 
+    // Paper start - if loaded util
+    @Nullable
+    @Override
+    public ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
+        return this.getChunk(x, z, ChunkStatus.FULL, false);
+    }
+
+    @Override
+    public final BlockState getBlockStateIfLoaded(BlockPos blockposition) {
+        ChunkAccess chunk = this.getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
+        return chunk == null ? null : chunk.getBlockState(blockposition);
+    }
+
+    @Override
+    public final FluidState getFluidIfLoaded(BlockPos blockposition) {
+        ChunkAccess chunk = this.getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4);
+        return chunk == null ? null : chunk.getFluidState(blockposition);
+    }
+    // Paper end
+
     @Override
     public BlockState getBlockState(BlockPos pos) {
         return this.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ())).getBlockState(pos);
