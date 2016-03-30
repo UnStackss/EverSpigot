@@ -1952,7 +1952,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             PackRepository resourcepackrepository = this.packRepository;
 
             Objects.requireNonNull(this.packRepository);
-            return stream.map(resourcepackrepository::getPack).filter(Objects::nonNull).map(Pack::open).collect(ImmutableList.toImmutableList()); // CraftBukkit - decompile error
+            return stream.<Pack>map(resourcepackrepository::getPack).filter(Objects::nonNull).map(Pack::open).collect(ImmutableList.toImmutableList()); // CraftBukkit - decompile error // Paper - decompile error // todo: is this needed anymore?
         }, this).thenCompose((immutablelist) -> {
             MultiPackResourceManager resourcemanager = new MultiPackResourceManager(PackType.SERVER_DATA, immutablelist);
 

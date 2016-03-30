@@ -253,11 +253,11 @@ public class TagParser {
             }
 
             if (typeReader == ByteTag.TYPE) {
-                list.add((T)((NumericTag)tag).getAsByte());
+                list.add((T)(Byte)((NumericTag)tag).getAsByte()); // Paper - decompile fix
             } else if (typeReader == LongTag.TYPE) {
-                list.add((T)((NumericTag)tag).getAsLong());
+                list.add((T)(Long)((NumericTag)tag).getAsLong()); // Paper - decompile fix
             } else {
-                list.add((T)((NumericTag)tag).getAsInt());
+                list.add((T)(Integer)((NumericTag)tag).getAsInt()); // Paper - decompile fix
             }
 
             if (!this.hasElementSeparator()) {

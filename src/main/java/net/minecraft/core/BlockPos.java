@@ -439,12 +439,12 @@ public class BlockPos extends Vec3i {
                     if (this.index == l) {
                         return this.endOfData();
                     } else {
-                        int i = this.index % i;
-                        int j = this.index / i;
-                        int k = j % j;
-                        int l = j / j;
+                        int offsetX = this.index % i; // Paper - decomp fix
+                        int u = this.index / i; // Paper - decomp fix
+                        int offsetY = u % j; // Paper - decomp fix
+                        int offsetZ = u / j; // Paper - decomp fix
                         this.index++;
-                        return this.cursor.set(startX + i, startY + k, startZ + l);
+                        return this.cursor.set(startX + offsetX, startY + offsetY, startZ + offsetZ); // Paper - decomp fix
                     }
                 }
             };

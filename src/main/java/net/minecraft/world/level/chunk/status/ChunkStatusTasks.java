@@ -153,7 +153,7 @@ public class ChunkStatusTasks {
             if (protochunk instanceof ImposterProtoChunk) {
                 chunk1 = ((ImposterProtoChunk) protochunk).getWrapped();
             } else {
-                chunk1 = new LevelChunk(worldserver, protochunk, (chunk1) -> {
+                chunk1 = new LevelChunk(worldserver, protochunk, ($) -> { // Paper - decompile fix
                     ChunkStatusTasks.postLoadProtoChunk(worldserver, protochunk.getEntities());
                 });
                 generationchunkholder.replaceProtoChunk(new ImposterProtoChunk(chunk1, false));

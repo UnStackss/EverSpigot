@@ -66,7 +66,7 @@ public class Pillager extends AbstractIllager implements CrossbowAttackMob, Inve
     protected void registerGoals() {
         super.registerGoals();
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(2, new Raider.HoldGroundAttackGoal(this, this, 10.0F));
+        this.goalSelector.addGoal(2, new Raider.HoldGroundAttackGoal(this, 10.0F)); // Paper - decomp fix
         this.goalSelector.addGoal(3, new RangedCrossbowAttackGoal<>(this, 1.0D, 8.0F));
         this.goalSelector.addGoal(8, new RandomStrollGoal(this, 0.6D));
         this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, 15.0F, 1.0F));

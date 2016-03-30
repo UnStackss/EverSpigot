@@ -78,6 +78,6 @@ public class ItemInput {
     }
 
     private String getItemName() {
-        return this.item.unwrapKey().map(ResourceKey::location).orElseGet(() -> "unknown[" + this.item + "]").toString();
+        return this.item.unwrapKey().<Object>map(ResourceKey::location).orElseGet(() -> "unknown[" + this.item + "]").toString(); // Paper - decompile fix
     }
 }
