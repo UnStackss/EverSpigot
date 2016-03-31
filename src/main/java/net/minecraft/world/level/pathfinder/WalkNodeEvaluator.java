@@ -478,7 +478,12 @@ public class WalkNodeEvaluator extends NodeEvaluator {
     }
 
     protected static PathType getPathTypeFromState(BlockGetter world, BlockPos pos) {
-        BlockState blockState = world.getBlockState(pos);
+        // Paper start - Do not load chunks during pathfinding
+        BlockState blockState = world.getBlockStateIfLoaded(pos);
+        if (blockState == null) {
+            return PathType.BLOCKED;
+        }
+        // Paper end
         Block block = blockState.getBlock();
         if (blockState.isAir()) {
             return PathType.OPEN;
