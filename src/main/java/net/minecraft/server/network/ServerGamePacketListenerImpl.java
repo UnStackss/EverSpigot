@@ -2493,7 +2493,26 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                 });
             }
         }
+        // Paper start - PlayerUseUnknownEntityEvent
+        else {
+            packet.dispatch(new net.minecraft.network.protocol.game.ServerboundInteractPacket.Handler() {
+                @Override
+                public void onInteraction(net.minecraft.world.InteractionHand hand) {
+                    CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, packet, hand, null);
+                }
 
+                @Override
+                public void onInteraction(net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.Vec3 pos) {
+                    CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, packet, hand, pos);
+                }
+
+                @Override
+                public void onAttack() {
+                    CraftEventFactory.callPlayerUseUnknownEntityEvent(ServerGamePacketListenerImpl.this.player, packet, net.minecraft.world.InteractionHand.MAIN_HAND, null);
+                }
+            });
+        }
+        // Paper end - PlayerUseUnknownEntityEvent
     }
 
     @Override

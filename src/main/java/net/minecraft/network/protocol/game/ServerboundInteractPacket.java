@@ -176,4 +176,14 @@ public class ServerboundInteractPacket implements Packet<ServerGamePacketListene
             buf.writeEnum(this.hand);
         }
     }
+
+    // Paper start - PlayerUseUnknownEntityEvent
+    public int getEntityId() {
+        return this.entityId;
+    }
+
+    public boolean isAttack() {
+        return this.action.getType() == ActionType.ATTACK;
+    }
+    // Paper end - PlayerUseUnknownEntityEvent
 }
