@@ -93,6 +93,8 @@ public class FarmBlock extends Block {
     @Override
     protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
         int i = (Integer) state.getValue(FarmBlock.MOISTURE);
+        if (i > 0 && world.paperConfig().tickRates.wetFarmland != 1 && (world.paperConfig().tickRates.wetFarmland < 1 || (net.minecraft.server.MinecraftServer.currentTick + pos.hashCode()) % world.paperConfig().tickRates.wetFarmland != 0)) { return; } // Paper - Configurable random tick rates for blocks
+        if (i == 0 && world.paperConfig().tickRates.dryFarmland != 1 && (world.paperConfig().tickRates.dryFarmland < 1 || (net.minecraft.server.MinecraftServer.currentTick + pos.hashCode()) % world.paperConfig().tickRates.dryFarmland != 0)) { return; } // Paper - Configurable random tick rates for blocks
 
         if (!FarmBlock.isNearWater(world, pos) && !world.isRainingAt(pos.above())) {
             if (i > 0) {
