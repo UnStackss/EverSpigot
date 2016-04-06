@@ -13,21 +13,21 @@ public class ZeroBitStorage implements BitStorage {
     }
 
     @Override
-    public int getAndSet(int index, int value) {
-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index);
-        Validate.inclusiveBetween(0L, 0L, (long)value);
+    public final int getAndSet(int index, int value) { // Paper - Perf: Optimize SimpleBitStorage
+        //Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index); // Paper - Perf: Optimize SimpleBitStorage
+        //Validate.inclusiveBetween(0L, 0L, (long)value); // Paper - Perf: Optimize SimpleBitStorage
         return 0;
     }
 
     @Override
-    public void set(int index, int value) {
-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index);
-        Validate.inclusiveBetween(0L, 0L, (long)value);
+    public final void set(int index, int value) { // Paper - Perf: Optimize SimpleBitStorage
+        //Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index); // Paper - Perf: Optimize SimpleBitStorage
+        //Validate.inclusiveBetween(0L, 0L, (long)value); // Paper - Perf: Optimize SimpleBitStorage
     }
 
     @Override
-    public int get(int index) {
-        Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index);
+    public final int get(int index) { // Paper - Perf: Optimize SimpleBitStorage
+        //Validate.inclusiveBetween(0L, (long)(this.size - 1), (long)index); // Paper - Perf: Optimize SimpleBitStorage
         return 0;
     }
 
