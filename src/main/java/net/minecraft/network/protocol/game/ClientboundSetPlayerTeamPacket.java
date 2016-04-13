@@ -200,7 +200,7 @@ public class ClientboundSetPlayerTeamPacket implements Packet<ClientGamePacketLi
             ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, this.displayName);
             buf.writeByte(this.options);
             buf.writeUtf(this.nametagVisibility);
-            buf.writeUtf(this.collisionRule);
+            buf.writeUtf(!io.papermc.paper.configuration.GlobalConfiguration.get().collisions.enablePlayerCollisions ? "never" : this.collisionRule); // Paper - Configurable player collision
             buf.writeEnum(this.color);
             ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, this.playerPrefix);
             ComponentSerialization.TRUSTED_STREAM_CODEC.encode(buf, this.playerSuffix);
