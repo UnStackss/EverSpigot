@@ -57,7 +57,7 @@ public class RconThread extends GenericThread {
     @Nullable
     public static RconThread create(ServerInterface server) {
         DedicatedServerProperties dedicatedServerProperties = server.getProperties();
-        String string = server.getServerIp();
+        String string = dedicatedServerProperties.rconIp; // Paper - Configurable rcon ip
         if (string.isEmpty()) {
             string = "0.0.0.0";
         }

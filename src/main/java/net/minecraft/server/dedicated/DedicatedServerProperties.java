@@ -110,6 +110,8 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
     public final WorldOptions worldOptions;
     public boolean acceptsTransfers;
 
+    public final String rconIp; // Paper - Configurable rcon ip
+
     // CraftBukkit start
     public DedicatedServerProperties(Properties properties, OptionSet optionset) {
         super(properties, optionset);
@@ -170,6 +172,10 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
         }, WorldPresets.NORMAL.location().toString()));
         this.serverResourcePackInfo = DedicatedServerProperties.getServerPackInfo(this.get("resource-pack-id", ""), this.get("resource-pack", ""), this.get("resource-pack-sha1", ""), this.getLegacyString("resource-pack-hash"), this.get("require-resource-pack", false), this.get("resource-pack-prompt", ""));
         this.initialDataPackConfiguration = DedicatedServerProperties.getDatapackConfig(this.get("initial-enabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getEnabled())), this.get("initial-disabled-packs", String.join(",", WorldDataConfiguration.DEFAULT.dataPacks().getDisabled())));
+        // Paper start - Configurable rcon ip
+        final String rconIp = this.getStringRaw("rcon.ip");
+        this.rconIp = rconIp == null ? this.serverIp : rconIp;
+        // Paper end - Configurable rcon ip
     }
 
     // CraftBukkit start
