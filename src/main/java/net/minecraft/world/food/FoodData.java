@@ -88,7 +88,7 @@ public class FoodData {
             if (this.tickTimer >= this.saturatedRegenRate) { // CraftBukkit
                 float f = Math.min(this.saturationLevel, 6.0F);
 
-                player.heal(f / 6.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED); // CraftBukkit - added RegainReason
+                player.heal(f / 6.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED, true); // CraftBukkit - added RegainReason // Paper - This is fast regen
                 // this.addExhaustion(f); CraftBukkit - EntityExhaustionEvent
                 player.causeFoodExhaustion(f, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
                 this.tickTimer = 0;
