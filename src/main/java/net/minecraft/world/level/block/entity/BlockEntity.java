@@ -38,6 +38,7 @@ import co.aikar.timings.MinecraftTimings; // Paper
 import co.aikar.timings.Timing; // Paper
 
 public abstract class BlockEntity {
+    static boolean ignoreTileUpdates; // Paper - Perf: Optimize Hoppers
 
     public Timing tickTimer = MinecraftTimings.getTileEntityTimings(this); // Paper
     // CraftBukkit start - data containers
@@ -229,6 +230,7 @@ public abstract class BlockEntity {
 
     public void setChanged() {
         if (this.level != null) {
+            if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
             BlockEntity.setChanged(this.level, this.worldPosition, this.blockState);
         }
 
