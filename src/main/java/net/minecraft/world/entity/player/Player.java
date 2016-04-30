@@ -808,6 +808,14 @@ public abstract class Player extends LivingEntity {
                 return null;
             }
             // CraftBukkit end
+            // Paper start - remove player from map on drop
+            if (itemstack.getItem() == Items.FILLED_MAP) {
+                net.minecraft.world.level.saveddata.maps.MapItemSavedData worldmap = net.minecraft.world.item.MapItem.getSavedData(itemstack, this.level());
+                if (worldmap != null) {
+                    worldmap.tickCarriedBy(this, itemstack);
+                }
+            }
+            // Paper end
 
             return entityitem;
         }
