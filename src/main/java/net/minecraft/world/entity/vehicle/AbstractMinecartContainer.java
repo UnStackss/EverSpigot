@@ -35,6 +35,14 @@ public abstract class AbstractMinecartContainer extends AbstractMinecart impleme
     public ResourceKey<LootTable> lootTable;
     public long lootTableSeed;
 
+    // Paper start - LootTable API
+    final com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData = new com.destroystokyo.paper.loottable.PaperLootableInventoryData();
+
+    @Override
+    public com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
+        return this.lootableData;
+    }
+    // Paper end - LootTable API
     // CraftBukkit start
     public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
     private int maxStack = MAX_STACK;

@@ -62,22 +62,26 @@ public interface ContainerEntity extends Container, MenuProvider {
     default void addChestVehicleSaveData(CompoundTag nbt, HolderLookup.Provider registriesLookup) {
         if (this.getLootTable() != null) {
             nbt.putString("LootTable", this.getLootTable().location().toString());
+            this.lootableData().saveNbt(nbt); // Paper
             if (this.getLootTableSeed() != 0L) {
                 nbt.putLong("LootTableSeed", this.getLootTableSeed());
             }
-        } else {
-            ContainerHelper.saveAllItems(nbt, this.getItemStacks(), registriesLookup);
         }
+        ContainerHelper.saveAllItems(nbt, this.getItemStacks(), registriesLookup); // Paper - always save the items, table may still remain
     }
 
     default void readChestVehicleSaveData(CompoundTag nbt, HolderLookup.Provider registriesLookup) {
         this.clearItemStacks();
         if (nbt.contains("LootTable", 8)) {
             this.setLootTable(ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(nbt.getString("LootTable"))));
+            // Paper start - LootTable API
+            if (this.getLootTable() != null) {
+                this.lootableData().loadNbt(nbt);
+            }
+            // Paper end - LootTable API
             this.setLootTableSeed(nbt.getLong("LootTableSeed"));
-        } else {
-            ContainerHelper.loadAllItems(nbt, this.getItemStacks(), registriesLookup);
         }
+        ContainerHelper.loadAllItems(nbt, this.getItemStacks(), registriesLookup); // Paper - always save the items, table may still remain
     }
 
     default void chestVehicleDestroyed(DamageSource source, Level world, Entity vehicle) {
@@ -99,13 +103,17 @@ public interface ContainerEntity extends Container, MenuProvider {
 
     default void unpackChestVehicleLootTable(@Nullable Player player) {
         MinecraftServer minecraftServer = this.level().getServer();
-        if (this.getLootTable() != null && minecraftServer != null) {
+        if (minecraftServer != null && this.lootableData().shouldReplenish(this, com.destroystokyo.paper.loottable.PaperLootableInventoryData.ENTITY, player)) { // Paper - LootTable API
             LootTable lootTable = minecraftServer.reloadableRegistries().getLootTable(this.getLootTable());
             if (player != null) {
                 CriteriaTriggers.GENERATE_LOOT.trigger((ServerPlayer)player, this.getLootTable());
             }
 
-            this.setLootTable(null);
+            // Paper start - LootTable API
+            if (this.lootableData().shouldClearLootTable(this, com.destroystokyo.paper.loottable.PaperLootableInventoryData.ENTITY, player)) {
+                this.setLootTable(null);
+            }
+            // Paper end - LootTable API
             LootParams.Builder builder = new LootParams.Builder((ServerLevel)this.level()).withParameter(LootContextParams.ORIGIN, this.position());
             if (player != null) {
                 builder.withLuck(player.getLuck()).withParameter(LootContextParams.THIS_ENTITY, player);
@@ -175,4 +183,14 @@ public interface ContainerEntity extends Container, MenuProvider {
     default boolean isChestVehicleStillValid(Player player) {
         return !this.isRemoved() && player.canInteractWithEntity(this.getBoundingBox(), 4.0);
     }
+
+    // Paper start - LootTable API
+    default com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
+        throw new UnsupportedOperationException("Implement this method");
+    }
+
+    default com.destroystokyo.paper.loottable.PaperLootableInventory getLootableInventory() {
+        return ((com.destroystokyo.paper.loottable.PaperLootableInventory) ((net.minecraft.world.entity.Entity) this).getBukkitEntity());
+    }
+    // Paper end - LootTable API
 }

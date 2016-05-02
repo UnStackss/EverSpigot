@@ -115,4 +115,13 @@ public abstract class RandomizableContainerBlockEntity extends BaseContainerBloc
         nbt.remove("LootTable");
         nbt.remove("LootTableSeed");
     }
+
+    // Paper start - LootTable API
+    final com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData = new com.destroystokyo.paper.loottable.PaperLootableInventoryData(); // Paper
+
+    @Override
+    public com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
+        return this.lootableData;
+    }
+    // Paper end - LootTable API
 }

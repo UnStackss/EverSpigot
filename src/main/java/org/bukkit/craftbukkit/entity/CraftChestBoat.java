@@ -7,8 +7,7 @@ import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.loot.LootTable;
 
-public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat {
-
+public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.ChestBoat, com.destroystokyo.paper.loottable.PaperLootableEntityInventory { // Paper
     private final Inventory inventory;
 
     public CraftChestBoat(CraftServer server, ChestBoat entity) {
@@ -31,28 +30,5 @@ public class CraftChestBoat extends CraftBoat implements org.bukkit.entity.Chest
         return this.inventory;
     }
 
-    @Override
-    public void setLootTable(LootTable table) {
-        this.setLootTable(table, this.getSeed());
-    }
-
-    @Override
-    public LootTable getLootTable() {
-        return CraftLootTable.minecraftToBukkit(this.getHandle().getLootTable());
-    }
-
-    @Override
-    public void setSeed(long seed) {
-        this.setLootTable(this.getLootTable(), seed);
-    }
-
-    @Override
-    public long getSeed() {
-        return this.getHandle().getLootTableSeed();
-    }
-
-    private void setLootTable(LootTable table, long seed) {
-        this.getHandle().setLootTable(CraftLootTable.bukkitToMinecraft(table));
-        this.getHandle().setLootTableSeed(seed);
-    }
+    // Paper - moved loot table logic to PaperLootableEntityInventory
 }

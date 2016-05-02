@@ -217,7 +217,7 @@ public class ChestBoat extends Boat implements HasCustomInventoryScreen, Contain
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
-        if (this.lootTable != null && player.isSpectator()) {
+        if (this.lootTable != null && player.isSpectator()) { // Paper - LootTable API (TODO spectators can open chests that aren't ready to be re-generated but this doesn't support that)
             return null;
         } else {
             this.unpackLootTable(playerInventory.player);
@@ -265,6 +265,14 @@ public class ChestBoat extends Boat implements HasCustomInventoryScreen, Contain
         this.level().gameEvent((Holder) GameEvent.CONTAINER_CLOSE, this.position(), GameEvent.Context.of((Entity) player));
     }
 
+    // Paper start - LootTable API
+    final com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData = new com.destroystokyo.paper.loottable.PaperLootableInventoryData();
+
+    @Override
+    public com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData() {
+        return this.lootableData;
+    }
+    // Paper end - LootTable API
     // CraftBukkit start
     public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
     private int maxStack = MAX_STACK;
