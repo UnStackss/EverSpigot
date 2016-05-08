@@ -148,6 +148,7 @@ public class ScoreboardSaveData extends SavedData {
         ListTag listTag = new ListTag();
 
         for (PlayerTeam playerTeam : this.scoreboard.getPlayerTeams()) {
+            if (!io.papermc.paper.configuration.GlobalConfiguration.get().scoreboards.saveEmptyScoreboardTeams && playerTeam.getPlayers().isEmpty()) continue; // Paper - Don't save empty scoreboard teams to scoreboard.dat
             CompoundTag compoundTag = new CompoundTag();
             compoundTag.putString("Name", playerTeam.getName());
             compoundTag.putString("DisplayName", Component.Serializer.toJson(playerTeam.getDisplayName(), registries));
