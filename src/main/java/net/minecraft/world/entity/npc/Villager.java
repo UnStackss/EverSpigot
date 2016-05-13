@@ -228,17 +228,34 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
     @Override
     public void inactiveTick() {
         // SPIGOT-3874, SPIGOT-3894, SPIGOT-3846, SPIGOT-5286 :(
-        if (this.level().spigotConfig.tickInactiveVillagers && this.isEffectiveAi()) {
-            this.customServerAiStep();
+        // Paper start
+        if (this.getUnhappyCounter() > 0) {
+            this.setUnhappyCounter(this.getUnhappyCounter() - 1);
         }
+        if (this.isEffectiveAi()) {
+            if (this.level().spigotConfig.tickInactiveVillagers) {
+                this.customServerAiStep();
+            } else {
+                this.customServerAiStep(true);
+            }
+        }
+        maybeDecayGossip();
+        // Paper end
+
         super.inactiveTick();
     }
     // Spigot End
 
     @Override
+    @Deprecated // Paper
     protected void customServerAiStep() {
+        // Paper start
+        this.customServerAiStep(false);
+    }
+    protected void customServerAiStep(final boolean inactive) {
+        // Paper end
         this.level().getProfiler().push("villagerBrain");
-        this.getBrain().tick((ServerLevel) this.level(), this);
+        if (!inactive) this.getBrain().tick((ServerLevel) this.level(), this); // Paper
         this.level().getProfiler().pop();
         if (this.assignProfessionWhenSpawned) {
             this.assignProfessionWhenSpawned = false;
@@ -262,7 +279,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
             this.lastTradedPlayer = null;
         }
 
-        if (!this.isNoAi() && this.random.nextInt(100) == 0) {
+        if (!inactive && !this.isNoAi() && this.random.nextInt(100) == 0) { // Paper
             Raid raid = ((ServerLevel) this.level()).getRaidAt(this.blockPosition());
 
             if (raid != null && raid.isActive() && !raid.isOver()) {
@@ -273,6 +290,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
         if (this.getVillagerData().getProfession() == VillagerProfession.NONE && this.isTrading()) {
             this.stopTrading();
         }
+        if (inactive) return; // Paper
 
         super.customServerAiStep();
     }

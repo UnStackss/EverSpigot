@@ -52,6 +52,7 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper 
         if (bl != this.isEnabled()) {
             this.setEnabled(bl);
         }
+        this.immunize();  // Paper
     }
 
     public boolean isEnabled() {
@@ -92,11 +93,13 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper 
 
     public boolean suckInItems() {
         if (HopperBlockEntity.suckInItems(this.level(), this)) {
+            this.immunize();  // Paper
             return true;
         } else {
             for (ItemEntity itemEntity : this.level()
                 .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(0.25, 0.0, 0.25), EntitySelector.ENTITY_STILL_ALIVE)) {
                 if (HopperBlockEntity.addItem(this, itemEntity)) {
+                    this.immunize();  // Paper
                     return true;
                 }
             }
@@ -126,4 +129,11 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper 
     public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory) {
         return new HopperMenu(syncId, playerInventory, this);
     }
+
+    // Paper start
+    public void immunize() {
+        this.activatedImmunityTick = Math.max(this.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 20);
+    }
+    // Paper end
+
 }

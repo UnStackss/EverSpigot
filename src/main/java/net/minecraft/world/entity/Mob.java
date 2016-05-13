@@ -232,6 +232,19 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
         return this.lookControl;
     }
 
+    // Paper start
+    @Override
+    public void inactiveTick() {
+        super.inactiveTick();
+        if (this.goalSelector.inactiveTick()) {
+            this.goalSelector.tick();
+        }
+        if (this.targetSelector.inactiveTick()) {
+            this.targetSelector.tick();
+        }
+    }
+    // Paper end
+
     public MoveControl getMoveControl() {
         Entity entity = this.getControlledVehicle();
 

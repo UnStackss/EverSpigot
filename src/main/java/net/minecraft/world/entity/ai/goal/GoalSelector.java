@@ -26,6 +26,7 @@ public class GoalSelector {
     private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
     private final Supplier<ProfilerFiller> profiler;
     private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
+    private int curRate;
 
     public GoalSelector(Supplier<ProfilerFiller> profiler) {
         this.profiler = profiler;
@@ -40,6 +41,20 @@ public class GoalSelector {
         this.availableGoals.removeIf(goal -> predicate.test(goal.getGoal()));
     }
 
+    // Paper start
+    public boolean inactiveTick() {
+        this.curRate++;
+        return this.curRate % 3 == 0; // TODO newGoalRate was already unused in 1.20.4, check if this is correct
+    }
+    public boolean hasTasks() {
+        for (WrappedGoal task : this.availableGoals) {
+            if (task.isRunning()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    // Paper end
     public void removeGoal(Goal goal) {
         for (WrappedGoal wrappedGoal : this.availableGoals) {
             if (wrappedGoal.getGoal() == goal && wrappedGoal.isRunning()) {

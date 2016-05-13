@@ -2,7 +2,6 @@ package net.minecraft.server.level;
 
 import com.google.common.annotations.VisibleForTesting;
 import co.aikar.timings.TimingHistory; // Paper
-import co.aikar.timings.Timings; // Paper
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.datafixers.util.Pair;
@@ -1192,17 +1191,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
         ++TimingHistory.entityTicks; // Paper - timings
         // Spigot start
         co.aikar.timings.Timing timer; // Paper
-        if (!org.spigotmc.ActivationRange.checkIfActive(entity)) {
+        /*if (!org.spigotmc.ActivationRange.checkIfActive(entity)) { // Paper - comment out - EAR 2, reimplement below
             entity.tickCount++;
             timer = entity.getType().inactiveTickTimer.startTiming(); try { // Paper - timings
             entity.inactiveTick();
             } finally { timer.stopTiming(); } // Paper
             return;
-        }
+        }*/ // Paper - comment out EAR 2
         // Spigot end
         // Paper start- timings
-        TimingHistory.activatedEntityTicks++;
-        timer = entity.getVehicle() != null ? entity.getType().passengerTickTimer.startTiming() : entity.getType().tickTimer.startTiming();
+        final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(entity);
+        timer = isActive ? entity.getType().tickTimer.startTiming() : entity.getType().inactiveTickTimer.startTiming(); // Paper
         try {
         // Paper end - timings
         entity.setOldPosAndRot();
@@ -1213,9 +1212,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
             return BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
         });
         gameprofilerfiller.incrementCounter("tickNonPassenger");
+        if (isActive) { // Paper - EAR 2
+            TimingHistory.activatedEntityTicks++;
         entity.tick();
         entity.postTick(); // CraftBukkit
+        } else { entity.inactiveTick(); } // Paper - EAR 2
         this.getProfiler().pop();
+        } finally { timer.stopTiming(); } // Paper - timings
         Iterator iterator = entity.getPassengers().iterator();
 
         while (iterator.hasNext()) {
@@ -1223,13 +1226,18 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
 
             this.tickPassenger(entity, entity1);
         }
-        } finally { timer.stopTiming(); } // Paper - timings
+        // } finally { timer.stopTiming(); } // Paper - timings - move up
 
     }
 
     private void tickPassenger(Entity vehicle, Entity passenger) {
         if (!passenger.isRemoved() && passenger.getVehicle() == vehicle) {
             if (passenger instanceof Player || this.entityTickList.contains(passenger)) {
+                // Paper - EAR 2
+                final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(passenger);
+                co.aikar.timings.Timing timer = isActive ? passenger.getType().passengerTickTimer.startTiming() : passenger.getType().passengerInactiveTickTimer.startTiming(); // Paper
+                try {
+                // Paper end
                 passenger.setOldPosAndRot();
                 ++passenger.tickCount;
                 ProfilerFiller gameprofilerfiller = this.getProfiler();
@@ -1238,8 +1246,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
                     return BuiltInRegistries.ENTITY_TYPE.getKey(passenger.getType()).toString();
                 });
                 gameprofilerfiller.incrementCounter("tickPassenger");
+                // Paper start - EAR 2
+                if (isActive) {
                 passenger.rideTick();
                 passenger.postTick(); // CraftBukkit
+                } else {
+                    passenger.setDeltaMovement(Vec3.ZERO);
+                    passenger.inactiveTick();
+                    // copied from inside of if (isPassenger()) of passengerTick, but that ifPassenger is unnecessary
+                    vehicle.positionRider(passenger);
+                }
+                // Paper end - EAR 2
                 gameprofilerfiller.pop();
                 Iterator iterator = passenger.getPassengers().iterator();
 
@@ -1249,6 +1266,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
                     this.tickPassenger(passenger, entity2);
                 }
 
+            } finally { timer.stopTiming(); }// Paper - EAR2 timings
             }
         } else {
             passenger.stopRiding();

@@ -23,6 +23,14 @@ public abstract class MoveToBlockGoal extends Goal {
     public MoveToBlockGoal(PathfinderMob mob, double speed, int range) {
         this(mob, speed, range, 1);
     }
+    // Paper start - activation range improvements
+    @Override
+    public void stop() {
+        super.stop();
+        this.blockPos = BlockPos.ZERO;
+        this.mob.movingTarget = null;
+    }
+    // Paper end
 
     public MoveToBlockGoal(PathfinderMob mob, double speed, int range, int maxYDifference) {
         this.mob = mob;
@@ -115,6 +123,7 @@ public abstract class MoveToBlockGoal extends Goal {
                         mutableBlockPos.setWithOffset(blockPos, m, k - 1, n);
                         if (this.mob.isWithinRestriction(mutableBlockPos) && this.isValidTarget(this.mob.level(), mutableBlockPos)) {
                             this.blockPos = mutableBlockPos;
+                            this.mob.movingTarget = mutableBlockPos == BlockPos.ZERO ? null : mutableBlockPos.immutable(); // Paper
                             return true;
                         }
                     }
