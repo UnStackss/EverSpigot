@@ -270,7 +270,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         }
 
         if (this.convertOldUsers()) {
-            this.getProfileCache().save();
+            this.getProfileCache().save(false); // Paper - Perf: Async GameProfileCache saving
         }
 
         if (!OldUsersConverter.serverReadyAfterUserconversion(this)) {

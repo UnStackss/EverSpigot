@@ -117,7 +117,7 @@ public class GameProfileCache {
         GameProfileCache.GameProfileInfo usercache_usercacheentry = new GameProfileCache.GameProfileInfo(profile, date);
 
         this.safeAdd(usercache_usercacheentry);
-        if( !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly ) this.save(); // Spigot - skip saving if disabled
+        if( !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly ) this.save(true); // Spigot - skip saving if disabled // Paper - Perf: Async GameProfileCache saving
     }
 
     private long getNextOperation() {
@@ -150,7 +150,7 @@ public class GameProfileCache {
         }
 
         if (flag && !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) { // Spigot - skip saving if disabled
-            this.save();
+            this.save(true); // Paper - Perf: Async GameProfileCache saving
         }
 
         return optional;
@@ -262,7 +262,7 @@ public class GameProfileCache {
         return list;
     }
 
-    public void save() {
+    public void save(boolean asyncSave) { // Paper - Perf: Async GameProfileCache saving
         JsonArray jsonarray = new JsonArray();
         DateFormat dateformat = GameProfileCache.createDateFormat();
 
@@ -270,6 +270,7 @@ public class GameProfileCache {
             jsonarray.add(GameProfileCache.writeGameProfile(usercache_usercacheentry, dateformat));
         });
         String s = this.gson.toJson(jsonarray);
+        Runnable save = () -> { // Paper - Perf: Async GameProfileCache saving
 
         try {
             BufferedWriter bufferedwriter = Files.newWriter(this.file, StandardCharsets.UTF_8);
@@ -294,6 +295,14 @@ public class GameProfileCache {
         } catch (IOException ioexception) {
             ;
         }
+        // Paper start - Perf: Async GameProfileCache saving
+        };
+        if (asyncSave) {
+            io.papermc.paper.util.MCUtil.scheduleAsyncTask(save);
+        } else {
+            save.run();
+        }
+        // Paper end - Perf: Async GameProfileCache saving
 
     }
 
