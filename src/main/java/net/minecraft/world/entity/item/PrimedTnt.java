@@ -128,6 +128,27 @@ public class PrimedTnt extends Entity implements TraceableEntity {
             }
         }
 
+        // Paper start - Option to prevent TNT from moving in water
+        if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
+            /*
+             * Author: Jedediah Smith <jedediah@silencegreys.com>
+             */
+            // Send position and velocity updates to nearby players on every tick while the TNT is in water.
+            // This does pretty well at keeping their clients in sync with the server.
+            net.minecraft.server.level.ChunkMap.TrackedEntity ete = ((net.minecraft.server.level.ServerLevel)this.level()).getChunkSource().chunkMap.entityMap.get(this.getId());
+            if (ete != null) {
+                net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket velocityPacket = new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(this);
+                net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket positionPacket = new net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket(this);
+
+                ete.seenBy.stream()
+                    .filter(viewer -> (viewer.getPlayer().getX() - this.getX()) * (viewer.getPlayer().getY() - this.getY()) * (viewer.getPlayer().getZ() - this.getZ()) < 16 * 16)
+                    .forEach(viewer -> {
+                        viewer.send(velocityPacket);
+                        viewer.send(positionPacket);
+                    });
+            }
+        }
+        // Paper end - Option to prevent TNT from moving in water
     }
 
     private void explode() {
@@ -202,4 +223,11 @@ public class PrimedTnt extends Entity implements TraceableEntity {
 
         return entity;
     }
+
+    // Paper start - Option to prevent TNT from moving in water
+    @Override
+    public boolean isPushedByFluid() {
+        return !level().paperConfig().fixes.preventTntFromMovingInWater && super.isPushedByFluid();
+    }
+    // Paper end - Option to prevent TNT from moving in water
 }
