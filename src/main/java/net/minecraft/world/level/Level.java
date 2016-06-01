@@ -1277,4 +1277,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             return this.id;
         }
     }
+    // Paper start - respect global sound events gamerule
+    public List<net.minecraft.server.level.ServerPlayer> getPlayersForGlobalSoundGamerule() {
+        return this.getGameRules().getBoolean(GameRules.RULE_GLOBAL_SOUND_EVENTS) ? ((ServerLevel) this).getServer().getPlayerList().players : ((ServerLevel) this).players();
+    }
+
+    public double getGlobalSoundRangeSquared(java.util.function.Function<org.spigotmc.SpigotWorldConfig, Integer> rangeFunction) {
+        final double range = rangeFunction.apply(this.spigotConfig);
+        return range <= 0 ? 64.0 * 64.0 : range * range; // 64 is taken from default in ServerLevel#levelEvent
+    }
+    // Paper end - respect global sound events gamerule
 }

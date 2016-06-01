@@ -1322,7 +1322,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
 
     @Override
     public void levelEvent(@Nullable Player player, int eventId, BlockPos pos, int data) {
-        this.server.getPlayerList().broadcast(player, (double) pos.getX(), (double) pos.getY(), (double) pos.getZ(), 64.0D, this.dimension(), new ClientboundLevelEventPacket(eventId, pos, data, false));
+        this.server.getPlayerList().broadcast(player, (double) pos.getX(), (double) pos.getY(), (double) pos.getZ(), 64.0D, this.dimension(), new ClientboundLevelEventPacket(eventId, pos, data, false)); // Paper - diff on change (the 64.0 distance is used as defaults for sound ranges in spigot config for ender dragon, end portal and wither)
     }
 
     public int getLogicalHeight() {

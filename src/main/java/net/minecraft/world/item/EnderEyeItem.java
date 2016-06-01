@@ -67,11 +67,12 @@ public class EnderEyeItem extends Item {
                     // world.b(1038, blockposition1.c(1, 0, 1), 0);
                     int viewDistance = world.getCraftServer().getViewDistance() * 16;
                     BlockPos soundPos = blockposition1.offset(1, 0, 1);
-                    for (ServerPlayer player : world.getServer().getPlayerList().players) {
+                    for (ServerPlayer player : world.getPlayersForGlobalSoundGamerule()) { // Paper - respect global sound events gamerule
                         double deltaX = soundPos.getX() - player.getX();
                         double deltaZ = soundPos.getZ() - player.getZ();
                         double distanceSquared = deltaX * deltaX + deltaZ * deltaZ;
-                        if (world.spigotConfig.endPortalSoundRadius > 0 && distanceSquared > world.spigotConfig.endPortalSoundRadius * world.spigotConfig.endPortalSoundRadius) continue; // Spigot
+                        final double soundRadiusSquared = world.getGlobalSoundRangeSquared(config -> config.endPortalSoundRadius); // Paper - respect global sound events gamerule
+                        if (!world.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_GLOBAL_SOUND_EVENTS) && distanceSquared > soundRadiusSquared) continue; // Spigot // Paper - respect global sound events gamerule
                         if (distanceSquared > viewDistance * viewDistance) {
                             double deltaLength = Math.sqrt(distanceSquared);
                             double relativeX = player.getX() + (deltaX / deltaLength) * viewDistance;
