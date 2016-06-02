@@ -474,6 +474,7 @@ public class EndDragonFight {
             entityenderdragon.moveTo((double) this.origin.getX(), (double) (128 + this.origin.getY()), (double) this.origin.getZ(), this.level.random.nextFloat() * 360.0F, 0.0F);
             this.level.addFreshEntity(entityenderdragon);
             this.dragonUUID = entityenderdragon.getUUID();
+            this.resetSpikeCrystals(); // Paper - Reset ender crystals on dragon spawn
         }
 
         return entityenderdragon;
