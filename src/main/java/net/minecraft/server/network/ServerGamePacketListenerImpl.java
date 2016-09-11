@@ -1534,13 +1534,14 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     // Spigot start - limit place/interactions
     private int limitedPackets;
     private long lastLimitedPacket = -1;
+    private static int getSpamThreshold() { return io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.incomingPacketThreshold; } // Paper - Configurable threshold
 
     private boolean checkLimit(long timestamp) {
-        if (this.lastLimitedPacket != -1 && timestamp - this.lastLimitedPacket < 30 && this.limitedPackets++ >= 4) {
+        if (this.lastLimitedPacket != -1 && timestamp - this.lastLimitedPacket < getSpamThreshold() && this.limitedPackets++ >= 8) { // Paper - Configurable threshold; raise packet limit to 8
             return false;
         }
 
-        if (this.lastLimitedPacket == -1 || timestamp - this.lastLimitedPacket >= 30) {
+        if (this.lastLimitedPacket == -1 || timestamp - this.lastLimitedPacket >= getSpamThreshold()) { // Paper - Configurable threshold
             this.lastLimitedPacket = timestamp;
             this.limitedPackets = 0;
             return true;
