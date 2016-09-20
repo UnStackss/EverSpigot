@@ -346,7 +346,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         if (this.clientIsFloating && !this.player.isSleeping() && !this.player.isPassenger() && !this.player.isDeadOrDying()) {
             if (++this.aboveGroundTickCount > this.getMaximumFlyingTicks(this.player)) {
                 ServerGamePacketListenerImpl.LOGGER.warn("{} was kicked for floating too long!", this.player.getName().getString());
-                this.disconnect((Component) Component.translatable("multiplayer.disconnect.flying"));
+                this.disconnect(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.flyingPlayer); // Paper - use configurable kick message
                 return;
             }
         } else {
@@ -365,7 +365,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             if (this.clientVehicleIsFloating && this.lastVehicle.getControllingPassenger() == this.player) {
                 if (++this.aboveGroundVehicleTickCount > this.getMaximumFlyingTicks(this.lastVehicle)) {
                     ServerGamePacketListenerImpl.LOGGER.warn("{} was kicked for floating a vehicle too long!", this.player.getName().getString());
-                    this.disconnect((Component) Component.translatable("multiplayer.disconnect.flying"));
+                    this.disconnect(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.flyingVehicle); // Paper - use configurable kick message
                     return;
                 }
             } else {
