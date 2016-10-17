@@ -846,10 +846,17 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
     @Override
     public void thunderHit(ServerLevel world, LightningBolt lightning) {
         if (world.getDifficulty() != Difficulty.PEACEFUL) {
-            Villager.LOGGER.info("Villager {} was struck by lightning {}.", this, lightning);
+            // Paper - Add EntityZapEvent; move log down, event can cancel
             Witch entitywitch = (Witch) EntityType.WITCH.create(world);
 
             if (entitywitch != null) {
+                // Paper start - Add EntityZapEvent
+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityZapEvent(this, lightning, entitywitch).isCancelled()) {
+                    return;
+                }
+                if (org.spigotmc.SpigotConfig.logVillagerDeaths) Villager.LOGGER.info("Villager {} was struck by lightning {}.", this, lightning); // Move down
+                // Paper end - Add EntityZapEvent
+
                 entitywitch.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
                 entitywitch.finalizeSpawn(world, world.getCurrentDifficultyAt(entitywitch.blockPosition()), MobSpawnType.CONVERSION, (SpawnGroupData) null);
                 entitywitch.setNoAi(this.isNoAi());
