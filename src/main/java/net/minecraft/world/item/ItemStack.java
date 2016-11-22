@@ -165,7 +165,7 @@ public final class ItemStack implements DataComponentHolder {
 
                 // CraftBukkit start
                 ItemStack itemstack = new ItemStack(holder, i, datacomponentpatch);
-                if (!datacomponentpatch.isEmpty()) {
+                if (false && !datacomponentpatch.isEmpty()) { // Paper - This is no longer needed with raw NBT being handled in metadata
                     CraftItemStack.setItemMeta(itemstack, CraftItemStack.getItemMeta(itemstack));
                 }
                 return itemstack;
@@ -179,8 +179,8 @@ public final class ItemStack implements DataComponentHolder {
             } else {
                 registryfriendlybytebuf.writeVarInt(itemstack.getCount());
                 // Spigot start - filter
-                itemstack = itemstack.copy();
-                CraftItemStack.setItemMeta(itemstack, CraftItemStack.getItemMeta(itemstack));
+                // itemstack = itemstack.copy();
+                // CraftItemStack.setItemMeta(itemstack, CraftItemStack.getItemMeta(itemstack)); // Paper - This is no longer with raw NBT being handled in metadata
                 // Spigot end
                 ITEM_STREAM_CODEC.encode(registryfriendlybytebuf, itemstack.getItemHolder()); // CraftBukkit - decompile error
                 // Paper start - adventure; conditionally render translatable components
