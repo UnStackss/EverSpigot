@@ -342,6 +342,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         return chunk == null ? null : chunk.getFluidState(blockposition);
     }
 
+    @Override
+    public final boolean hasChunkAt(BlockPos pos) {
+        return getChunkIfLoaded(pos.getX() >> 4, pos.getZ() >> 4) != null; // Paper - Perf: Optimize Level.hasChunkAt(BlockPosition)Z
+    }
+
     public final boolean isLoadedAndInBounds(BlockPos blockposition) { // Paper - final for inline
         return getWorldBorder().isWithinBounds(blockposition) && getChunkIfLoadedImmediately(blockposition.getX() >> 4, blockposition.getZ() >> 4) != null;
     }
