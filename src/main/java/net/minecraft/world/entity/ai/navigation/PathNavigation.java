@@ -158,7 +158,7 @@ public abstract class PathNavigation {
             // Paper start - EntityPathfindEvent
             boolean copiedSet = false;
             for (BlockPos possibleTarget : positions) {
-                if (!new com.destroystokyo.paper.event.entity.EntityPathfindEvent(this.mob.getBukkitEntity(),
+                if (!this.mob.getCommandSenderWorld().getWorldBorder().isWithinBounds(possibleTarget) || !new com.destroystokyo.paper.event.entity.EntityPathfindEvent(this.mob.getBukkitEntity(), // Paper - don't path out of world border
                     io.papermc.paper.util.MCUtil.toLocation(this.mob.level(), possibleTarget), target == null ? null : target.getBukkitEntity()).callEvent()) {
                     if (!copiedSet) {
                         copiedSet = true;
