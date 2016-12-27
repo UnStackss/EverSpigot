@@ -179,7 +179,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
     }
 
     public final boolean isDisconnected() {
-        return !this.player.joining && !this.connection.isConnected();
+        return (!this.player.joining && !this.connection.isConnected()) || this.processedDisconnect; // Paper - Fix duplication bugs
     }
     // CraftBukkit end
 

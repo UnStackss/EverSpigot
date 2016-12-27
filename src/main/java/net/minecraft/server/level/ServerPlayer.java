@@ -2627,7 +2627,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
     @Override
     public boolean isImmobile() {
-        return super.isImmobile() || !this.getBukkitEntity().isOnline();
+        return super.isImmobile() || (this.connection != null && this.connection.isDisconnected()); // Paper - Fix duplication bugs
     }
 
     @Override
