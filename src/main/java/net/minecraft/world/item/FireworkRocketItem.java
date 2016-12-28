@@ -42,6 +42,7 @@ public class FireworkRocketItem extends Item implements ProjectileItem {
                 vec3.z + (double)direction.getStepZ() * 0.15,
                 itemStack
             );
+            fireworkRocketEntity.spawningEntity = context.getPlayer() == null ? null : context.getPlayer().getUUID(); // Paper
             level.addFreshEntity(fireworkRocketEntity);
             itemStack.shrink(1);
         }
@@ -55,6 +56,7 @@ public class FireworkRocketItem extends Item implements ProjectileItem {
             ItemStack itemStack = user.getItemInHand(hand);
             if (!world.isClientSide) {
                 FireworkRocketEntity fireworkRocketEntity = new FireworkRocketEntity(world, itemStack, user);
+                fireworkRocketEntity.spawningEntity = user.getUUID(); // Paper
                 world.addFreshEntity(fireworkRocketEntity);
                 itemStack.consume(1, user);
                 user.awardStat(Stats.ITEM_USED.get(this));
