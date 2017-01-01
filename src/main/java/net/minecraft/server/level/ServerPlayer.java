@@ -1192,11 +1192,22 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             ResourceKey<LevelStem> resourcekey = worldserver1.getTypeKey();
 
             if (worldserver != null && worldserver.dimension() == worldserver1.dimension()) { // CraftBukkit
+                // Paper start - gateway-specific teleport event
+                if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.serverLevel().getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
+                    Location to = CraftLocation.toBukkit(teleportTarget.pos(), this.serverLevel().getWorld(), teleportTarget.yRot(), teleportTarget.xRot());
+                    final com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent event = new com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new org.bukkit.craftbukkit.block.CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity));
+                    if (!event.callEvent() || event.getTo() == null) {
+                        return null;
+                    }
+                    this.connection.teleport(event.getTo());
+                } else {
+                    // Paper end - gateway-specific teleport event
                 boolean result = this.connection.teleport(teleportTarget.pos().x, teleportTarget.pos().y, teleportTarget.pos().z, teleportTarget.yRot(), teleportTarget.xRot(), teleportTarget.cause());
                 if (!result) {
                     return null;
                 }
                 // CraftBukkit end
+                } // Paper
                 this.connection.resetPosition();
                 teleportTarget.postDimensionTransition().onTransition(this);
                 return this;
