@@ -401,6 +401,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     public long activatedTick = Integer.MIN_VALUE;
     public void inactiveTick() { }
     // Spigot end
+    protected int numCollisions = 0; // Paper - Cap entity collisions
     // Paper start - Entity origin API
     @javax.annotation.Nullable
     private org.bukkit.util.Vector origin;

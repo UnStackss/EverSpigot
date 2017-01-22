@@ -3502,10 +3502,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 }
 
                 Iterator iterator1 = list.iterator();
+                this.numCollisions = Math.max(0, this.numCollisions - this.level().paperConfig().collisions.maxEntityCollisions); // Paper - Cap entity collisions
 
-                while (iterator1.hasNext()) {
+                while (iterator1.hasNext() && this.numCollisions < this.level().paperConfig().collisions.maxEntityCollisions) { // Paper - Cap entity collisions
                     Entity entity1 = (Entity) iterator1.next();
-
+                    entity1.numCollisions++; // Paper - Cap entity collisions
+                    this.numCollisions++; // Paper - Cap entity collisions
                     this.doPush(entity1);
                 }
             }
