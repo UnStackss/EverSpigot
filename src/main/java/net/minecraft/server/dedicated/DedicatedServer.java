@@ -216,6 +216,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
         // Paper end - initialize global and world-defaults configuration
         io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
+        com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
 
         this.setPvpAllowed(dedicatedserverproperties.pvp);
         this.setFlightAllowed(dedicatedserverproperties.allowFlight);
