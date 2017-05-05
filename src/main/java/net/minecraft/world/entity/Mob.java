@@ -673,6 +673,11 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
                 ItemEntity entityitem = (ItemEntity) iterator.next();
 
                 if (!entityitem.isRemoved() && !entityitem.getItem().isEmpty() && !entityitem.hasPickUpDelay() && this.wantsToPickUp(entityitem.getItem())) {
+                    // Paper start - Item#canEntityPickup
+                    if (!entityitem.canMobPickup) {
+                        continue;
+                    }
+                    // Paper end - Item#canEntityPickup
                     this.pickUpItem(entityitem);
                 }
             }

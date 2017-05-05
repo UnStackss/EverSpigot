@@ -60,6 +60,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
     public UUID target;
     public final float bobOffs;
     private int lastTick = MinecraftServer.currentTick - 1; // CraftBukkit
+    public boolean canMobPickup = true; // Paper - Item#canEntityPickup
 
     public ItemEntity(EntityType<? extends ItemEntity> type, Level world) {
         super(type, world);
