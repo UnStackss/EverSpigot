@@ -436,6 +436,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
             // CraftBukkit start - fire PlayerPickupItemEvent
             int canHold = player.getInventory().canHold(itemstack);
             int remaining = i - canHold;
+            boolean flyAtPlayer = false; // Paper
 
             if (this.pickupDelay <= 0 && canHold > 0) {
                 itemstack.setCount(canHold);
@@ -443,8 +444,14 @@ public class ItemEntity extends Entity implements TraceableEntity {
                 PlayerPickupItemEvent playerEvent = new PlayerPickupItemEvent((Player) player.getBukkitEntity(), (org.bukkit.entity.Item) this.getBukkitEntity(), remaining);
                 playerEvent.setCancelled(!playerEvent.getPlayer().getCanPickupItems());
                 this.level().getCraftServer().getPluginManager().callEvent(playerEvent);
+                flyAtPlayer = playerEvent.getFlyAtPlayer(); // Paper
                 if (playerEvent.isCancelled()) {
                     itemstack.setCount(i); // SPIGOT-5294 - restore count
+                    // Paper start
+                    if (flyAtPlayer) {
+                        player.take(this, i);
+                    }
+                    // Paper end
                     return;
                 }
 
@@ -474,6 +481,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
             // CraftBukkit end
 
             if (this.pickupDelay == 0 && (this.target == null || this.target.equals(player.getUUID())) && player.getInventory().add(itemstack)) {
+                if (flyAtPlayer) // Paper - PlayerPickupItemEvent
                 player.take(this, i);
                 if (itemstack.isEmpty()) {
                     this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
