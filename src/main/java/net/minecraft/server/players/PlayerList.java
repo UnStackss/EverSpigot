@@ -1143,8 +1143,15 @@ public abstract class PlayerList {
     }
 
     public void removeAll() {
+        // Paper start - Extract method to allow for restarting flag
+        this.removeAll(false);
+    }
+
+    public void removeAll(boolean isRestarting) {
+        // Paper end
         // CraftBukkit start - disconnect safely
         for (ServerPlayer player : this.players) {
+            if (isRestarting) player.connection.disconnect(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(org.spigotmc.SpigotConfig.restartMessage)); else // Paper
             player.connection.disconnect(java.util.Objects.requireNonNullElseGet(this.server.server.shutdownMessage(), net.kyori.adventure.text.Component::empty)); // CraftBukkit - add custom shutdown message // Paper - Adventure
         }
         // CraftBukkit end

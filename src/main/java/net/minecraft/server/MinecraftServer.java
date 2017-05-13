@@ -242,6 +242,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     private Map<ResourceKey<Level>, ServerLevel> levels;
     private PlayerList playerList;
     private volatile boolean running;
+    private volatile boolean isRestarting = false; // Paper - flag to signify we're attempting to restart
     private boolean stopped;
     private int tickCount;
     private int ticksUntilAutosave;
@@ -938,7 +939,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         if (this.playerList != null) {
             MinecraftServer.LOGGER.info("Saving players");
             this.playerList.saveAll();
-            this.playerList.removeAll();
+            this.playerList.removeAll(this.isRestarting); // Paper
             try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
         }
 
@@ -1018,6 +1019,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     }
 
     public void halt(boolean waitForShutdown) {
+        // Paper start - allow passing of the intent to restart
+        this.safeShutdown(waitForShutdown, false);
+    }
+    public void safeShutdown(boolean waitForShutdown, boolean isRestarting) {
+        this.isRestarting = isRestarting;
+        // Paper end
         this.running = false;
         if (waitForShutdown) {
             try {
