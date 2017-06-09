@@ -161,8 +161,7 @@ public abstract class PlayerList {
 
     public PlayerList(MinecraftServer server, LayeredRegistryAccess<RegistryLayer> registryManager, PlayerDataStorage saveHandler, int maxPlayers) {
         this.cserver = server.server = new CraftServer((DedicatedServer) server, this);
-        server.console = org.bukkit.craftbukkit.command.ColouredConsoleSender.getInstance();
-        server.reader.addCompleter(new org.bukkit.craftbukkit.command.ConsoleCommandCompleter(server.server));
+        server.console = new com.destroystokyo.paper.console.TerminalConsoleCommandSender(); // Paper
         // CraftBukkit end
 
         this.bans = new UserBanList(PlayerList.USERBANLIST_FILE);

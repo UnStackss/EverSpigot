@@ -112,6 +112,9 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
                 if (!org.bukkit.craftbukkit.Main.useConsole) {
                     return;
                 }
+                // Paper start - Use TerminalConsoleAppender
+                new com.destroystokyo.paper.console.PaperConsole(DedicatedServer.this).start();
+                /*
                 jline.console.ConsoleReader bufferedreader = DedicatedServer.this.reader;
 
                 // MC-33041, SPIGOT-5538: if System.in is not valid due to javaw, then return
@@ -143,7 +146,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
                             continue;
                         }
                         if (s.trim().length() > 0) { // Trim to filter lines which are just spaces
-                            DedicatedServer.this.handleConsoleInput(s, DedicatedServer.this.createCommandSourceStack());
+                            DedicatedServer.this.issueCommand(s, DedicatedServer.this.getServerCommandListener());
                         }
                         // CraftBukkit end
                     }
@@ -151,6 +154,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
                     DedicatedServer.LOGGER.error("Exception handling console input", ioexception);
                 }
 
+                */
+                // Paper end
             }
         };
 
@@ -162,6 +167,9 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         }
         global.addHandler(new org.bukkit.craftbukkit.util.ForwardLogHandler());
 
+        // Paper start - Not needed with TerminalConsoleAppender
+        final org.apache.logging.log4j.Logger logger = LogManager.getRootLogger();
+        /*
         final org.apache.logging.log4j.core.Logger logger = ((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger());
         for (org.apache.logging.log4j.core.Appender appender : logger.getAppenders().values()) {
             if (appender instanceof org.apache.logging.log4j.core.appender.ConsoleAppender) {
@@ -172,6 +180,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         TerminalConsoleWriterThread writerThread = new TerminalConsoleWriterThread(System.out, this.reader);
         this.reader.setCompletionHandler(new TerminalCompletionHandler(writerThread, this.reader.getCompletionHandler()));
         writerThread.start();
+        */
+        // Paper end - Not needed with TerminalConsoleAppender
 
         System.setOut(IoBuilder.forLogger(logger).setLevel(Level.INFO).buildPrintStream());
         System.setErr(IoBuilder.forLogger(logger).setLevel(Level.WARN).buildPrintStream());
