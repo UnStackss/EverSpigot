@@ -40,6 +40,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 // CraftBukkit end
+import org.bukkit.event.player.PlayerAttemptPickupItemEvent; // Paper
 
 public class ItemEntity extends Entity implements TraceableEntity {
 
@@ -437,6 +438,22 @@ public class ItemEntity extends Entity implements TraceableEntity {
             int canHold = player.getInventory().canHold(itemstack);
             int remaining = i - canHold;
             boolean flyAtPlayer = false; // Paper
+
+            // Paper start - PlayerAttemptPickupItemEvent
+            if (this.pickupDelay <= 0) {
+                PlayerAttemptPickupItemEvent attemptEvent = new PlayerAttemptPickupItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.Item) this.getBukkitEntity(), remaining);
+                this.level().getCraftServer().getPluginManager().callEvent(attemptEvent);
+
+                flyAtPlayer = attemptEvent.getFlyAtPlayer();
+                if (attemptEvent.isCancelled()) {
+                    if (flyAtPlayer) {
+                        player.take(this, i);
+                    }
+
+                    return;
+                }
+            }
+            // Paper end - PlayerAttemptPickupItemEvent
 
             if (this.pickupDelay <= 0 && canHold > 0) {
                 itemstack.setCount(canHold);
