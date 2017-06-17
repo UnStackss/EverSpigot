@@ -330,8 +330,13 @@ public class CommandSourceStack implements ExecutionCommandSource<CommandSourceS
     }
 
     public void sendFailure(Component message) {
+        // Paper start - Add UnknownCommandEvent
+        this.sendFailure(message, true);
+    }
+    public void sendFailure(Component message, boolean withStyle) {
+        // Paper end - Add UnknownCommandEvent
         if (this.source.acceptsFailure() && !this.silent) {
-            this.source.sendSystemMessage(Component.empty().append(message).withStyle(ChatFormatting.RED));
+            this.source.sendSystemMessage(withStyle ? Component.empty().append(message).withStyle(ChatFormatting.RED) : message); // Paper - Add UnknownCommandEvent
         }
 
     }

@@ -329,7 +329,7 @@ public class Commands {
         commandlistenerwrapper.getServer().getProfiler().push(() -> {
             return "/" + s;
         });
-        ContextChain<CommandSourceStack> contextchain = Commands.finishParsing(parseresults, s, commandlistenerwrapper, label); // CraftBukkit
+        ContextChain contextchain = this.finishParsing(parseresults, s, commandlistenerwrapper, label); // CraftBukkit // Paper - Add UnknownCommandEvent
 
         try {
             if (contextchain != null) {
@@ -363,14 +363,18 @@ public class Commands {
     }
 
     @Nullable
-    private static ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> parseresults, String s, CommandSourceStack commandlistenerwrapper, String label) { // CraftBukkit
+    private ContextChain<CommandSourceStack> finishParsing(ParseResults<CommandSourceStack> parseresults, String s, CommandSourceStack commandlistenerwrapper, String label) { // CraftBukkit // Paper - Add UnknownCommandEvent
         try {
             Commands.validateParseResults(parseresults);
             return (ContextChain) ContextChain.tryFlatten(parseresults.getContext().build(s)).orElseThrow(() -> {
                 return CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().createWithContext(parseresults.getReader());
             });
         } catch (CommandSyntaxException commandsyntaxexception) {
-            commandlistenerwrapper.sendFailure(ComponentUtils.fromMessage(commandsyntaxexception.getRawMessage()));
+            // Paper start - Add UnknownCommandEvent
+            final net.kyori.adventure.text.TextComponent.Builder builder = net.kyori.adventure.text.Component.text();
+            // commandlistenerwrapper.sendFailure(ComponentUtils.fromMessage(commandsyntaxexception.getRawMessage()));
+            builder.color(net.kyori.adventure.text.format.NamedTextColor.RED).append(io.papermc.paper.brigadier.PaperBrigadier.componentFromMessage(commandsyntaxexception.getRawMessage()));
+            // Paper end - Add UnknownCommandEvent
             if (commandsyntaxexception.getInput() != null && commandsyntaxexception.getCursor() >= 0) {
                 int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
                 MutableComponent ichatmutablecomponent = Component.empty().withStyle(ChatFormatting.GRAY).withStyle((chatmodifier) -> {
@@ -389,7 +393,17 @@ public class Commands {
                 }
 
                 ichatmutablecomponent.append((Component) Component.translatable("command.context.here").withStyle(ChatFormatting.RED, ChatFormatting.ITALIC));
-                commandlistenerwrapper.sendFailure(ichatmutablecomponent);
+                // Paper start - Add UnknownCommandEvent
+                // commandlistenerwrapper.sendFailure(ichatmutablecomponent);
+                builder
+                    .append(net.kyori.adventure.text.Component.newline())
+                    .append(io.papermc.paper.adventure.PaperAdventure.asAdventure(ichatmutablecomponent));
+            }
+            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(commandlistenerwrapper.getBukkitSender(), s, org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty() ? null : builder.build());
+            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(event);
+            if (event.message() != null) {
+                commandlistenerwrapper.sendFailure(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.message()), false);
+                // Paper end - Add UnknownCommandEvent
             }
 
             return null;
