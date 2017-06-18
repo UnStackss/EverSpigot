@@ -230,6 +230,7 @@ public final class TrialSpawner {
                                 optional1.ifPresent(entityinsentient::equip);
                             }
 
+                            entity.spawnedViaMobSpawner = true; // Paper
                             // CraftBukkit start
                             if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, pos).isCancelled()) {
                                 return Optional.empty();

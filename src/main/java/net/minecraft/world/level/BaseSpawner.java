@@ -176,6 +176,7 @@ public abstract class BaseSpawner {
                             // Spigot End
                         }
 
+                        entity.spawnedViaMobSpawner = true; // Paper
                         // CraftBukkit start
                         if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, pos).isCancelled()) {
                             continue;
