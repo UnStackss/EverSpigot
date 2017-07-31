@@ -133,7 +133,7 @@ public class Ocelot extends Animal {
 
     @Override
     public boolean removeWhenFarAway(double distanceSquared) {
-        return !this.isTrusting() && this.tickCount > 2400;
+        return !this.isTrusting() && this.tickCount > 2400 && !this.hasCustomName() && !this.isLeashed(); // Paper - honor name and leash
     }
 
     public static AttributeSupplier.Builder createAttributes() {
