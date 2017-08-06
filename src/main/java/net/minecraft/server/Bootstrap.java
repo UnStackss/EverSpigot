@@ -43,7 +43,7 @@ public class Bootstrap {
     public static void bootStrap() {
         if (!Bootstrap.isBootstrapped) {
             // CraftBukkit start
-            String name = Bootstrap.class.getSimpleName();
+            /*String name = Bootstrap.class.getSimpleName(); // Paper
             switch (name) {
                 case "DispenserRegistry":
                     break;
@@ -57,7 +57,7 @@ public class Bootstrap {
                     System.err.println("*** WARNING: This server jar is unsupported, use at your own risk. ***");
                     System.err.println("**********************************************************************");
                     break;
-            }
+            }*/ // Paper
             // CraftBukkit end
             Bootstrap.isBootstrapped = true;
             Instant instant = Instant.now();
