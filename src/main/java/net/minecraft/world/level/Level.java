@@ -726,6 +726,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         boolean flag = this.tickRateManager().runsNormally();
 
         int tilesThisCycle = 0;
+        var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
+        toRemove.add(null); // Paper - Fix MC-117075
         for (tileTickPosition = 0; tileTickPosition < this.blockEntityTickers.size(); tileTickPosition++) { // Paper - Disable tick limiters
             this.tileTickPosition = (this.tileTickPosition < this.blockEntityTickers.size()) ? this.tileTickPosition : 0;
             TickingBlockEntity tickingblockentity = (TickingBlockEntity) this.blockEntityTickers.get(this.tileTickPosition);
@@ -734,12 +736,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             if (tickingblockentity.isRemoved()) {
                 // Spigot start
                 tilesThisCycle--;
-                this.blockEntityTickers.remove(this.tileTickPosition--);
+                toRemove.add(tickingblockentity); // Paper - Fix MC-117075; use removeAll
                 // Spigot end
             } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
                 tickingblockentity.tick();
             }
         }
+        this.blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075
 
         this.timings.tileEntityTick.stopTiming(); // Spigot
         this.tickingBlockEntities = false;
