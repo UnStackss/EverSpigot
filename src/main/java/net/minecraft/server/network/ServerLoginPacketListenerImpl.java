@@ -303,7 +303,7 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
                         ServerLoginPacketListenerImpl.LOGGER.warn("Authentication servers are down but will let them in anyway!");
                         ServerLoginPacketListenerImpl.this.startClientVerification(ServerLoginPacketListenerImpl.this.createOfflineProfile(s1)); // Spigot
                     } else {
-                        ServerLoginPacketListenerImpl.this.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
+                        ServerLoginPacketListenerImpl.this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.authenticationServersDown)); // Paper - Configurable kick message
                         ServerLoginPacketListenerImpl.LOGGER.error("Couldn't verify username because servers are unavailable");
                     }
                     // CraftBukkit start - catch all exceptions
