@@ -1199,7 +1199,34 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                             boolean flag1 = d7 > 0.0D;
 
                             if (this.player.onGround() && !packet.isOnGround() && flag1) {
-                                this.player.jumpFromGround();
+                                // Paper start - Add PlayerJumpEvent
+                                Player player = this.getCraftPlayer();
+                                Location from = new Location(player.getWorld(), lastPosX, lastPosY, lastPosZ, lastYaw, lastPitch); // Get the Players previous Event location.
+                                Location to = player.getLocation().clone(); // Start off the To location as the Players current location.
+
+                                // If the packet contains movement information then we update the To location with the correct XYZ.
+                                if (packet.hasPos) {
+                                    to.setX(packet.x);
+                                    to.setY(packet.y);
+                                    to.setZ(packet.z);
+                                }
+
+                                // If the packet contains look information then we update the To location with the correct Yaw & Pitch.
+                                if (packet.hasRot) {
+                                    to.setYaw(packet.yRot);
+                                    to.setPitch(packet.xRot);
+                                }
+
+                                com.destroystokyo.paper.event.player.PlayerJumpEvent event = new com.destroystokyo.paper.event.player.PlayerJumpEvent(player, from, to);
+
+                                if (event.callEvent()) {
+                                    this.player.jumpFromGround();
+                                } else {
+                                    from = event.getFrom();
+                                    this.internalTeleport(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch(), Collections.emptySet());
+                                    return;
+                                }
+                                // Paper end - Add PlayerJumpEvent
                             }
 
                             boolean flag2 = this.player.verticalCollisionBelow;
