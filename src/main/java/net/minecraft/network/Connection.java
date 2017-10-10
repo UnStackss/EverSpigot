@@ -120,6 +120,10 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
     @Nullable
     BandwidthDebugMonitor bandwidthDebugMonitor;
     public String hostname = ""; // CraftBukkit - add field
+    // Paper start - NetworkClient implementation
+    public int protocolVersion;
+    public java.net.InetSocketAddress virtualHost;
+    // Paper end
 
     // Paper start - add utility methods
     public final net.minecraft.server.level.ServerPlayer getPlayer() {

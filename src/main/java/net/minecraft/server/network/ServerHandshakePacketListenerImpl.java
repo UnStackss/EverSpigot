@@ -70,6 +70,10 @@ public class ServerHandshakePacketListenerImpl implements ServerHandshakePacketL
                 throw new UnsupportedOperationException("Invalid intention " + String.valueOf(packet.intention()));
         }
 
+        // Paper start - NetworkClient implementation
+        this.connection.protocolVersion = packet.protocolVersion();
+        this.connection.virtualHost = com.destroystokyo.paper.network.PaperNetworkClient.prepareVirtualHost(packet.hostName(), packet.port());
+        // Paper end
     }
 
     private void beginLogin(ClientIntentionPacket packet, boolean transfer) {
