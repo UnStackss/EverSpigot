@@ -46,11 +46,22 @@ public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
                 SocketAddress socketaddress = channelhandlercontext.channel().remoteAddress();
                 int i = bytebuf.readableBytes();
                 String s = null; // Paper
-                org.bukkit.event.server.ServerListPingEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callServerListPingEvent(socketaddress, this.server.getMotd(), this.server.getPlayerCount(), this.server.getMaxPlayers()); // CraftBukkit
+                // org.bukkit.event.server.ServerListPingEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callServerListPingEvent(socketaddress, this.server.getMotd(), this.server.getPlayerCount(), this.server.getMaxPlayers()); // CraftBukkit // Paper
+                com.destroystokyo.paper.event.server.PaperServerListPingEvent event; // Paper
 
                 if (i == 0) {
                     LegacyQueryHandler.LOGGER.debug("Ping: (<1.3.x) from {}", socketaddress);
-                    s = LegacyQueryHandler.createVersion0Response(this.server, event); // CraftBukkit
+
+                    // Paper start - Call PaperServerListPingEvent and use results
+                    event = com.destroystokyo.paper.network.PaperLegacyStatusClient.processRequest(net.minecraft.server.MinecraftServer.getServer(), (java.net.InetSocketAddress) socketaddress, 39, null);
+                    if (event == null) {
+                        channelhandlercontext.close();
+                        bytebuf.release();
+                        flag = false;
+                        return;
+                    }
+                    s = String.format(Locale.ROOT, "%s\u00a7%d\u00a7%d", com.destroystokyo.paper.network.PaperLegacyStatusClient.getUnformattedMotd(event), event.getNumPlayers(), event.getMaxPlayers());
+                    // Paper end
                     LegacyQueryHandler.sendFlushAndClose(channelhandlercontext, LegacyQueryHandler.createLegacyDisconnectPacket(channelhandlercontext.alloc(), s));
                 } else {
                     if (bytebuf.readUnsignedByte() != 1) {
@@ -75,7 +86,18 @@ public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
                         LegacyQueryHandler.LOGGER.debug("Ping: (1.4-1.5.x) from {}", socketaddress);
                     }
 
-                    if (s == null) s = LegacyQueryHandler.createVersion1Response(this.server, event); // CraftBukkit // Paper
+                    if (s == null) {
+                        // Paper start - Call PaperServerListPingEvent and use results
+                        event = com.destroystokyo.paper.network.PaperLegacyStatusClient.processRequest(net.minecraft.server.MinecraftServer.getServer(), (java.net.InetSocketAddress) socketaddress, 127, null); // Paper
+                        if (event == null) {
+                            channelhandlercontext.close();
+                            bytebuf.release();
+                            flag = false;
+                            return;
+                        }
+                        s = String.format(Locale.ROOT, "\u00a71\u0000%d\u0000%s\u0000%s\u0000%d\u0000%d", new Object[] { event.getProtocolVersion(), this.server.getServerVersion(), event.getMotd(), event.getNumPlayers(), event.getMaxPlayers()}); // CraftBukkit
+                        // Paper end
+                    }
                     LegacyQueryHandler.sendFlushAndClose(channelhandlercontext, LegacyQueryHandler.createLegacyDisconnectPacket(channelhandlercontext.alloc(), s));
                 }
 
@@ -187,8 +209,16 @@ public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
 
         LOGGER.debug("Ping: (1.6) from {}", ctx.channel().remoteAddress());
 
-        String response = String.format("\u00a71\u0000%d\u0000%s\u0000%s\u0000%d\u0000%d",
-            Byte.MAX_VALUE, server.getServerVersion(), server.getMotd(), server.getPlayerCount(), server.getMaxPlayers());
+        java.net.InetSocketAddress virtualHost = com.destroystokyo.paper.network.PaperNetworkClient.prepareVirtualHost(host, port);
+        com.destroystokyo.paper.event.server.PaperServerListPingEvent event = com.destroystokyo.paper.network.PaperLegacyStatusClient.processRequest(
+                server, (java.net.InetSocketAddress) ctx.channel().remoteAddress(), protocolVersion, virtualHost);
+        if (event == null) {
+            ctx.close();
+            return null;
+        }
+
+        String response = String.format("\u00a71\u0000%d\u0000%s\u0000%s\u0000%d\u0000%d", event.getProtocolVersion(), event.getVersion(),
+            com.destroystokyo.paper.network.PaperLegacyStatusClient.getMotd(event), event.getNumPlayers(), event.getMaxPlayers());
         return response;
     }
 
