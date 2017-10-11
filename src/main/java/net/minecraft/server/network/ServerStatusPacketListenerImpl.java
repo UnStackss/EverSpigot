@@ -49,6 +49,8 @@ public class ServerStatusPacketListenerImpl implements ServerStatusPacketListene
             this.connection.disconnect(ServerStatusPacketListenerImpl.DISCONNECT_REASON);
         } else {
             this.hasRequestedStatus = true;
+            // Paper start - Replace everything
+            /*
             // CraftBukkit start
             // this.connection.send(new PacketStatusOutServerInfo(this.status));
             MinecraftServer server = MinecraftServer.getServer();
@@ -151,6 +153,9 @@ public class ServerStatusPacketListenerImpl implements ServerStatusPacketListene
 
             this.connection.send(new ClientboundStatusResponsePacket(ping));
             // CraftBukkit end
+            */
+            com.destroystokyo.paper.network.StandardPaperServerListPingEventImpl.processRequest(MinecraftServer.getServer(), this.connection);
+            // Paper end
         }
     }
 
