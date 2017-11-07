@@ -59,6 +59,7 @@ public abstract class BlockEntity {
         this.worldPosition = pos.immutable();
         this.validateBlockState(state);
         this.blockState = state;
+        this.persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY); // Paper - always init
     }
 
     private void validateBlockState(BlockState state) {
@@ -92,7 +93,7 @@ public abstract class BlockEntity {
 
     // CraftBukkit start - read container
     protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
-        this.persistentDataContainer = new CraftPersistentDataContainer(BlockEntity.DATA_TYPE_REGISTRY);
+        this.persistentDataContainer.clear(); // Paper - clear instead of init
 
         net.minecraft.nbt.Tag persistentDataTag = nbt.get("PublicBukkitValues");
         if (persistentDataTag instanceof CompoundTag) {
@@ -379,8 +380,15 @@ public abstract class BlockEntity {
 
     // CraftBukkit start - add method
     public InventoryHolder getOwner() {
+        // Paper start
+        return getOwner(true);
+    }
+    public InventoryHolder getOwner(boolean useSnapshot) {
+        // Paper end
         if (this.level == null) return null;
-        org.bukkit.block.BlockState state = this.level.getWorld().getBlockAt(this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ()).getState();
+        org.bukkit.block.Block block = this.level.getWorld().getBlockAt(this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ());
+        if (block.getType() == org.bukkit.Material.AIR) return null;
+        org.bukkit.block.BlockState state = block.getState(useSnapshot); // Paper
         if (state instanceof InventoryHolder) return (InventoryHolder) state;
         return null;
     }
