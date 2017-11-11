@@ -3168,6 +3168,13 @@ public abstract class LivingEntity extends Entity implements Attackable {
             ItemStack itemstack2 = this.getItemBySlot(enumitemslot);
 
             if (this.equipmentHasChanged(itemstack1, itemstack2)) {
+                // Paper start - PlayerArmorChangeEvent
+                if (this instanceof ServerPlayer && enumitemslot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
+                    final org.bukkit.inventory.ItemStack oldItem = CraftItemStack.asBukkitCopy(itemstack1);
+                    final org.bukkit.inventory.ItemStack newItem = CraftItemStack.asBukkitCopy(itemstack2);
+                    new com.destroystokyo.paper.event.player.PlayerArmorChangeEvent((Player) this.getBukkitEntity(), com.destroystokyo.paper.event.player.PlayerArmorChangeEvent.SlotType.valueOf(enumitemslot.name()), oldItem, newItem).callEvent();
+                }
+                // Paper end - PlayerArmorChangeEvent
                 if (map == null) {
                     map = Maps.newEnumMap(EquipmentSlot.class);
                 }
