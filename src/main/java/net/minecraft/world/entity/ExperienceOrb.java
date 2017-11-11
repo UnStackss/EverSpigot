@@ -244,6 +244,7 @@ public class ExperienceOrb extends Entity {
     }
 
     private static boolean tryMergeToExisting(ServerLevel world, Vec3 pos, int amount) {
+        // Paper - TODO some other event for this kind of merge
         AABB axisalignedbb = AABB.ofSize(pos, 1.0D, 1.0D, 1.0D);
         int j = world.getRandom().nextInt(40);
         List<ExperienceOrb> list = world.getEntities(EntityTypeTest.forClass(ExperienceOrb.class), axisalignedbb, (entityexperienceorb) -> {
@@ -270,6 +271,11 @@ public class ExperienceOrb extends Entity {
     }
 
     private void merge(ExperienceOrb other) {
+        // Paper start - call orb merge event
+        if (!new com.destroystokyo.paper.event.entity.ExperienceOrbMergeEvent((org.bukkit.entity.ExperienceOrb) this.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) other.getBukkitEntity()).callEvent()) {
+            return;
+        }
+        // Paper end - call orb merge event
         this.count += other.count;
         this.age = Math.min(this.age, other.age);
         other.discard(EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause
@@ -360,7 +366,7 @@ public class ExperienceOrb extends Entity {
                 int l = amount - k * amount / j;
 
                 if (l > 0) {
-                    this.value = l; // CraftBukkit - update exp value of orb for PlayerItemMendEvent calls
+                    // this.value = l; // CraftBukkit - update exp value of orb for PlayerItemMendEvent calls // Paper - the value field should not be mutated here because it doesn't take "count" into account
                     return this.repairPlayerItems(player, l);
                 }
             }
