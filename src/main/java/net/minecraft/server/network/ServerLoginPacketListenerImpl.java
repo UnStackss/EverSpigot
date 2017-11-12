@@ -104,7 +104,9 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
         }
         // Paper end - Do not allow logins while the server is shutting down
         if (this.state == ServerLoginPacketListenerImpl.State.VERIFYING) {
+            if (this.connection.isConnected()) { // Paper - prevent logins to be processed even though disconnect was called
             this.verifyLoginAndFinishConnectionSetup((GameProfile) Objects.requireNonNull(this.authenticatedProfile));
+            } // Paper - prevent logins to be processed even though disconnect was called
         }
 
         // CraftBukkit start
