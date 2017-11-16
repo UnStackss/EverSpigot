@@ -150,7 +150,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
     public boolean captureBlockStates = false;
     public boolean captureTreeGeneration = false;
-    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new java.util.LinkedHashMap<>();
+    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
     public Map<BlockPos, BlockEntity> capturedTileEntities = new HashMap<>();
     public List<ItemEntity> captureDrops;
     public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
@@ -384,7 +384,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
         // CraftBukkit start - tree generation
         if (this.captureTreeGeneration) {
-            CapturedBlockState blockstate = this.capturedBlockStates.get(pos);
+            CraftBlockState blockstate = this.capturedBlockStates.get(pos);
             if (blockstate == null) {
                 blockstate = CapturedBlockState.getTreeBlockState(this, pos, flags);
                 this.capturedBlockStates.put(pos.immutable(), blockstate);
@@ -405,7 +405,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             // CraftBukkit start - capture blockstates
             boolean captured = false;
             if (this.captureBlockStates && !this.capturedBlockStates.containsKey(pos)) {
-                CapturedBlockState blockstate = CapturedBlockState.getBlockState(this, pos, flags);
+                CraftBlockState blockstate = (CraftBlockState) world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getState(); // Paper - use CB getState to get a suitable snapshot
+                blockstate.setFlag(flags); // Paper - set flag
                 this.capturedBlockStates.put(pos.immutable(), blockstate);
                 captured = true;
             }
@@ -606,7 +607,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     public BlockState getBlockState(BlockPos pos) {
         // CraftBukkit start - tree generation
         if (this.captureTreeGeneration) {
-            CapturedBlockState previous = this.capturedBlockStates.get(pos);
+            CraftBlockState previous = this.capturedBlockStates.get(pos); // Paper
             if (previous != null) {
                 return previous.getHandle();
             }
