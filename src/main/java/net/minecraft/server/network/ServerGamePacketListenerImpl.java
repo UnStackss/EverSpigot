@@ -711,21 +711,58 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
     }
 
+    // Paper start - AsyncTabCompleteEvent
+    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = java.util.concurrent.Executors.newFixedThreadPool(4,
+        new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Tab Complete Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build());
+    // Paper end - AsyncTabCompleteEvent
     @Override
     public void handleCustomCommandSuggestions(ServerboundCommandSuggestionPacket packet) {
-        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
+        // PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel()); // Paper - AsyncTabCompleteEvent; run this async
         // CraftBukkit start
         if (this.chatSpamTickCount.addAndGet(1) > 500 && !this.server.getPlayerList().isOp(this.player.getGameProfile())) {
             this.disconnect(Component.translatable("disconnect.spam"));
             return;
         }
         // CraftBukkit end
+        // Paper start - AsyncTabCompleteEvent
+        TAB_COMPLETE_EXECUTOR.execute(() -> this.handleCustomCommandSuggestions0(packet));
+    }
+
+    private void handleCustomCommandSuggestions0(final ServerboundCommandSuggestionPacket packet) {
         StringReader stringreader = new StringReader(packet.getCommand());
 
         if (stringreader.canRead() && stringreader.peek() == '/') {
             stringreader.skip();
         }
 
+        final com.destroystokyo.paper.event.server.AsyncTabCompleteEvent event = new com.destroystokyo.paper.event.server.AsyncTabCompleteEvent(this.getCraftPlayer(), packet.getCommand(), true, null);
+        event.callEvent();
+        final List<com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion> completions = event.isCancelled() ? com.google.common.collect.ImmutableList.of() : event.completions();
+        // If the event isn't handled, we can assume that we have no completions, and so we'll ask the server
+        if (!event.isHandled()) {
+            if (event.isCancelled()) {
+                return;
+            }
+
+            // This needs to be on main
+            this.server.scheduleOnMain(() -> this.sendServerSuggestions(packet, stringreader));
+        } else if (!completions.isEmpty()) {
+            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder0 = new com.mojang.brigadier.suggestion.SuggestionsBuilder(packet.getCommand(), stringreader.getTotalLength());
+            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder = builder0.createOffset(builder0.getInput().lastIndexOf(' ') + 1);
+            for (final com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion completion : completions) {
+                final Integer intSuggestion = com.google.common.primitives.Ints.tryParse(completion.suggestion());
+                if (intSuggestion != null) {
+                    builder.suggest(intSuggestion, PaperAdventure.asVanilla(completion.tooltip()));
+                } else {
+                    builder.suggest(completion.suggestion(), PaperAdventure.asVanilla(completion.tooltip()));
+                }
+            }
+            this.connection.send(new ClientboundCommandSuggestionsPacket(packet.getId(), builder.buildFuture().join()));
+        }
+    }
+
+    private void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringreader) {
+        // Paper end - AsyncTabCompleteEvent
         ParseResults<CommandSourceStack> parseresults = this.server.getCommands().getDispatcher().parse(stringreader, this.player.createCommandSourceStack());
 
         this.server.getCommands().getDispatcher().getCompletionSuggestions(parseresults).thenAccept((suggestions) -> {
