@@ -251,12 +251,14 @@ public abstract class Animal extends AgeableMob {
 
     public void finalizeSpawnChildFromBreeding(ServerLevel worldserver, Animal entityanimal, @Nullable AgeableMob entityageable, int experience) {
         // CraftBukkit end
-        Optional.ofNullable(this.getLoveCause()).or(() -> {
-            return Optional.ofNullable(entityanimal.getLoveCause());
-        }).ifPresent((entityplayer) -> {
+        // Paper start
+        ServerPlayer entityplayer = this.getLoveCause();
+        if (entityplayer == null) entityplayer = entityanimal.getLoveCause();
+        if (entityplayer != null) {
+            // Paper end
             entityplayer.awardStat(Stats.ANIMALS_BRED);
             CriteriaTriggers.BRED_ANIMALS.trigger(entityplayer, this, entityanimal, entityageable);
-        });
+        } // Paper
         this.setAge(6000);
         entityanimal.setAge(6000);
         this.resetLove();
@@ -265,7 +267,7 @@ public abstract class Animal extends AgeableMob {
         if (worldserver.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
             // CraftBukkit start - use event experience
             if (experience > 0) {
-                worldserver.addFreshEntity(new ExperienceOrb(worldserver, this.getX(), this.getY(), this.getZ(), experience));
+                worldserver.addFreshEntity(new ExperienceOrb(worldserver, this.getX(), this.getY(), this.getZ(), experience, org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, entityplayer, entityageable)); // Paper
             }
             // CraftBukkit end
         }

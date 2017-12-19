@@ -360,8 +360,13 @@ public class Block extends BlockBehaviour implements ItemLike {
     }
 
     public void popExperience(ServerLevel world, BlockPos pos, int size) {
+        // Paper start - add entity parameter
+        popExperience(world, pos, size, null);
+    }
+    public void popExperience(ServerLevel world, BlockPos pos, int size, net.minecraft.world.entity.Entity entity) {
+        // Paper end - add entity parameter
         if (world.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS)) {
-            ExperienceOrb.award(world, Vec3.atCenterOf(pos), size);
+            ExperienceOrb.award(world, Vec3.atCenterOf(pos), size, org.bukkit.entity.ExperienceOrb.SpawnReason.BLOCK_BREAK, entity); // Paper
         }
 
     }

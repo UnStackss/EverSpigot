@@ -897,7 +897,7 @@ public class Fox extends Animal implements VariantHolder<Fox.Type> {
                 if (this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
                     // CraftBukkit start - use event experience
                     if (experience > 0) {
-                        this.level.addFreshEntity(new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), experience));
+                        this.level.addFreshEntity(new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), experience, org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, entityplayer, entityfox)); // Paper
                     }
                     // CraftBukkit end
                 }

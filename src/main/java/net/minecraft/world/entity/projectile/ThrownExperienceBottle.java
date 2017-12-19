@@ -54,7 +54,7 @@ public class ThrownExperienceBottle extends ThrowableItemProjectile {
             }
             // CraftBukkit end
 
-            ExperienceOrb.award((ServerLevel) this.level(), this.position(), i);
+            ExperienceOrb.award((ServerLevel) this.level(), this.position(), i, org.bukkit.entity.ExperienceOrb.SpawnReason.EXP_BOTTLE, this.getOwner(), this); // Paper
             this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
         }
 

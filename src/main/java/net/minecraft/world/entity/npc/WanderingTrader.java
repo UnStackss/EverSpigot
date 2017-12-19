@@ -207,7 +207,7 @@ public class WanderingTrader extends net.minecraft.world.entity.npc.AbstractVill
         if (offer.shouldRewardExp()) {
             int i = 3 + this.random.nextInt(4);
 
-            this.level().addFreshEntity(new ExperienceOrb(this.level(), this.getX(), this.getY() + 0.5D, this.getZ(), i));
+            this.level().addFreshEntity(new ExperienceOrb(this.level(), this.getX(), this.getY() + 0.5D, this.getZ(), i, org.bukkit.entity.ExperienceOrb.SpawnReason.VILLAGER_TRADE, this.getTradingPlayer(), this)); // Paper
         }
 
     }
