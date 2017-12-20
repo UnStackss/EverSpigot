@@ -322,7 +322,7 @@ public class ExperienceOrb extends Entity {
     @Override
     public void playerTouch(Player player) {
         if (player instanceof ServerPlayer entityplayer) {
-            if (player.takeXpDelay == 0) {
+            if (player.takeXpDelay == 0 && new com.destroystokyo.paper.event.player.PlayerPickupExperienceEvent(entityplayer.getBukkitEntity(), (org.bukkit.entity.ExperienceOrb) this.getBukkitEntity()).callEvent()) { // Paper - PlayerPickupExperienceEvent
                 player.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(player, 2, PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2;
                 player.take(this, 1);
                 int i = this.repairPlayerItems(entityplayer, this.value);
