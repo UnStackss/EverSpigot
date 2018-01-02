@@ -49,7 +49,7 @@ public record ResolvableProfile(Optional<String> name, Optional<UUID> id, Proper
         if (this.isResolved()) {
             return CompletableFuture.completedFuture(this);
         } else {
-            return this.id.isPresent() ? SkullBlockEntity.fetchGameProfile(this.id.get()).thenApply(optional -> {
+            return this.id.isPresent() ? SkullBlockEntity.fetchGameProfile(this.id.get(), this.name.orElse(null)).thenApply(optional -> { // Paper - player profile events
                 GameProfile gameProfile = optional.orElseGet(() -> new GameProfile(this.id.get(), this.name.orElse("")));
                 return new ResolvableProfile(gameProfile);
             }) : SkullBlockEntity.fetchGameProfile(this.name.orElseThrow()).thenApply(profile -> {
