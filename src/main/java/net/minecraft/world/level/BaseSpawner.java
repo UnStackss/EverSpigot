@@ -132,6 +132,20 @@ public abstract class BaseSpawner {
                         } else if (!SpawnPlacements.checkSpawnRules((EntityType) optional.get(), world, MobSpawnType.SPAWNER, blockposition1, world.getRandom())) {
                             continue;
                         }
+                        // Paper start - PreCreatureSpawnEvent
+                        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
+                            io.papermc.paper.util.MCUtil.toLocation(world, d0, d1, d2),
+                            org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(optional.get()),
+                            org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER
+                        );
+                        if (!event.callEvent()) {
+                            flag = true;
+                            if (event.shouldAbortSpawn()) {
+                                break;
+                            }
+                            continue;
+                        }
+                        // Paper end - PreCreatureSpawnEvent
 
                         Entity entity = EntityType.loadEntityRecursive(nbttagcompound, world, (entity1) -> {
                             entity1.moveTo(d0, d1, d2, entity1.getYRot(), entity1.getXRot());

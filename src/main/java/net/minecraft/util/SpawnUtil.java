@@ -21,10 +21,10 @@ public class SpawnUtil {
 
     public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> entityType, MobSpawnType reason, ServerLevel world, BlockPos pos, int tries, int horizontalRange, int verticalRange, SpawnUtil.Strategy requirements) {
         // CraftBukkit start
-        return SpawnUtil.trySpawnMob(entityType, reason, world, pos, tries, horizontalRange, verticalRange, requirements, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
+        return SpawnUtil.trySpawnMob(entityType, reason, world, pos, tries, horizontalRange, verticalRange, requirements, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT, null); // Paper
     }
 
-    public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> entitytypes, MobSpawnType enummobspawn, ServerLevel worldserver, BlockPos blockposition, int i, int j, int k, SpawnUtil.Strategy spawnutil_a, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason) {
+    public static <T extends Mob> Optional<T> trySpawnMob(EntityType<T> entitytypes, MobSpawnType enummobspawn, ServerLevel worldserver, BlockPos blockposition, int i, int j, int k, SpawnUtil.Strategy spawnutil_a, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason, @javax.annotation.Nullable Runnable onAbort) { // Paper
         // CraftBukkit end
         BlockPos.MutableBlockPos blockposition_mutableblockposition = blockposition.mutable();
 
@@ -34,6 +34,22 @@ public class SpawnUtil {
 
             blockposition_mutableblockposition.setWithOffset(blockposition, i1, k, j1);
             if (worldserver.getWorldBorder().isWithinBounds((BlockPos) blockposition_mutableblockposition) && SpawnUtil.moveToPossibleSpawnPosition(worldserver, k, blockposition_mutableblockposition, spawnutil_a)) {
+                // Paper start - PreCreatureSpawnEvent
+                com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
+                    io.papermc.paper.util.MCUtil.toLocation(worldserver, blockposition),
+                    org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entitytypes),
+                    reason
+                );
+                if (!event.callEvent()) {
+                    if (event.shouldAbortSpawn()) {
+                        if (onAbort != null) {
+                            onAbort.run();
+                        }
+                        return Optional.empty();
+                    }
+                    break;
+                }
+                // Paper end - PreCreatureSpawnEvent
                 T t0 = entitytypes.create(worldserver, (Consumer<T>) null, blockposition_mutableblockposition, enummobspawn, false, false); // CraftBukkit - decompile error
 
                 if (t0 != null) {

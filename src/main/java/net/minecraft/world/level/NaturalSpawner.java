@@ -208,7 +208,13 @@ public final class NaturalSpawner {
                                         j1 = biomesettingsmobs_c.minCount + world.random.nextInt(1 + biomesettingsmobs_c.maxCount - biomesettingsmobs_c.minCount);
                                     }
 
-                                    if (NaturalSpawner.isValidSpawnPostitionForType(world, group, structuremanager, chunkgenerator, biomesettingsmobs_c, blockposition_mutableblockposition, d2) && checker.test(biomesettingsmobs_c.type, blockposition_mutableblockposition, chunk)) {
+                                    // Paper start - PreCreatureSpawnEvent
+                                    PreSpawnStatus doSpawning = isValidSpawnPostitionForType(world, group, structuremanager, chunkgenerator, biomesettingsmobs_c, blockposition_mutableblockposition, d2);
+                                    if (doSpawning == PreSpawnStatus.ABORT) {
+                                        return;
+                                    }
+                                    if (doSpawning == PreSpawnStatus.SUCCESS && checker.test(biomesettingsmobs_c.type, blockposition_mutableblockposition, chunk)) {
+                                        // Paper end - PreCreatureSpawnEvent
                                         Mob entityinsentient = NaturalSpawner.getMobForSpawn(world, biomesettingsmobs_c.type);
 
                                         if (entityinsentient == null) {
@@ -256,10 +262,31 @@ public final class NaturalSpawner {
         return squaredDistance <= 576.0D ? false : (world.getSharedSpawnPos().closerToCenterThan(new Vec3((double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D), 24.0D) ? false : Objects.equals(new ChunkPos(pos), chunk.getPos()) || world.isNaturalSpawningAllowed((BlockPos) pos));
     }
 
-    private static boolean isValidSpawnPostitionForType(ServerLevel world, MobCategory group, StructureManager structureAccessor, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnEntry, BlockPos.MutableBlockPos pos, double squaredDistance) {
+    // Paper start - PreCreatureSpawnEvent
+    private enum PreSpawnStatus {
+        FAIL,
+        SUCCESS,
+        CANCELLED,
+        ABORT
+    }
+    private static PreSpawnStatus isValidSpawnPostitionForType(ServerLevel world, MobCategory group, StructureManager structureAccessor, ChunkGenerator chunkGenerator, MobSpawnSettings.SpawnerData spawnEntry, BlockPos.MutableBlockPos pos, double squaredDistance) {
+        // Paper end - PreCreatureSpawnEvent
         EntityType<?> entitytypes = spawnEntry.type;
 
-        return entitytypes.getCategory() == MobCategory.MISC ? false : (!entitytypes.canSpawnFarFromPlayer() && squaredDistance > (double) (entitytypes.getCategory().getDespawnDistance() * entitytypes.getCategory().getDespawnDistance()) ? false : (entitytypes.canSummon() && NaturalSpawner.canSpawnMobAt(world, structureAccessor, chunkGenerator, group, spawnEntry, pos) ? (!SpawnPlacements.isSpawnPositionOk(entitytypes, world, pos) ? false : (!SpawnPlacements.checkSpawnRules(entitytypes, world, MobSpawnType.NATURAL, pos, world.random) ? false : world.noCollision(entitytypes.getSpawnAABB((double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D)))) : false));
+        // Paper start - PreCreatureSpawnEvent
+        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
+            io.papermc.paper.util.MCUtil.toLocation(world, pos),
+            org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entitytypes), SpawnReason.NATURAL
+        );
+        if (!event.callEvent()) {
+            if (event.shouldAbortSpawn()) {
+                return PreSpawnStatus.ABORT;
+            }
+            return PreSpawnStatus.CANCELLED;
+        }
+        // Paper end - PreCreatureSpawnEvent
+
+        return entitytypes.getCategory() == MobCategory.MISC ? PreSpawnStatus.FAIL : (!entitytypes.canSpawnFarFromPlayer() && squaredDistance > (double) (entitytypes.getCategory().getDespawnDistance() * entitytypes.getCategory().getDespawnDistance()) ? PreSpawnStatus.FAIL : (entitytypes.canSummon() && NaturalSpawner.canSpawnMobAt(world, structureAccessor, chunkGenerator, group, spawnEntry, pos) ? (!SpawnPlacements.isSpawnPositionOk(entitytypes, world, pos) ? PreSpawnStatus.FAIL : (!SpawnPlacements.checkSpawnRules(entitytypes, world, MobSpawnType.NATURAL, pos, world.random) ? PreSpawnStatus.FAIL : world.noCollision(entitytypes.getSpawnAABB((double) pos.getX() + 0.5D, (double) pos.getY(), (double) pos.getZ() + 0.5D)) ? PreSpawnStatus.SUCCESS : PreSpawnStatus.FAIL)) : PreSpawnStatus.FAIL)); // Paper - PreCreatureSpawnEvent
     }
 
     @Nullable
