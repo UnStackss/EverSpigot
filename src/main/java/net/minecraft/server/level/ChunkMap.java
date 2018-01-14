@@ -1037,7 +1037,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
         chunkRange = (chunkRange > this.level.spigotConfig.viewDistance) ? (byte) this.level.spigotConfig.viewDistance : chunkRange;
         chunkRange = (chunkRange > 8) ? 8 : chunkRange;
 
-        double blockRange = (reducedRange) ? Math.pow(chunkRange << 4, 2) : 16384.0D;
+        final int finalChunkRange = chunkRange; // Paper for lambda below
+        //double blockRange = (reducedRange) ? Math.pow(chunkRange << 4, 2) : 16384.0D; // Paper - use from event
+        double blockRange = 16384.0D; // Paper
         // Spigot end
         if (!this.distanceManager.hasPlayersNearby(chunkcoordintpair.toLong())) {
             return false;
@@ -1052,6 +1054,15 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                 }
 
                 entityplayer = (ServerPlayer) iterator.next();
+                // Paper start - PlayerNaturallySpawnCreaturesEvent
+                com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event;
+                blockRange = 16384.0D;
+                if (reducedRange) {
+                    event = entityplayer.playerNaturallySpawnedEvent;
+                    if (event == null || event.isCancelled()) return false;
+                    blockRange = (double) ((event.getSpawnRadius() << 4) * (event.getSpawnRadius() << 4));
+                }
+                // Paper end - PlayerNaturallySpawnCreaturesEvent
             } while (!this.playerIsCloseEnoughForSpawning(entityplayer, chunkcoordintpair, blockRange)); // Spigot
 
             return true;

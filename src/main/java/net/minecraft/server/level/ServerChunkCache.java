@@ -461,6 +461,15 @@ public class ServerChunkCache extends ChunkSource {
                 boolean flag = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit
 
                 Util.shuffle(list, this.level.random);
+                // Paper start - PlayerNaturallySpawnCreaturesEvent
+                int chunkRange = level.spigotConfig.mobSpawnRange;
+                chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;
+                chunkRange = Math.min(chunkRange, 8);
+                for (ServerPlayer entityPlayer : this.level.players()) {
+                    entityPlayer.playerNaturallySpawnedEvent = new com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent(entityPlayer.getBukkitEntity(), (byte) chunkRange);
+                    entityPlayer.playerNaturallySpawnedEvent.callEvent();
+                }
+                // Paper end - PlayerNaturallySpawnCreaturesEvent
                 int l = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
                 boolean flag1 = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
                 Iterator iterator1 = list.iterator();

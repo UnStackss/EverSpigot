@@ -286,6 +286,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     public String kickLeaveMessage = null; // SPIGOT-3034: Forward leave message to PlayerQuitEvent
     // CraftBukkit end
     public boolean isRealPlayer; // Paper
+    public com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
 
     public ServerPlayer(MinecraftServer server, ServerLevel world, GameProfile profile, ClientInformation clientOptions) {
         super(world, world.getSharedSpawnPos(), world.getSharedSpawnAngle(), profile);
