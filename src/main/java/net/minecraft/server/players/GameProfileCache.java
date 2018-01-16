@@ -126,6 +126,17 @@ public class GameProfileCache {
         return this.operationCount.incrementAndGet();
     }
 
+    // Paper start
+    public @Nullable GameProfile getProfileIfCached(String name) {
+        GameProfileCache.GameProfileInfo entry = this.profilesByName.get(name.toLowerCase(Locale.ROOT));
+        if (entry == null) {
+            return null;
+        }
+        entry.setLastAccess(this.getNextOperation());
+        return entry.getProfile();
+    }
+    // Paper end
+
     public Optional<GameProfile> get(String name) {
         String s1 = name.toLowerCase(Locale.ROOT);
         GameProfileCache.GameProfileInfo usercache_usercacheentry = (GameProfileCache.GameProfileInfo) this.profilesByName.get(s1);
