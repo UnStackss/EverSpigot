@@ -225,6 +225,12 @@ public class PlayerAdvancements {
         boolean flag1 = advancementprogress.isDone();
 
         if (advancementprogress.grantProgress(criterionName)) {
+            // Paper start - Add PlayerAdvancementCriterionGrantEvent
+            if (!new com.destroystokyo.paper.event.player.PlayerAdvancementCriterionGrantEvent(this.player.getBukkitEntity(), advancement.toBukkit(), criterionName).callEvent()) {
+                advancementprogress.revokeProgress(criterionName);
+                return false;
+            }
+            // Paper end - Add PlayerAdvancementCriterionGrantEvent
             this.unregisterListeners(advancement);
             this.progressChanged.add(advancement);
             flag = true;
