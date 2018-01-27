@@ -364,6 +364,7 @@ public class ItemMetaTest extends AbstractTestingBase {
                     final CraftMetaArmorStand meta = (CraftMetaArmorStand) cleanStack.getItemMeta();
                     meta.entityTag = new CompoundTag();
                     meta.entityTag.putBoolean("Small", true);
+                    meta.setInvisible(true); // Paper
                     cleanStack.setItemMeta(meta);
                     return cleanStack;
                 }
