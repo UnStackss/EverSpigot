@@ -519,7 +519,11 @@ public class ServerPlayerGameMode {
 
                 // send a correcting update to the client for the block above as well, this because of replaceable blocks (such as grass, sea grass etc)
                 player.connection.send(new ClientboundBlockUpdatePacket(world, blockposition.above()));
+            // Paper start - extend Player Interact cancellation // TODO: consider merging this into the extracted method
+            } else if (iblockdata.is(Blocks.JIGSAW) || iblockdata.is(Blocks.STRUCTURE_BLOCK) || iblockdata.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
             }
+            // Paper end - extend Player Interact cancellation
             player.getBukkitEntity().updateInventory(); // SPIGOT-2867
             return (event.useItemInHand() != Event.Result.ALLOW) ? InteractionResult.SUCCESS : InteractionResult.PASS;
         } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
