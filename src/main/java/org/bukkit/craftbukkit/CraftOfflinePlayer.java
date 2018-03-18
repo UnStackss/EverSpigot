@@ -82,8 +82,8 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
     }
 
     @Override
-    public PlayerProfile getPlayerProfile() {
-        return new CraftPlayerProfile(this.profile);
+    public com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile() { // Paper
+        return new com.destroystokyo.paper.profile.CraftPlayerProfile(this.profile); // Paper
     }
 
     public Server getServer() {

@@ -831,10 +831,16 @@ public abstract class PlayerList {
     }
 
     public void sendPlayerPermissionLevel(ServerPlayer player) {
+    // Paper start - avoid recalculating permissions if possible
+        this.sendPlayerPermissionLevel(player, true);
+    }
+
+    public void sendPlayerPermissionLevel(ServerPlayer player, boolean recalculatePermissions) {
+    // Paper end - avoid recalculating permissions if possible
         GameProfile gameprofile = player.getGameProfile();
         int i = this.server.getProfilePermissions(gameprofile);
 
-        this.sendPlayerPermissionLevel(player, i);
+        this.sendPlayerPermissionLevel(player, i, recalculatePermissions); // Paper - avoid recalculating permissions if possible
     }
 
     public void tick() {

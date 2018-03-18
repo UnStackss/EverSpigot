@@ -1472,7 +1472,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         this.internalTeleport(dest.getX(), dest.getY(), dest.getZ(), dest.getYaw(), dest.getPitch(), Collections.emptySet());
     }
 
-    private void internalTeleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set) {
+    public void internalTeleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set) { // Paper
         // CraftBukkit start
         if (Float.isNaN(f)) {
             f = 0;
