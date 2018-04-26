@@ -202,9 +202,9 @@ public class SignBlockEntity extends BlockEntity implements CommandSource { // C
             Style chatmodifier = signtext.getMessage(i, entityhuman.isTextFilteringEnabled()).getStyle();
 
             if (entityhuman.isTextFilteringEnabled()) {
-                signtext = signtext.setMessage(i, Component.literal(filteredtext.filteredOrEmpty()).setStyle(chatmodifier));
+                signtext = signtext.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(filteredtext.filteredOrEmpty())).setStyle(chatmodifier)); // Paper - filter sign text to chat only
             } else {
-                signtext = signtext.setMessage(i, Component.literal(filteredtext.raw()).setStyle(chatmodifier), Component.literal(filteredtext.filteredOrEmpty()).setStyle(chatmodifier));
+                signtext = signtext.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(filteredtext.raw())).setStyle(chatmodifier), Component.literal(net.minecraft.util.StringUtil.filterText(filteredtext.filteredOrEmpty())).setStyle(chatmodifier)); // Paper - filter sign text to chat only
             }
         }
 
