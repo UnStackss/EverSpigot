@@ -108,6 +108,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
         if (nbt.hasUUID("Owner")) {
             this.ownerUUID = nbt.getUUID("Owner");
             this.cachedOwner = null;
+            if (this instanceof ThrownEnderpearl && this.level() != null && this.level().paperConfig().fixes.disableUnloadedChunkEnderpearlExploit) { this.ownerUUID = null; } // Paper - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
         }
 
         this.leftOwner = nbt.getBoolean("LeftOwner");
