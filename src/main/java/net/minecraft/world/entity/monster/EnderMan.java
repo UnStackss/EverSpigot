@@ -121,6 +121,12 @@ public class EnderMan extends Monster implements NeutralMob {
         this.setTarget(target, EntityTargetEvent.TargetReason.UNKNOWN, true);
     }
 
+    // Paper start - EndermanEscapeEvent
+    private boolean tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason reason) {
+        return new com.destroystokyo.paper.event.entity.EndermanEscapeEvent((org.bukkit.craftbukkit.entity.CraftEnderman) this.getBukkitEntity(), reason).callEvent();
+    }
+    // Paper end - EndermanEscapeEvent
+
     @Override
     public boolean setTarget(LivingEntity entityliving, EntityTargetEvent.TargetReason reason, boolean fireEvent) {
         if (!super.setTarget(entityliving, reason, fireEvent)) {
@@ -270,7 +276,7 @@ public class EnderMan extends Monster implements NeutralMob {
         if (this.level().isDay() && this.tickCount >= this.targetChangeTime + 600) {
             float f = this.getLightLevelDependentMagicValue();
 
-            if (f > 0.5F && this.level().canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F) {
+            if (f > 0.5F && this.level().canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F && this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.RUNAWAY)) { // Paper - EndermanEscapeEvent
                 this.setTarget((LivingEntity) null);
                 this.teleport();
             }
@@ -396,11 +402,13 @@ public class EnderMan extends Monster implements NeutralMob {
             } else {
                 flag1 = flag && this.hurtWithCleanWater(source, (ThrownPotion) source.getDirectEntity(), amount);
 
+                if (this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.INDIRECT)) { // Paper - EndermanEscapeEvent
                 for (int i = 0; i < 64; ++i) {
                     if (this.teleport()) {
                         return true;
                     }
                 }
+                } // Paper - EndermanEscapeEvent
 
                 return flag1;
             }
@@ -625,7 +633,7 @@ public class EnderMan extends Monster implements NeutralMob {
             } else {
                 if (this.target != null && !this.enderman.isPassenger()) {
                     if (this.enderman.isLookingAtMe((Player) this.target)) {
-                        if (this.target.distanceToSqr((Entity) this.enderman) < 16.0D) {
+                        if (this.target.distanceToSqr((Entity) this.enderman) < 16.0D && this.enderman.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.STARE)) { // Paper - EndermanEscapeEvent
                             this.enderman.teleport();
                         }
 
