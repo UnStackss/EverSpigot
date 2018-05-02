@@ -233,7 +233,15 @@ public class EnderMan extends Monster implements NeutralMob {
         this.readPersistentAngerSaveData(this.level(), nbt);
     }
 
-    boolean isLookingAtMe(Player player) {
+    // Paper start - EndermanAttackPlayerEvent
+    private boolean isLookingAtMe(Player player) {
+        boolean shouldAttack = isLookingAtMe_check(player);
+        com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent event = new com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent((org.bukkit.entity.Enderman) getBukkitEntity(), (org.bukkit.entity.Player) player.getBukkitEntity());
+        event.setCancelled(!shouldAttack);
+        return event.callEvent();
+    }
+    private boolean isLookingAtMe_check(Player player) {
+        // Paper end - EndermanAttackPlayerEvent
         ItemStack itemstack = (ItemStack) player.getInventory().armor.get(3);
 
         if (itemstack.is(Blocks.CARVED_PUMPKIN.asItem())) {
