@@ -3301,8 +3301,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             if (!this.isRemoved()) {
                 // CraftBukkit start
                 Location to = new Location(teleportTarget.newLevel().getWorld(), teleportTarget.pos().x, teleportTarget.pos().y, teleportTarget.pos().z, teleportTarget.yRot(), teleportTarget.xRot());
-                EntityTeleportEvent teleEvent = CraftEventFactory.callEntityTeleportEvent(this, to);
-                if (teleEvent.isCancelled()) {
+                // Paper start - gateway-specific teleport event
+                final EntityTeleportEvent teleEvent;
+                if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
+                    teleEvent = new com.destroystokyo.paper.event.entity.EntityTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new org.bukkit.craftbukkit.block.CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity));
+                    teleEvent.callEvent();
+                } else {
+                    teleEvent = CraftEventFactory.callEntityTeleportEvent(this, to);
+                }
+                // Paper end - gateway-specific teleport event
+                if (teleEvent.isCancelled() || teleEvent.getTo() == null) {
                     return null;
                 }
                 to = teleEvent.getTo();
