@@ -3966,11 +3966,23 @@ public abstract class LivingEntity extends Entity implements Attackable {
         if (this.isUsingItem() && !this.useItem.isEmpty()) {
             Item item = this.useItem.getItem();
 
-            return item.getUseAnimation(this.useItem) != UseAnim.BLOCK ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= 5;
+            return item.getUseAnimation(this.useItem) != UseAnim.BLOCK ? false : item.getUseDuration(this.useItem, this) - this.useItemRemaining >= getShieldBlockingDelay(); // Paper - Make shield blocking delay configurable
         } else {
             return false;
         }
     }
+
+    // Paper start - Make shield blocking delay configurable
+    public int shieldBlockingDelay = this.level().paperConfig().misc.shieldBlockingDelay;
+
+    public int getShieldBlockingDelay() {
+        return shieldBlockingDelay;
+    }
+
+    public void setShieldBlockingDelay(int shieldBlockingDelay) {
+        this.shieldBlockingDelay = shieldBlockingDelay;
+    }
+    // Paper end - Make shield blocking delay configurable
 
     public boolean isSuppressingSlidingDownLadder() {
         return this.isShiftKeyDown();
