@@ -47,7 +47,7 @@ public class PlayerDataStorage {
 
             Util.safeReplaceFile(path2, path1, path3);
         } catch (Exception exception) {
-            PlayerDataStorage.LOGGER.warn("Failed to save player data for {}", player.getName().getString());
+            PlayerDataStorage.LOGGER.warn("Failed to save player data for {}", player.getScoreboardName(), exception); // Paper - Print exception
         }
 
     }
