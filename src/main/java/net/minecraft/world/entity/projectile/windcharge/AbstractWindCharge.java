@@ -103,7 +103,7 @@ public abstract class AbstractWindCharge extends AbstractHurtingProjectile imple
     }
 
     @Override
-    public void push(double deltaX, double deltaY, double deltaZ) {}
+    public void push(double deltaX, double deltaY, double deltaZ, @org.jetbrains.annotations.Nullable Entity pushingEntity) {} // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
 
     public abstract void explode(Vec3 pos);
 

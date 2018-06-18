@@ -1962,7 +1962,21 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public void push(double deltaX, double deltaY, double deltaZ) {
-        this.setDeltaMovement(this.getDeltaMovement().add(deltaX, deltaY, deltaZ));
+        // Paper start - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+        this.push(deltaX, deltaY, deltaZ, null);
+    }
+
+    public void push(double deltaX, double deltaY, double deltaZ, @org.jetbrains.annotations.Nullable Entity pushingEntity) {
+        org.bukkit.util.Vector delta = new org.bukkit.util.Vector(deltaX, deltaY, deltaZ);
+        if (pushingEntity != null) {
+            io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent event = new io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent(this.getBukkitEntity(), io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.PUSH, pushingEntity.getBukkitEntity(), delta);
+            if (!event.callEvent()) {
+                return;
+            }
+            delta = event.getKnockback();
+        }
+        this.setDeltaMovement(this.getDeltaMovement().add(delta.getX(), delta.getY(), delta.getZ()));
+        // Paper end - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
         this.hasImpulse = true;
     }
 

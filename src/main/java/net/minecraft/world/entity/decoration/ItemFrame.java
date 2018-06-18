@@ -128,9 +128,9 @@ public class ItemFrame extends HangingEntity {
     }
 
     @Override
-    public void push(double deltaX, double deltaY, double deltaZ) {
+    public void push(double deltaX, double deltaY, double deltaZ, @org.jetbrains.annotations.Nullable Entity pushingEntity) { // Paper - add push source entity param
         if (!this.fixed) {
-            super.push(deltaX, deltaY, deltaZ);
+            super.push(deltaX, deltaY, deltaZ, pushingEntity); // Paper - add push source entity param
         }
 
     }

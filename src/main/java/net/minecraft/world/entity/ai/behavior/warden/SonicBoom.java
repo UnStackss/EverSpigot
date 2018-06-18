@@ -83,7 +83,7 @@ public class SonicBoom extends Behavior<Warden> {
                     if (target.hurt(world.damageSources().sonicBoom(entity), 10.0F)) {
                         double d = 0.5 * (1.0 - target.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
                         double e = 2.5 * (1.0 - target.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
-                        target.push(vec33.x() * e, vec33.y() * d, vec33.z() * e);
+                        target.push(vec33.x() * e, vec33.y() * d, vec33.z() * e, entity); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
                     }
                 });
         }

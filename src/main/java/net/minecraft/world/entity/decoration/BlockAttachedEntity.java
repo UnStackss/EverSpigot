@@ -142,7 +142,7 @@ public abstract class BlockAttachedEntity extends Entity {
     }
 
     @Override
-    public void push(double deltaX, double deltaY, double deltaZ) {
+    public void push(double deltaX, double deltaY, double deltaZ, @Nullable Entity pushingEntity) { // Paper - override correct overload
         if (false && !this.level().isClientSide && !this.isRemoved() && deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ > 0.0D) { // CraftBukkit - not needed
             this.kill();
             this.dropItem((Entity) null);

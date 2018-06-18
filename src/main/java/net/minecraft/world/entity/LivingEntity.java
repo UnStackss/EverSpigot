@@ -1528,7 +1528,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                         d1 = source.getSourcePosition().z() - this.getZ();
                     }
 
-                    this.knockback(0.4000000059604645D, d0, d1, entity1, entity1 == null ? EntityKnockbackEvent.KnockbackCause.DAMAGE : EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
+                    this.knockback(0.4000000059604645D, d0, d1, entity1, entity1 == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // CraftBukkit // Paper - knockback events
                     if (!flag) {
                         this.indicateDamage(d0, d1);
                     }
@@ -1581,7 +1581,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     protected void blockedByShield(LivingEntity target) {
-        target.knockback(0.5D, target.getX() - this.getX(), target.getZ() - this.getZ(), null, EntityKnockbackEvent.KnockbackCause.SHIELD_BLOCK); // CraftBukkit
+        target.knockback(0.5D, target.getX() - this.getX(), target.getZ() - this.getZ(), this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SHIELD_BLOCK); // CraftBukkit // Paper - fix attacker & knockback events
     }
 
     private boolean checkTotemDeathProtection(DamageSource source) {
@@ -1842,10 +1842,10 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
     public void knockback(double strength, double x, double z) {
         // CraftBukkit start - EntityKnockbackEvent
-        this.knockback(strength, x, z, null, EntityKnockbackEvent.KnockbackCause.UNKNOWN);
+        this.knockback(strength, x, z, null, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.UNKNOWN); // Paper - knockback events
     }
 
-    public void knockback(double d0, double d1, double d2, Entity attacker, EntityKnockbackEvent.KnockbackCause cause) {
+    public void knockback(double d0, double d1, double d2, @Nullable Entity attacker, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause cause) { // Paper - knockback events
         d0 *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
         if (true || d0 > 0.0D) { // CraftBukkit - Call event even when force is 0
             //this.hasImpulse = true; // CraftBukkit - Move down
@@ -1858,13 +1858,17 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
             Vec3 vec3d1 = (new Vec3(d1, 0.0D, d2)).normalize().scale(d0);
 
-            EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, cause, d0, vec3d1, vec3d.x / 2.0D - vec3d1.x, this.onGround() ? Math.min(0.4D, vec3d.y / 2.0D + d0) : vec3d.y, vec3d.z / 2.0D - vec3d1.z);
+            // Paper start - knockback events
+            Vec3 finalVelocity = new Vec3(vec3d.x / 2.0D - vec3d1.x, this.onGround() ? Math.min(0.4D, vec3d.y / 2.0D + d0) : vec3d.y, vec3d.z / 2.0D - vec3d1.z);
+            Vec3 diff = finalVelocity.subtract(vec3d);
+            io.papermc.paper.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) this.getBukkitEntity(), attacker, attacker, cause, d0, diff);
+            // Paper end - knockback events
             if (event.isCancelled()) {
                 return;
             }
 
             this.hasImpulse = true;
-            this.setDeltaMovement(event.getFinalKnockback().getX(), event.getFinalKnockback().getY(), event.getFinalKnockback().getZ());
+            this.setDeltaMovement(vec3d.add(event.getKnockback().getX(), event.getKnockback().getY(), event.getKnockback().getZ())); // Paper - knockback events
             // CraftBukkit end
         }
     }

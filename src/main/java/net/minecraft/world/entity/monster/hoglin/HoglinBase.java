@@ -47,7 +47,7 @@ public interface HoglinBase {
             double j = f * (double)(attacker.level().random.nextFloat() * 0.5F + 0.2F);
             Vec3 vec3 = new Vec3(g, 0.0, h).normalize().scale(j).yRot(i);
             double k = f * (double)attacker.level().random.nextFloat() * 0.5;
-            target.push(vec3.x, k, vec3.z);
+            target.push(vec3.x, k, vec3.z, attacker); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
             target.hurtMarked = true;
         }
     }

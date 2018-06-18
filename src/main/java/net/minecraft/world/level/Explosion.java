@@ -297,13 +297,10 @@ public class Explosion {
 
                         // CraftBukkit start - Call EntityKnockbackEvent
                         if (entity instanceof LivingEntity) {
-                            Vec3 result = entity.getDeltaMovement().add(vec3d1);
-                            org.bukkit.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), this.source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, d13, vec3d1, result.x, result.y, result.z);
-
-                            // SPIGOT-7640: Need to subtract entity movement from the event result,
-                            // since the code below (the setDeltaMovement call as well as the hitPlayers map)
-                            // want the vector to be the relative velocity will the event provides the absolute velocity
-                            vec3d1 = (event.isCancelled()) ? Vec3.ZERO : new Vec3(event.getFinalKnockback().getX(), event.getFinalKnockback().getY(), event.getFinalKnockback().getZ()).subtract(entity.getDeltaMovement());
+                            // Paper start - knockback events
+                            io.papermc.paper.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), this.source, this.damageSource.getEntity() != null ? this.damageSource.getEntity() : this.source, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.EXPLOSION, d13, vec3d1);
+                            vec3d1 = event.isCancelled() ? Vec3.ZERO : org.bukkit.craftbukkit.util.CraftVector.toNMS(event.getKnockback());
+                            // Paper end - knockback events
                         }
                         // CraftBukkit end
                         entity.setDeltaMovement(entity.getDeltaMovement().add(vec3d1));

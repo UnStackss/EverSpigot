@@ -465,7 +465,7 @@ public class EnderDragon extends Mob implements Enemy {
                 double d3 = entity.getZ() - d1;
                 double d4 = Math.max(d2 * d2 + d3 * d3, 0.1D);
 
-                entity.push(d2 / d4 * 4.0D, 0.20000000298023224D, d3 / d4 * 4.0D);
+                entity.push(d2 / d4 * 4.0D, 0.20000000298023224D, d3 / d4 * 4.0D, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
                 if (!this.phaseManager.getCurrentPhase().isSitting() && entityliving.getLastHurtByMobTimestamp() < entity.tickCount - 2) {
                     DamageSource damagesource = this.damageSources().mobAttack(this);
 
