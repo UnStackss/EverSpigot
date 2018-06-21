@@ -789,6 +789,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         return !this.world.explode(source == null ? null : ((CraftEntity) source).getHandle(), x, y, z, power, setFire, explosionType).wasCanceled;
     }
+    // Paper start
+    @Override
+    public boolean createExplosion(Entity source, Location loc, float power, boolean setFire, boolean breakBlocks) {
+        return !world.explode(source != null ? ((org.bukkit.craftbukkit.entity.CraftEntity) source).getHandle() : null, loc.getX(), loc.getY(), loc.getZ(), power, setFire, breakBlocks ? net.minecraft.world.level.Level.ExplosionInteraction.MOB : net.minecraft.world.level.Level.ExplosionInteraction.NONE).wasCanceled;
+    }
+    // Paper end
 
     @Override
     public boolean createExplosion(Location loc, float power) {
