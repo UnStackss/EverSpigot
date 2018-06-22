@@ -116,6 +116,12 @@ public class EndDragonFight {
         if (data.isRespawning) {
             this.respawnStage = DragonRespawnAnimation.START;
         }
+        // Paper start - Add config to disable ender dragon legacy check
+        if (data == EndDragonFight.Data.DEFAULT && !world.paperConfig().entities.spawning.scanForLegacyEnderDragon) {
+            this.needsStateScanning = false;
+            this.dragonKilled = true;
+        }
+        // Paper end - Add config to disable ender dragon legacy check
 
         this.portalLocation = (BlockPos) data.exitPortalLocation.orElse(null); // CraftBukkit - decompile error
         this.gateways.addAll((Collection) data.gateways.orElseGet(() -> {
