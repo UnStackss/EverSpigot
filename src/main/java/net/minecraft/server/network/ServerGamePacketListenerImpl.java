@@ -2619,10 +2619,15 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
     @Override
     public void handleContainerClose(ServerboundContainerClosePacket packet) {
+        // Paper start - Inventory close reason
+        this.handleContainerClose(packet, org.bukkit.event.inventory.InventoryCloseEvent.Reason.PLAYER);
+    }
+    public void handleContainerClose(ServerboundContainerClosePacket packet, org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
+        // Paper end - Inventory close reason
         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
 
         if (this.player.isImmobile()) return; // CraftBukkit
-        CraftEventFactory.handleInventoryCloseEvent(this.player); // CraftBukkit
+        CraftEventFactory.handleInventoryCloseEvent(this.player, reason); // CraftBukkit // Paper
 
         this.player.doCloseContainer();
     }
