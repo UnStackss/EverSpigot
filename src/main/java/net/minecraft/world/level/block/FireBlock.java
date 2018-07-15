@@ -302,12 +302,19 @@ public class FireBlock extends BaseFireBlock {
 
                 world.setBlock(blockposition, this.getStateWithAge(world, blockposition, l), 3);
             } else {
-                world.removeBlock(blockposition, false);
+                if(iblockdata.getBlock() != Blocks.TNT) world.removeBlock(blockposition, false); // Paper - TNTPrimeEvent; We might be cancelling it below, move the setAir down
             }
 
             Block block = iblockdata.getBlock();
 
             if (block instanceof TntBlock) {
+                // Paper start - TNTPrimeEvent
+                org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(world, blockposition);
+                if (!new com.destroystokyo.paper.event.block.TNTPrimeEvent(tntBlock, com.destroystokyo.paper.event.block.TNTPrimeEvent.PrimeReason.FIRE, null).callEvent()) {
+                    return;
+                }
+                world.removeBlock(blockposition, false);
+                // Paper end - TNTPrimeEvent
                 TntBlock.explode(world, blockposition);
             }
         }
