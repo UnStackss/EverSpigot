@@ -24,6 +24,10 @@ public class LingeringPotionItem extends ThrowablePotionItem {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player user, InteractionHand hand) {
+        // Paper start - PlayerLaunchProjectileEvent
+        InteractionResultHolder<ItemStack> wrapper = super.use(world, user, hand);
+        if (wrapper.getResult() != net.minecraft.world.InteractionResult.FAIL) {
+        // Paper end - PlayerLaunchProjectileEvent
         world.playSound(
             null,
             user.getX(),
@@ -34,6 +38,9 @@ public class LingeringPotionItem extends ThrowablePotionItem {
             0.5F,
             0.4F / (world.getRandom().nextFloat() * 0.4F + 0.8F)
         );
-        return super.use(world, user, hand);
+        // Paper start - PlayerLaunchProjectileEvent
+        }
+        return wrapper;
+        // Paper end - PlayerLaunchProjectileEvent
     }
 }

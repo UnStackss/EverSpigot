@@ -43,8 +43,12 @@ public class FireworkRocketItem extends Item implements ProjectileItem {
                 itemStack
             );
             fireworkRocketEntity.spawningEntity = context.getPlayer() == null ? null : context.getPlayer().getUUID(); // Paper
-            level.addFreshEntity(fireworkRocketEntity);
-            itemStack.shrink(1);
+            // Paper start - PlayerLaunchProjectileEvent
+            com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) context.getPlayer().getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack), (org.bukkit.entity.Firework) fireworkRocketEntity.getBukkitEntity());
+            if (!event.callEvent() || !level.addFreshEntity(fireworkRocketEntity)) return InteractionResult.PASS;
+            if (event.shouldConsume() && !context.getPlayer().getAbilities().instabuild) itemStack.shrink(1);
+            else if (context.getPlayer() instanceof net.minecraft.server.level.ServerPlayer) ((net.minecraft.server.level.ServerPlayer) context.getPlayer()).getBukkitEntity().updateInventory();
+            // Paper end - PlayerLaunchProjectileEvent
         }
 
         return InteractionResult.sidedSuccess(level.isClientSide);
