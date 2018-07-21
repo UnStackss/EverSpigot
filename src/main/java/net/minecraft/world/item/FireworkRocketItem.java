@@ -57,9 +57,19 @@ public class FireworkRocketItem extends Item implements ProjectileItem {
             if (!world.isClientSide) {
                 FireworkRocketEntity fireworkRocketEntity = new FireworkRocketEntity(world, itemStack, user);
                 fireworkRocketEntity.spawningEntity = user.getUUID(); // Paper
-                world.addFreshEntity(fireworkRocketEntity);
-                itemStack.consume(1, user);
-                user.awardStat(Stats.ITEM_USED.get(this));
+                // Paper start - PlayerElytraBoostEvent
+                com.destroystokyo.paper.event.player.PlayerElytraBoostEvent event = new com.destroystokyo.paper.event.player.PlayerElytraBoostEvent((org.bukkit.entity.Player) user.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack), (org.bukkit.entity.Firework) fireworkRocketEntity.getBukkitEntity(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand));
+                if (event.callEvent() && world.addFreshEntity(fireworkRocketEntity)) {
+                    user.awardStat(Stats.ITEM_USED.get(this));
+                    if (event.shouldConsume() && !user.hasInfiniteMaterials()) {
+                        itemStack.shrink(1);
+                    } else ((net.minecraft.server.level.ServerPlayer) user).getBukkitEntity().updateInventory();
+                } else if (user instanceof net.minecraft.server.level.ServerPlayer) {
+                    ((net.minecraft.server.level.ServerPlayer) user).getBukkitEntity().updateInventory();
+                    // Paper end - PlayerElytraBoostEvent
+                }
+
+                // user.awardStat(Stats.ITEM_USED.get(this)); // Paper - PlayerElytraBoostEvent; move up
             }
 
             return InteractionResultHolder.sidedSuccess(user.getItemInHand(hand), world.isClientSide());
