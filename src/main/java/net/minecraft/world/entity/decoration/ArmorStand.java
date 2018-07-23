@@ -343,6 +343,7 @@ public class ArmorStand extends LivingEntity {
 
     @Override
     protected void pushEntities() {
+        if (!this.level().paperConfig().entities.armorStands.doCollisionEntityLookups) return; // Paper - Option to prevent armor stands from doing entity lookups
         List<Entity> list = this.level().getEntities((Entity) this, this.getBoundingBox(), ArmorStand.RIDABLE_MINECARTS);
         Iterator iterator = list.iterator();
 

@@ -764,6 +764,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             // Paper end - Prevent block entity and entity crashes
         }
     }
+    // Paper start - Option to prevent armor stands from doing entity lookups
+    @Override
+    public boolean noCollision(@Nullable Entity entity, AABB box) {
+        if (entity instanceof net.minecraft.world.entity.decoration.ArmorStand && !entity.level().paperConfig().entities.armorStands.doCollisionEntityLookups) return false;
+        return LevelAccessor.super.noCollision(entity, box);
+    }
+    // Paper end - Option to prevent armor stands from doing entity lookups
 
     public boolean shouldTickDeath(Entity entity) {
         return true;
