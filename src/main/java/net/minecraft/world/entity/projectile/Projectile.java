@@ -288,6 +288,15 @@ public abstract class Projectile extends Entity implements TraceableEntity {
         } else {
             Entity entity1 = this.getOwner();
 
+            // Paper start - Cancel hit for vanished players
+            if (entity1 instanceof net.minecraft.server.level.ServerPlayer && entity instanceof net.minecraft.server.level.ServerPlayer) {
+                org.bukkit.entity.Player collided = (org.bukkit.entity.Player) entity.getBukkitEntity();
+                org.bukkit.entity.Player shooter = (org.bukkit.entity.Player) entity1.getBukkitEntity();
+                if (!shooter.canSee(collided)) {
+                    return false;
+                }
+            }
+            // Paper end - Cancel hit for vanished players
             return entity1 == null || this.leftOwner || !entity1.isPassengerOfSameVehicle(entity);
         }
     }
