@@ -265,6 +265,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     private int ackBlockChangesUpTo = -1;
     // CraftBukkit start - multithreaded fields
     private final AtomicInteger chatSpamTickCount = new AtomicInteger();
+    private final java.util.concurrent.atomic.AtomicInteger tabSpamLimiter = new java.util.concurrent.atomic.AtomicInteger(); // Paper - configurable tab spam limits
     // CraftBukkit end
     private int dropSpamTickCount;
     private double firstGoodX;
@@ -381,6 +382,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         this.keepConnectionAlive();
         // CraftBukkit start
         for (int spam; (spam = this.chatSpamTickCount.get()) > 0 && !this.chatSpamTickCount.compareAndSet(spam, spam - 1); ) ;
+        if (tabSpamLimiter.get() > 0) tabSpamLimiter.getAndDecrement(); // Paper - configurable tab spam limits
         /* Use thread-safe field access instead
         if (this.chatSpamTickCount > 0) {
             --this.chatSpamTickCount;
@@ -719,7 +721,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     public void handleCustomCommandSuggestions(ServerboundCommandSuggestionPacket packet) {
         // PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel()); // Paper - AsyncTabCompleteEvent; run this async
         // CraftBukkit start
-        if (this.chatSpamTickCount.addAndGet(1) > 500 && !this.server.getPlayerList().isOp(this.player.getGameProfile())) {
+        if (this.chatSpamTickCount.addAndGet(io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.tabSpamIncrement) > io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.tabSpamLimit && !this.server.getPlayerList().isOp(this.player.getGameProfile())) { // Paper - configurable tab spam limits
             this.disconnect(Component.translatable("disconnect.spam"));
             return;
         }
