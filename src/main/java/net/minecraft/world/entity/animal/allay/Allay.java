@@ -489,7 +489,7 @@ public class Allay extends PathfinderMob implements InventoryCarrier, VibrationS
             });
         }
 
-        this.duplicationCooldown = (long) nbt.getInt("DuplicationCooldown");
+        this.duplicationCooldown = nbt.getLong("DuplicationCooldown"); // Paper - Load as long
         this.entityData.set(Allay.DATA_CAN_DUPLICATE, nbt.getBoolean("CanDuplicate"));
     }
 

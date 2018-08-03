@@ -305,7 +305,7 @@ public class ExperienceOrb extends Entity {
     public void addAdditionalSaveData(CompoundTag nbt) {
         nbt.putShort("Health", (short) this.health);
         nbt.putShort("Age", (short) this.age);
-        nbt.putShort("Value", (short) this.value);
+        nbt.putInt("Value", this.value); // Paper - save as Integer
         nbt.putInt("Count", this.count);
         this.savePaperNBT(nbt); // Paper
     }
@@ -314,7 +314,7 @@ public class ExperienceOrb extends Entity {
     public void readAdditionalSaveData(CompoundTag nbt) {
         this.health = nbt.getShort("Health");
         this.age = nbt.getShort("Age");
-        this.value = nbt.getShort("Value");
+        this.value = nbt.getInt("Value"); // Paper - load as Integer
         this.count = Math.max(nbt.getInt("Count"), 1);
         this.loadPaperNBT(nbt); // Paper
     }
