@@ -30,7 +30,7 @@ public abstract class StoredUserList<K, V extends StoredUserEntry<K>> {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = (new GsonBuilder()).setPrettyPrinting().create();
     private final File file;
-    private final Map<String, V> map = Maps.newHashMap();
+    private final Map<String, V> map = Maps.newConcurrentMap(); // Paper - Use ConcurrentHashMap in JsonList
 
     public StoredUserList(File file) {
         this.file = file;
@@ -53,8 +53,11 @@ public abstract class StoredUserList<K, V extends StoredUserEntry<K>> {
 
     @Nullable
     public V get(K key) {
-        this.removeExpired();
-        return (V) this.map.get(this.getKeyForUser(key)); // CraftBukkit - fix decompile error
+        // Paper start - Use ConcurrentHashMap in JsonList
+        return (V) this.map.computeIfPresent(this.getKeyForUser(key), (k, v) -> {
+            return v.hasExpired() ? null : v;
+        });
+        // Paper end - Use ConcurrentHashMap in JsonList
     }
 
     public void remove(K key) {
@@ -77,7 +80,7 @@ public abstract class StoredUserList<K, V extends StoredUserEntry<K>> {
     }
 
     public boolean isEmpty() {
-        return this.map.size() < 1;
+        return this.map.isEmpty(); // Paper - Use ConcurrentHashMap in JsonList
     }
 
     protected String getKeyForUser(K profile) {
@@ -90,25 +93,7 @@ public abstract class StoredUserList<K, V extends StoredUserEntry<K>> {
     }
 
     private void removeExpired() {
-        List<K> list = Lists.newArrayList();
-        Iterator iterator = this.map.values().iterator();
-
-        while (iterator.hasNext()) {
-            V v0 = (V) iterator.next(); // CraftBukkit - decompile error
-
-            if (v0.hasExpired()) {
-                list.add(v0.getUser());
-            }
-        }
-
-        iterator = list.iterator();
-
-        while (iterator.hasNext()) {
-            K k0 = (K) iterator.next(); // CraftBukkit - decompile error
-
-            this.map.remove(this.getKeyForUser(k0));
-        }
-
+        this.map.values().removeIf(StoredUserEntry::hasExpired); // Paper - Use ConcurrentHashMap in JsonList
     }
 
     protected abstract StoredUserEntry<K> createEntry(JsonObject json);
@@ -118,6 +103,7 @@ public abstract class StoredUserList<K, V extends StoredUserEntry<K>> {
     }
 
     public void save() throws IOException {
+        this.removeExpired(); // Paper - remove expired values before saving
         JsonArray jsonarray = new JsonArray();
         Stream<JsonObject> stream = this.map.values().stream().map((jsonlistentry) -> { // CraftBukkit - decompile error
             JsonObject jsonobject = new JsonObject();
