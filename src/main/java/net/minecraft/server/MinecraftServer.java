@@ -1108,6 +1108,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.status = this.buildServerStatus();
 
             // Spigot start
+            org.spigotmc.WatchdogThread.hasStarted = true; // Paper
             Arrays.fill( this.recentTps, 20 );
             // Paper start - further improve server tick loop
             long tickSection = Util.getNanos();
