@@ -138,10 +138,30 @@ public class LiquidBlock extends Block implements BucketPickup {
     @Override
     protected void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
         if (this.shouldSpreadLiquid(world, pos, state)) {
-            world.scheduleTick(pos, state.getFluidState().getType(), this.fluid.getTickDelay(world));
+            world.scheduleTick(pos, state.getFluidState().getType(), this.getFlowSpeed(world, pos)); // Paper - Configurable speed for water flowing over lava
         }
 
     }
+
+    // Paper start - Configurable speed for water flowing over lava
+    public int getFlowSpeed(Level world, BlockPos blockposition) {
+        if (net.minecraft.core.registries.BuiltInRegistries.FLUID.wrapAsHolder(this.fluid).is(FluidTags.WATER)) {
+            if (
+                isLava(world, blockposition.north(1)) ||
+                isLava(world, blockposition.south(1)) ||
+                isLava(world, blockposition.west(1)) ||
+                isLava(world, blockposition.east(1))
+            ) {
+                return world.paperConfig().environment.waterOverLavaFlowSpeed;
+            }
+        }
+        return this.fluid.getTickDelay(world);
+    }
+    private static boolean isLava(Level world, BlockPos blockPos) {
+        final FluidState fluidState = world.getFluidIfLoaded(blockPos);
+        return fluidState != null && fluidState.is(FluidTags.LAVA);
+    }
+    // Paper end - Configurable speed for water flowing over lava
 
     @Override
     protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
@@ -155,7 +175,7 @@ public class LiquidBlock extends Block implements BucketPickup {
     @Override
     protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
         if (this.shouldSpreadLiquid(world, pos, state)) {
-            world.scheduleTick(pos, state.getFluidState().getType(), this.fluid.getTickDelay(world));
+            world.scheduleTick(pos, state.getFluidState().getType(), this.getFlowSpeed(world, pos)); // Paper - Configurable speed for water flowing over lava
         }
 
     }
