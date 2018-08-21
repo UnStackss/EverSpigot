@@ -283,6 +283,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     public Set<UUID> collidableExemptions = new HashSet<>();
     public boolean bukkitPickUpLoot;
     public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
+    public boolean silentDeath = false; // Paper - mark entity as dying silently for cancellable death event
 
     @Override
     public float getBukkitYaw() {
@@ -1537,11 +1538,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
             if (this.isDeadOrDying()) {
                 if (!this.checkTotemDeathProtection(source)) {
-                    if (flag1) {
-                        this.makeSound(this.getDeathSound());
-                    }
+                    // Paper start - moved into CraftEventFactory event caller for cancellable death event
+                    this.silentDeath = !flag1; // mark entity as dying silently
+                    // Paper end
 
                     this.die(source);
+                    this.silentDeath = false; // Paper - cancellable death event - reset to default
                 }
             } else if (flag1) {
                 this.playHurtSound(source);
@@ -1700,6 +1702,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
             Entity entity = damageSource.getEntity();
             LivingEntity entityliving = this.getKillCredit();
 
+            /* // Paper - move down to make death event cancellable - this is the awardKillScore below
             if (this.deathScore >= 0 && entityliving != null) {
                 entityliving.awardKillScore(this, this.deathScore, damageSource);
             }
@@ -1711,24 +1714,59 @@ public abstract class LivingEntity extends Entity implements Attackable {
             if (!this.level().isClientSide && this.hasCustomName()) {
                 if (org.spigotmc.SpigotConfig.logNamedDeaths) LivingEntity.LOGGER.info("Named entity {} died: {}", this, this.getCombatTracker().getDeathMessage().getString()); // Spigot
             }
+             */ // Paper - move down to make death event cancellable - this is the awardKillScore below
 
             this.dead = true;
-            this.getCombatTracker().recheckStatus();
+            // Paper - moved into if below
             Level world = this.level();
 
             if (world instanceof ServerLevel) {
                 ServerLevel worldserver = (ServerLevel) world;
+                // Paper - move below into if for onKill
 
-                if (entity == null || entity.killedEntity(worldserver, this)) {
+                // Paper start
+                org.bukkit.event.entity.EntityDeathEvent deathEvent = this.dropAllDeathLoot(worldserver, damageSource);
+                if (deathEvent == null || !deathEvent.isCancelled()) {
+                    if (this.deathScore >= 0 && entityliving != null) {
+                        entityliving.awardKillScore(this, this.deathScore, damageSource);
+                    }
+                    // Paper start - clear equipment if event is not cancelled
+                    if (this instanceof Mob) {
+                        for (EquipmentSlot slot : this.clearedEquipmentSlots) {
+                            this.setItemSlot(slot, ItemStack.EMPTY);
+                        }
+                        this.clearedEquipmentSlots.clear();
+                    }
+                    // Paper end
+
+                    if (this.isSleeping()) {
+                        this.stopSleeping();
+                    }
+
+                    if (!this.level().isClientSide && this.hasCustomName()) {
+                        if (org.spigotmc.SpigotConfig.logNamedDeaths) LivingEntity.LOGGER.info("Named entity {} died: {}", this, this.getCombatTracker().getDeathMessage().getString()); // Spigot
+                    }
+
+                    this.getCombatTracker().recheckStatus();
+                    if (entity != null) {
+                        entity.killedEntity((ServerLevel) this.level(), this);
+                    }
                     this.gameEvent(GameEvent.ENTITY_DIE);
-                    this.dropAllDeathLoot(worldserver, damageSource);
+                } else {
+                    this.dead = false;
+                    this.setHealth((float) deathEvent.getReviveHealth());
+                }
+                // Paper end
                     this.createWitherRose(entityliving);
                 }
 
+            // Paper start
+            if (this.dead) { // Paper
                 this.level().broadcastEntityEvent(this, (byte) 3);
-            }
 
             this.setPose(Pose.DYING);
+            }
+            // Paper end
         }
     }
 
@@ -1736,7 +1774,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
         if (!this.level().isClientSide) {
             boolean flag = false;
 
-            if (adversary instanceof WitherBoss) {
+            if (this.dead && adversary instanceof WitherBoss) { // Paper
                 if (this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
                     BlockPos blockposition = this.blockPosition();
                     BlockState iblockdata = Blocks.WITHER_ROSE.defaultBlockState();
@@ -1765,24 +1803,37 @@ public abstract class LivingEntity extends Entity implements Attackable {
         }
     }
 
-    protected void dropAllDeathLoot(ServerLevel world, DamageSource damageSource) {
+    // Paper start
+    protected boolean clearEquipmentSlots = true;
+    protected Set<EquipmentSlot> clearedEquipmentSlots = new java.util.HashSet<>();
+    protected org.bukkit.event.entity.EntityDeathEvent dropAllDeathLoot(ServerLevel world, DamageSource damageSource) {
+        // Paper end
         boolean flag = this.lastHurtByPlayerTime > 0;
 
         this.dropEquipment(); // CraftBukkit - from below
         if (this.shouldDropLoot() && world.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
             this.dropFromLootTable(damageSource, flag);
+            // Paper start
+            final boolean prev = this.clearEquipmentSlots;
+            this.clearEquipmentSlots = false;
+            this.clearedEquipmentSlots.clear();
+            // Paper end
             this.dropCustomDeathLoot(world, damageSource, flag);
+            this.clearEquipmentSlots = prev; // Paper
         }
         // CraftBukkit start - Call death event
-        CraftEventFactory.callEntityDeathEvent(this, damageSource, this.drops);
+        org.bukkit.event.entity.EntityDeathEvent deathEvent = CraftEventFactory.callEntityDeathEvent(this, damageSource, this.drops); // Paper
+        this.postDeathDropItems(deathEvent); // Paper
         this.drops = new ArrayList<>();
         // CraftBukkit end
 
         // this.dropEquipment();// CraftBukkit - moved up
         this.dropExperience(damageSource.getEntity());
+        return deathEvent; // Paper
     }
 
     protected void dropEquipment() {}
+    protected void postDeathDropItems(org.bukkit.event.entity.EntityDeathEvent event) {} // Paper - method for post death logic that cannot be ran before the event is potentially cancelled
 
     public int getExpReward(@Nullable Entity entity) { // CraftBukkit
         Level world = this.level();

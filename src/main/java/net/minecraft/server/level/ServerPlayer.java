@@ -269,6 +269,10 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     private int containerCounter;
     public boolean wonGame;
     private int containerUpdateDelay; // Paper - Configurable container update tick rate
+    // Paper start - cancellable death event
+    public boolean queueHealthUpdatePacket;
+    public net.minecraft.network.protocol.game.ClientboundSetHealthPacket queuedHealthUpdatePacket;
+    // Paper end - cancellable death event
 
     // CraftBukkit start
     public CraftPlayer.TransferCookieConnection transferCookieConnection;
@@ -894,7 +898,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
     @Override
     public void die(DamageSource damageSource) {
-        this.gameEvent(GameEvent.ENTITY_DIE);
+        // this.gameEvent(GameEvent.ENTITY_DIE); // Paper - move below event cancellation check
         boolean flag = this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES);
         // CraftBukkit start - fire PlayerDeathEvent
         if (this.isRemoved()) {
@@ -922,6 +926,16 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         String deathmessage = defaultMessage.getString();
         this.keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
         org.bukkit.event.entity.PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(this, damageSource, loot, PaperAdventure.asAdventure(defaultMessage), keepInventory); // Paper - Adventure
+        // Paper start - cancellable death event
+        if (event.isCancelled()) {
+            // make compatible with plugins that might have already set the health in an event listener
+            if (this.getHealth() <= 0) {
+                this.setHealth((float) event.getReviveHealth());
+            }
+            return;
+        }
+        this.gameEvent(GameEvent.ENTITY_DIE); // moved from the top of this method
+        // Paper end
 
         // SPIGOT-943 - only call if they have an inventory open
         if (this.containerMenu != this.inventoryMenu) {
@@ -1070,8 +1084,17 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
                         }
                     }
                 }
-
-                return super.hurt(source, amount);
+                // Paper start - cancellable death events
+                //return super.hurt(source, amount);
+                this.queueHealthUpdatePacket = true;
+                boolean damaged = super.hurt(source, amount);
+                this.queueHealthUpdatePacket = false;
+                if (this.queuedHealthUpdatePacket != null) {
+                    this.connection.send(this.queuedHealthUpdatePacket);
+                    this.queuedHealthUpdatePacket = null;
+                }
+                return damaged;
+                // Paper end
             }
         }
     }

@@ -71,9 +71,17 @@ public abstract class AbstractChestedHorse extends AbstractHorse {
                 this.spawnAtLocation(Blocks.CHEST);
             }
 
+            //this.setChest(false); // Paper - moved to post death logic
+        }
+    }
+
+    // Paper start
+    protected void postDeathDropItems(org.bukkit.event.entity.EntityDeathEvent event) {
+        if (this.hasChest() && (event == null || !event.isCancelled())) {
             this.setChest(false);
         }
     }
+    // Paper end
 
     @Override
     public void addAdditionalSaveData(CompoundTag nbt) {

@@ -1123,6 +1123,12 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
 
     }
 
+    // Paper start
+    protected boolean shouldSkipLoot(EquipmentSlot slot) { // method to avoid to fallback into the global mob loot logic (i.e fox)
+        return false;
+    }
+    // Paper end
+
     @Override
     protected void dropCustomDeathLoot(ServerLevel world, DamageSource source, boolean causedByPlayer) {
         super.dropCustomDeathLoot(world, source, causedByPlayer);
@@ -1131,6 +1137,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
 
         for (int j = 0; j < i; ++j) {
             EquipmentSlot enumitemslot = aenumitemslot[j];
+            if (this.shouldSkipLoot(enumitemslot)) continue; // Paper
             ItemStack itemstack = this.getItemBySlot(enumitemslot);
             float f = this.getEquipmentDropChance(enumitemslot);
 
@@ -1155,7 +1162,13 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
                     }
 
                     this.spawnAtLocation(itemstack);
+                    if (this.clearEquipmentSlots) { // Paper
                     this.setItemSlot(enumitemslot, ItemStack.EMPTY);
+                    // Paper start
+                    } else {
+                        this.clearedEquipmentSlots.add(enumitemslot);
+                    }
+                    // Paper end
                 }
             }
         }
