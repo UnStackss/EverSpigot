@@ -820,6 +820,14 @@ public abstract class BlockBehaviour implements FeatureElement {
             this.instrument = blockbase_info.instrument;
             this.replaceable = blockbase_info.replaceable;
         }
+        // Paper start - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
+        private org.bukkit.craftbukkit.block.data.CraftBlockData cachedCraftBlockData;
+
+        public org.bukkit.craftbukkit.block.data.CraftBlockData createCraftBlockData() {
+            if (cachedCraftBlockData == null) cachedCraftBlockData = org.bukkit.craftbukkit.block.data.CraftBlockData.createData(asState());
+            return (org.bukkit.craftbukkit.block.data.CraftBlockData) cachedCraftBlockData.clone();
+        }
+        // Paper end - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
 
         private boolean calculateSolid() {
             if (((Block) this.owner).properties.forceSolidOn) {
