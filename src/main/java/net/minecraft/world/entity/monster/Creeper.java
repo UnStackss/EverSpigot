@@ -134,7 +134,7 @@ public class Creeper extends Monster implements PowerableMob {
         }
 
         if (nbt.getBoolean("ignited")) {
-            this.ignite();
+            this.entityData.set(Creeper.DATA_IS_IGNITED, true); // Paper - set directly to avoid firing event
         }
 
     }
@@ -315,7 +315,18 @@ public class Creeper extends Monster implements PowerableMob {
     }
 
     public void ignite() {
-        this.entityData.set(Creeper.DATA_IS_IGNITED, true);
+        // Paper start - CreeperIgniteEvent
+        setIgnited(true);
+    }
+
+    public void setIgnited(boolean ignited) {
+        if (isIgnited() != ignited) {
+            com.destroystokyo.paper.event.entity.CreeperIgniteEvent event = new com.destroystokyo.paper.event.entity.CreeperIgniteEvent((org.bukkit.entity.Creeper) getBukkitEntity(), ignited);
+            if (event.callEvent()) {
+                this.entityData.set(Creeper.DATA_IS_IGNITED, event.isIgnited());
+            }
+        }
+        // Paper end - CreeperIgniteEvent
     }
 
     public boolean canDropMobsSkull() {
