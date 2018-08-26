@@ -69,9 +69,19 @@ public class PhantomSpawner implements CustomSpawner {
                                             int k = 1 + randomsource.nextInt(difficultydamagescaler.getDifficulty().getId() + 1);
 
                                             for (int l = 0; l < k; ++l) {
+                                                // Paper start - PhantomPreSpawnEvent
+                                                com.destroystokyo.paper.event.entity.PhantomPreSpawnEvent event = new com.destroystokyo.paper.event.entity.PhantomPreSpawnEvent(io.papermc.paper.util.MCUtil.toLocation(world, blockposition1), entityplayer.getBukkitEntity(), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL);
+                                                if (!event.callEvent()) {
+                                                    if (event.shouldAbortSpawn()) {
+                                                        break;
+                                                    }
+                                                    continue;
+                                                }
+                                                // Paper end - PhantomPreSpawnEvent
                                                 Phantom entityphantom = (Phantom) EntityType.PHANTOM.create(world);
 
                                                 if (entityphantom != null) {
+                                                    entityphantom.setSpawningEntity(entityplayer.getUUID()); // Paper - PhantomPreSpawnEvent
                                                     entityphantom.moveTo(blockposition1, 0.0F, 0.0F);
                                                     groupdataentity = entityphantom.finalizeSpawn(world, difficultydamagescaler, MobSpawnType.NATURAL, groupdataentity);
                                                     world.addFreshEntityWithPassengers(entityphantom, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit
