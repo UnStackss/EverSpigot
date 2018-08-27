@@ -35,11 +35,11 @@ public class MappedRegistry<T> implements WritableRegistry<T> {
     private static final Logger LOGGER = LogUtils.getLogger();
     final ResourceKey<? extends Registry<T>> key;
     private final ObjectList<Holder.Reference<T>> byId = new ObjectArrayList<>(256);
-    private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(), map -> map.defaultReturnValue(-1));
-    private final Map<ResourceLocation, Holder.Reference<T>> byLocation = new HashMap<>();
-    private final Map<ResourceKey<T>, Holder.Reference<T>> byKey = new HashMap<>();
-    private final Map<T, Holder.Reference<T>> byValue = new IdentityHashMap<>();
-    private final Map<ResourceKey<T>, RegistrationInfo> registrationInfos = new IdentityHashMap<>();
+    private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(2048), map -> map.defaultReturnValue(-1)); // Paper - Perf: Use bigger expected size to reduce collisions
+    private final Map<ResourceLocation, Holder.Reference<T>> byLocation = new HashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
+    private final Map<ResourceKey<T>, Holder.Reference<T>> byKey = new HashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
+    private final Map<T, Holder.Reference<T>> byValue = new IdentityHashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
+    private final Map<ResourceKey<T>, RegistrationInfo> registrationInfos = new IdentityHashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
     private Lifecycle registryLifecycle;
     private volatile Map<TagKey<T>, HolderSet.Named<T>> tags = new IdentityHashMap<>();
     private boolean frozen;
