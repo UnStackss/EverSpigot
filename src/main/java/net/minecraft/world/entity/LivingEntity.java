@@ -3977,6 +3977,19 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     // Paper start - Make shield blocking delay configurable
+    public HitResult getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption) {
+        if (maxDistance < 1 || maxDistance > 120) {
+            throw new IllegalArgumentException("maxDistance must be between 1-120");
+        }
+
+        Vec3 start = new Vec3(getX(), getY() + getEyeHeight(), getZ());
+        org.bukkit.util.Vector dir = getBukkitEntity().getLocation().getDirection().multiply(maxDistance);
+        Vec3 end = new Vec3(start.x + dir.getX(), start.y + dir.getY(), start.z + dir.getZ());
+        ClipContext raytrace = new ClipContext(start, end, ClipContext.Block.OUTLINE, fluidCollisionOption, this);
+
+        return this.level().clip(raytrace);
+    }
+
     public int shieldBlockingDelay = this.level().paperConfig().misc.shieldBlockingDelay;
 
     public int getShieldBlockingDelay() {
