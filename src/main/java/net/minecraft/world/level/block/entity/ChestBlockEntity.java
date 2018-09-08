@@ -238,7 +238,7 @@ public class ChestBlockEntity extends RandomizableContainerBlockEntity implement
     // CraftBukkit start
     @Override
     public boolean onlyOpCanSetNbt() {
-        return true;
+        return false; // Paper - Allow chests to be placed with NBT data
     }
     // CraftBukkit end
 }

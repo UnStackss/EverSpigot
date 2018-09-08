@@ -490,6 +490,7 @@ public final class ItemStack implements DataComponentHolder {
                     enuminteractionresult = InteractionResult.FAIL; // cancel placement
                     // PAIL: Remove this when MC-99075 fixed
                     placeEvent.getPlayer().updateInventory();
+                    world.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
                     // revert back all captured blocks
                     world.preventPoiUpdated = true; // CraftBukkit - SPIGOT-5710
                     for (BlockState blockstate : blocks) {
