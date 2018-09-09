@@ -18,6 +18,7 @@ public class Path {
     private final BlockPos target;
     private final float distToTarget;
     private final boolean reached;
+    public boolean hasNext() { return getNextNodeIndex() < this.nodes.size(); } // Paper - Mob Pathfinding API
 
     public Path(List<Node> nodes, BlockPos target, boolean reachesTarget) {
         this.nodes = nodes;
