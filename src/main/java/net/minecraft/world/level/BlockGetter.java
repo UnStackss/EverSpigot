@@ -70,7 +70,15 @@ public interface BlockGetter extends LevelHeightAccessor {
 
     // CraftBukkit start - moved block handling into separate method for use by Block#rayTrace
     default BlockHitResult clip(ClipContext raytrace1, BlockPos blockposition) {
-            BlockState iblockdata = this.getBlockState(blockposition);
+            // Paper start - Prevent raytrace from loading chunks
+            BlockState iblockdata = this.getBlockStateIfLoaded(blockposition);
+            if (iblockdata == null) {
+                // copied the last function parameter (listed below)
+                Vec3 vec3d = raytrace1.getFrom().subtract(raytrace1.getTo());
+
+                return BlockHitResult.miss(raytrace1.getTo(), Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos.containing(raytrace1.getTo()));
+            }
+            // Paper end - Prevent raytrace from loading chunks
             FluidState fluid = this.getFluidState(blockposition);
             Vec3 vec3d = raytrace1.getFrom();
             Vec3 vec3d1 = raytrace1.getTo();
