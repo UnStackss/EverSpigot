@@ -79,6 +79,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
     protected NonNullList<ItemStack> items;
     public int litTime;
     int litDuration;
+    public double cookSpeedMultiplier = 1.0; // Paper - cook speed multiplier API
     public int cookingProgress;
     public int cookingTotalTime;
     @Nullable
@@ -86,6 +87,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
     protected final ContainerData dataAccess;
     public final Object2IntOpenHashMap<ResourceLocation> recipesUsed;
     private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
+    public final RecipeType<? extends AbstractCookingRecipe> recipeType; // Paper - cook speed multiplier API
 
     protected AbstractFurnaceBlockEntity(BlockEntityType<?> blockEntityType, BlockPos pos, BlockState state, RecipeType<? extends AbstractCookingRecipe> recipeType) {
         super(blockEntityType, pos, state);
@@ -132,6 +134,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
         };
         this.recipesUsed = new Object2IntOpenHashMap();
         this.quickCheck = RecipeManager.createCheck((RecipeType<AbstractCookingRecipe>) recipeType); // CraftBukkit - decompile error // Eclipse fail
+        this.recipeType = recipeType; // Paper - cook speed multiplier API
     }
 
     public static void invalidateCache() {
@@ -295,6 +298,11 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
             this.recipesUsed.put(ResourceLocation.parse(s), nbttagcompound1.getInt(s));
         }
 
+        // Paper start - cook speed multiplier API
+        if (nbt.contains("Paper.CookSpeedMultiplier")) {
+            this.cookSpeedMultiplier = nbt.getDouble("Paper.CookSpeedMultiplier");
+        }
+        // Paper end - cook speed multiplier API
     }
 
     @Override
@@ -303,6 +311,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
         nbt.putShort("BurnTime", (short) this.litTime);
         nbt.putShort("CookTime", (short) this.cookingProgress);
         nbt.putShort("CookTimeTotal", (short) this.cookingTotalTime);
+        nbt.putDouble("Paper.CookSpeedMultiplier", this.cookSpeedMultiplier); // Paper - cook speed multiplier API
         ContainerHelper.saveAllItems(nbt, this.items, registryLookup);
         CompoundTag nbttagcompound1 = new CompoundTag();
 
@@ -375,7 +384,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
                     CraftItemStack source = CraftItemStack.asCraftMirror(blockEntity.items.get(0));
                     CookingRecipe<?> recipe = (CookingRecipe<?>) recipeholder.toBukkitRecipe();
 
-                    FurnaceStartSmeltEvent event = new FurnaceStartSmeltEvent(CraftBlock.at(world, pos), source, recipe);
+                    FurnaceStartSmeltEvent event = new FurnaceStartSmeltEvent(CraftBlock.at(world, pos), source, recipe, AbstractFurnaceBlockEntity.getTotalCookTime(world, blockEntity.recipeType, blockEntity, blockEntity.cookSpeedMultiplier)); // Paper - cook speed multiplier API
                     world.getCraftServer().getPluginManager().callEvent(event);
 
                     blockEntity.cookingTotalTime = event.getTotalCookTime();
@@ -383,9 +392,9 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
                 // CraftBukkit end
 
                 ++blockEntity.cookingProgress;
-                if (blockEntity.cookingProgress == blockEntity.cookingTotalTime) {
+                if (blockEntity.cookingProgress >= blockEntity.cookingTotalTime) { // Paper - cook speed multiplier API
                     blockEntity.cookingProgress = 0;
-                    blockEntity.cookingTotalTime = AbstractFurnaceBlockEntity.getTotalCookTime(world, blockEntity);
+                    blockEntity.cookingTotalTime = AbstractFurnaceBlockEntity.getTotalCookTime(world, blockEntity.recipeType, blockEntity, blockEntity.cookSpeedMultiplier); // Paper - cook speed multiplier API
                     if (AbstractFurnaceBlockEntity.burn(blockEntity.level, blockEntity.worldPosition, world.registryAccess(), recipeholder, blockEntity.items, i)) { // CraftBukkit
                         blockEntity.setRecipeUsed(recipeholder);
                     }
@@ -485,13 +494,14 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
         }
     }
 
-    private static int getTotalCookTime(Level world, AbstractFurnaceBlockEntity furnace) {
-        if (world == null) return 200; // CraftBukkit - SPIGOT-4302
+    public static int getTotalCookTime(@Nullable Level world, RecipeType<? extends AbstractCookingRecipe> recipeType, AbstractFurnaceBlockEntity furnace, double cookSpeedMultiplier) { // Paper - cook speed multiplier API
         SingleRecipeInput singlerecipeinput = new SingleRecipeInput(furnace.getItem(0));
 
-        return (Integer) furnace.quickCheck.getRecipeFor(singlerecipeinput, world).map((recipeholder) -> {
-            return ((AbstractCookingRecipe) recipeholder.value()).getCookingTime();
-        }).orElse(200);
+        // Paper start - cook speed multiplier API
+        /* Scale the recipe's cooking time to the current cookSpeedMultiplier */
+        int cookTime = world != null ? furnace.quickCheck.getRecipeFor(singlerecipeinput, world).map(holder -> holder.value().getCookingTime()).orElse(200) : (net.minecraft.server.MinecraftServer.getServer().getRecipeManager().getRecipeFor(recipeType, singlerecipeinput, world /* passing a null level here is safe. world is only used for map extending recipes which won't happen here */).map(holder -> holder.value().getCookingTime()).orElse(200));
+        return (int) Math.ceil (cookTime / cookSpeedMultiplier);
+        // Paper end - cook speed multiplier API
     }
 
     public static boolean isFuel(ItemStack stack) {
@@ -536,7 +546,7 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
         this.items.set(slot, stack);
         stack.limitSize(this.getMaxStackSize(stack));
         if (slot == 0 && !flag) {
-            this.cookingTotalTime = AbstractFurnaceBlockEntity.getTotalCookTime(this.level, this);
+            this.cookingTotalTime = AbstractFurnaceBlockEntity.getTotalCookTime(this.level, this.recipeType, this, this.cookSpeedMultiplier); // Paper - cook speed multiplier API
             this.cookingProgress = 0;
             this.setChanged();
         }
