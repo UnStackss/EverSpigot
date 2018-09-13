@@ -165,9 +165,9 @@ public final class NaturalSpawner {
         StructureManager structuremanager = world.structureManager();
         ChunkGenerator chunkgenerator = world.getChunkSource().getGenerator();
         int i = pos.getY();
-        BlockState iblockdata = chunk.getBlockState(pos);
+        BlockState iblockdata = world.getBlockStateIfLoadedAndInBounds(pos); // Paper - don't load chunks for mob spawn
 
-        if (!iblockdata.isRedstoneConductor(chunk, pos)) {
+        if (iblockdata != null && !iblockdata.isRedstoneConductor(chunk, pos)) { // Paper - don't load chunks for mob spawn
             BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
             int j = 0;
             int k = 0;
@@ -196,7 +196,7 @@ public final class NaturalSpawner {
                             if (entityhuman != null) {
                                 double d2 = entityhuman.distanceToSqr(d0, (double) i, d1);
 
-                                if (NaturalSpawner.isRightDistanceToPlayerAndSpawnPoint(world, chunk, blockposition_mutableblockposition, d2)) {
+                                if (world.isLoadedAndInBounds(blockposition_mutableblockposition) && NaturalSpawner.isRightDistanceToPlayerAndSpawnPoint(world, chunk, blockposition_mutableblockposition, d2)) { // Paper - don't load chunks for mob spawn
                                     if (biomesettingsmobs_c == null) {
                                         Optional<MobSpawnSettings.SpawnerData> optional = NaturalSpawner.getRandomSpawnMobAt(world, structuremanager, chunkgenerator, group, world.random, blockposition_mutableblockposition);
 
