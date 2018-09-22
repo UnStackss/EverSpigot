@@ -127,6 +127,7 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
@@ -4039,6 +4040,38 @@ public abstract class LivingEntity extends Entity implements Attackable {
         ClipContext raytrace = new ClipContext(start, end, ClipContext.Block.OUTLINE, fluidCollisionOption, this);
 
         return this.level().clip(raytrace);
+    }
+
+    public @Nullable EntityHitResult getTargetEntity(int maxDistance) {
+        if (maxDistance < 1 || maxDistance > 120) {
+            throw new IllegalArgumentException("maxDistance must be between 1-120");
+        }
+
+        Vec3 start = this.getEyePosition(1.0F);
+        Vec3 direction = this.getLookAngle();
+        Vec3 end = start.add(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance);
+
+        List<Entity> entityList = this.level().getEntities(this, getBoundingBox().expandTowards(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance).inflate(1.0D, 1.0D, 1.0D), EntitySelector.NO_SPECTATORS.and(Entity::isPickable));
+
+        double distance = 0.0D;
+        EntityHitResult result = null;
+
+        for (Entity entity : entityList) {
+            final double inflationAmount = (double) entity.getPickRadius();
+            AABB aabb = entity.getBoundingBox().inflate(inflationAmount, inflationAmount, inflationAmount);
+            Optional<Vec3> rayTraceResult = aabb.clip(start, end);
+
+            if (rayTraceResult.isPresent()) {
+                Vec3 rayTrace = rayTraceResult.get();
+                double distanceTo = start.distanceToSqr(rayTrace);
+                if (distanceTo < distance || distance == 0.0D) {
+                    result = new EntityHitResult(entity, rayTrace);
+                    distance = distanceTo;
+                }
+            }
+        }
+
+        return result;
     }
 
     public int shieldBlockingDelay = this.level().paperConfig().misc.shieldBlockingDelay;
