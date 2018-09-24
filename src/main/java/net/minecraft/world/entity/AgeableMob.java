@@ -85,6 +85,7 @@ public abstract class AgeableMob extends PathfinderMob {
     }
 
     public void ageUp(int age, boolean overGrow) {
+        if (this.ageLocked) return; // Paper - Honor ageLock
         int j = this.getAge();
         int k = j;
 
