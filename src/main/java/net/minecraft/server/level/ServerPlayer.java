@@ -2182,6 +2182,21 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
         this.camera = (Entity) (entity == null ? this : entity);
         if (entity1 != this.camera) {
+            // Paper start - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
+            if (this.camera == this) {
+                com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent playerStopSpectatingEntityEvent = new com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), entity1.getBukkitEntity());
+                if (!playerStopSpectatingEntityEvent.callEvent()) {
+                    this.camera = entity1; // rollback camera entity again
+                    return;
+                }
+            } else {
+                com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent playerStartSpectatingEntityEvent = new com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), entity1.getBukkitEntity(), entity.getBukkitEntity());
+                if (!playerStartSpectatingEntityEvent.callEvent()) {
+                    this.camera = entity1; // rollback camera entity again
+                    return;
+                }
+            }
+            // Paper end - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
             Level world = this.camera.level();
 
             if (world instanceof ServerLevel) {
