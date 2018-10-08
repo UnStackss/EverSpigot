@@ -291,13 +291,20 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
         // CraftBukkit end
 
+        // Paper start - Add Velocity IP Forwarding Support
+        boolean usingProxy = org.spigotmc.SpigotConfig.bungee || io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled;
+        String proxyFlavor = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "Velocity" : "BungeeCord";
+        String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";
+        // Paper end - Add Velocity IP Forwarding Support
         if (!this.usesAuthentication()) {
             DedicatedServer.LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
             DedicatedServer.LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
             // Spigot start
-            if (org.spigotmc.SpigotConfig.bungee) {
-                DedicatedServer.LOGGER.warn("Whilst this makes it possible to use BungeeCord, unless access to your server is properly restricted, it also opens up the ability for hackers to connect with any username they choose.");
-                DedicatedServer.LOGGER.warn("Please see http://www.spigotmc.org/wiki/firewall-guide/ for further information.");
+            // Paper start - Add Velocity IP Forwarding Support
+            if (usingProxy) {
+                DedicatedServer.LOGGER.warn("Whilst this makes it possible to use " + proxyFlavor + ", unless access to your server is properly restricted, it also opens up the ability for hackers to connect with any username they choose.");
+                DedicatedServer.LOGGER.warn("Please see " + proxyLink + " for further information.");
+            // Paper end - Add Velocity IP Forwarding Support
             } else {
                 DedicatedServer.LOGGER.warn("While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.");
             }
