@@ -2703,6 +2703,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
         this.setHealth(this.getMaxHealth());
         this.stopUsingItem(); // CraftBukkit - SPIGOT-6682: Clear active item on reset
+        this.setAirSupply(this.getMaxAirSupply()); // Paper - Reset players airTicks on respawn
         this.setRemainingFireTicks(0);
         this.fallDistance = 0;
         this.foodData = new FoodData(this);
