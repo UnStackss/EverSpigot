@@ -323,6 +323,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         thread.setUncaughtExceptionHandler((thread1, throwable) -> {
             MinecraftServer.LOGGER.error("Uncaught exception in server thread", throwable);
         });
+        thread.setPriority(Thread.NORM_PRIORITY+2); // Paper - Perf: Boost priority
         if (Runtime.getRuntime().availableProcessors() > 4) {
             thread.setPriority(8);
         }

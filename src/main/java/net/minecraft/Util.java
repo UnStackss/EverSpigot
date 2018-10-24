@@ -89,7 +89,7 @@ public class Util {
     private static final int DEFAULT_MAX_THREADS = 255;
     private static final int DEFAULT_SAFE_FILE_OPERATION_RETRIES = 10;
     private static final String MAX_THREADS_SYSTEM_PROPERTY = "max.bg.threads";
-    private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutor("Main");
+    private static final ExecutorService BACKGROUND_EXECUTOR = makeExecutor("Main", -1); // Paper - Perf: add priority
     private static final ExecutorService IO_POOL = makeIoExecutor("IO-Worker-", false);
     private static final ExecutorService DOWNLOAD_POOL = makeIoExecutor("Download-", true);
     // Paper start - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
@@ -160,15 +160,27 @@ public class Util {
         return FILENAME_DATE_TIME_FORMATTER.format(ZonedDateTime.now());
     }
 
-    private static ExecutorService makeExecutor(String name) {
-        int i = Mth.clamp(Runtime.getRuntime().availableProcessors() - 1, 1, getMaxThreads());
+    private static ExecutorService makeExecutor(String s, int priorityModifier) { // Paper - Perf: add priority
+        // Paper start - Perf: use simpler thread pool that allows 1 thread and reduce worldgen thread worker count for low core count CPUs
+        int cpus = Runtime.getRuntime().availableProcessors() / 2;
+        int i;
+        if (cpus <= 4) {
+            i = cpus <= 2 ? 1 : 2;
+        } else if (cpus <= 8) {
+            // [5, 8]
+            i = Math.max(3, cpus - 2);
+        } else {
+            i = cpus * 2 / 3;
+        }
+        i = Math.min(8, i);
+        i = Integer.getInteger("Paper.WorkerThreadCount", i);
         ExecutorService executorService;
         if (i <= 0) {
             executorService = MoreExecutors.newDirectExecutorService();
         } else {
-            AtomicInteger atomicInteger = new AtomicInteger(1);
-            executorService = new ForkJoinPool(i, pool -> {
-                ForkJoinWorkerThread forkJoinWorkerThread = new ForkJoinWorkerThread(pool) {
+            executorService = new java.util.concurrent.ThreadPoolExecutor(i, i,0L, TimeUnit.MILLISECONDS, new java.util.concurrent.LinkedBlockingQueue<>(), target -> new io.papermc.paper.util.ServerWorkerThread(target, s, priorityModifier));
+        }
+        /*
                     @Override
                     protected void onTermination(Throwable throwable) {
                         if (throwable != null) {
@@ -184,6 +196,7 @@ public class Util {
                 return forkJoinWorkerThread;
             }, Util::onThreadException, true);
         }
+        }*/ // Paper end - Perf: use simpler thread pool
 
         return executorService;
     }
