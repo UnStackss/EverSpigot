@@ -738,6 +738,10 @@ public abstract class PlayerList {
 
             entityplayer1.addTag(s);
         }
+        // Paper start - Add PlayerPostRespawnEvent
+        boolean isBedSpawn = false;
+        boolean isRespawn = false;
+        // Paper end - Add PlayerPostRespawnEvent
 
         // CraftBukkit start - fire PlayerRespawnEvent
         DimensionTransition dimensiontransition;
@@ -745,6 +749,10 @@ public abstract class PlayerList {
             dimensiontransition = entityplayer.findRespawnPositionAndUseSpawnBlock(flag, DimensionTransition.DO_NOTHING, reason);
 
             if (!flag) entityplayer.reset(); // SPIGOT-4785
+            // Paper start - Add PlayerPostRespawnEvent
+            isRespawn = true;
+            location = CraftLocation.toBukkit(dimensiontransition.pos(), dimensiontransition.newLevel().getWorld(), dimensiontransition.yRot(), dimensiontransition.xRot());
+            // Paper end - Add PlayerPostRespawnEvent
         } else {
             dimensiontransition = new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3.ZERO, location.getYaw(), location.getPitch(), DimensionTransition.DO_NOTHING);
         }
@@ -795,6 +803,11 @@ public abstract class PlayerList {
             if (iblockdata.is(Blocks.RESPAWN_ANCHOR)) {
                 entityplayer1.connection.send(new ClientboundSoundPacket(SoundEvents.RESPAWN_ANCHOR_DEPLETE, SoundSource.BLOCKS, (double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ(), 1.0F, 1.0F, worldserver.getRandom().nextLong()));
             }
+            // Paper start - Add PlayerPostRespawnEvent
+            if (iblockdata.is(net.minecraft.tags.BlockTags.BEDS) && !dimensiontransition.missingRespawnBlock()) {
+                isBedSpawn = true;
+            }
+            // Paper end - Add PlayerPostRespawnEvent
         }
         // Added from changeDimension
         this.sendAllPlayerInfo(entityplayer); // Update health, etc...
@@ -816,6 +829,13 @@ public abstract class PlayerList {
         if (entityplayer.connection.isDisconnected()) {
             this.save(entityplayer);
         }
+
+        // Paper start - Add PlayerPostRespawnEvent
+        if (isRespawn) {
+            cserver.getPluginManager().callEvent(new com.destroystokyo.paper.event.player.PlayerPostRespawnEvent(entityplayer.getBukkitEntity(), location, isBedSpawn));
+        }
+        // Paper end - Add PlayerPostRespawnEvent
+
         // CraftBukkit end
 
         return entityplayer1;
