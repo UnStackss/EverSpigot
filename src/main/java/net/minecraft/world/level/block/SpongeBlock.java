@@ -134,7 +134,11 @@ public class SpongeBlock extends Block {
                     } else if (iblockdata.is(Blocks.KELP) || iblockdata.is(Blocks.KELP_PLANT) || iblockdata.is(Blocks.SEAGRASS) || iblockdata.is(Blocks.TALL_SEAGRASS)) {
                         BlockEntity tileentity = iblockdata.hasBlockEntity() ? world.getBlockEntity(blockposition1) : null;
 
+                        // Paper start - Fix SpongeAbsortEvent handling
+                        if (block.getHandle().isAir()) {
                         dropResources(iblockdata, world, blockposition1, tileentity);
+                        }
+                        // Paper end - Fix SpongeAbsortEvent handling
                     }
                 }
                 world.setBlock(blockposition1, block.getHandle(), block.getFlag());
