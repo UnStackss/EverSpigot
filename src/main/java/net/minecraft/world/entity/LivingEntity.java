@@ -3619,9 +3619,15 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
     @Override
     public void stopRiding() {
+        // Paper start - Force entity dismount during teleportation
+        this.stopRiding(false);
+    }
+    @Override
+    public void stopRiding(boolean suppressCancellation) {
+        // Paper end - Force entity dismount during teleportation
         Entity entity = this.getVehicle();
 
-        super.stopRiding();
+        super.stopRiding(suppressCancellation); // Paper - Force entity dismount during teleportation
         if (entity != null && entity != this.getVehicle() && !this.level().isClientSide) {
             this.dismountVehicle(entity);
         }

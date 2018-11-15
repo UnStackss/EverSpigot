@@ -2704,17 +2704,28 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public void removeVehicle() {
+        // Paper start - Force entity dismount during teleportation
+        this.removeVehicle(false);
+    }
+    public void removeVehicle(boolean suppressCancellation) {
+        // Paper end - Force entity dismount during teleportation
         if (this.vehicle != null) {
             Entity entity = this.vehicle;
 
             this.vehicle = null;
-            if (!entity.removePassenger(this)) this.vehicle = entity; // CraftBukkit
+            if (!entity.removePassenger(this, suppressCancellation)) this.vehicle = entity; // CraftBukkit // Paper - Force entity dismount during teleportation
         }
 
     }
 
     public void stopRiding() {
-        this.removeVehicle();
+        // Paper start - Force entity dismount during teleportation
+        this.stopRiding(false);
+    }
+
+    public void stopRiding(boolean suppressCancellation) {
+        this.removeVehicle(suppressCancellation);
+        // Paper end - Force entity dismount during teleportation
     }
 
     protected void addPassenger(Entity passenger) {
@@ -2739,7 +2750,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         }
     }
 
-    protected boolean removePassenger(Entity entity) { // CraftBukkit
+    // Paper start - Force entity dismount during teleportation
+    protected boolean removePassenger(Entity entity) { return removePassenger(entity, false);}
+    protected boolean removePassenger(Entity entity, boolean suppressCancellation) { // CraftBukkit
+        // Paper end - Force entity dismount during teleportation
         if (entity.getVehicle() == this) {
             throw new IllegalStateException("Use x.stopRiding(y), not y.removePassenger(x)");
         } else {
@@ -2749,7 +2763,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             if (this.getBukkitEntity() instanceof Vehicle && entity.getBukkitEntity() instanceof LivingEntity) {
                 VehicleExitEvent event = new VehicleExitEvent(
                         (Vehicle) this.getBukkitEntity(),
-                        (LivingEntity) entity.getBukkitEntity()
+                        (LivingEntity) entity.getBukkitEntity(), !suppressCancellation // Paper - Force entity dismount during teleportation
                 );
                 // Suppress during worldgen
                 if (this.valid) {
@@ -2762,7 +2776,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                 }
             }
 
-            EntityDismountEvent event = new EntityDismountEvent(entity.getBukkitEntity(), this.getBukkitEntity());
+            EntityDismountEvent event = new EntityDismountEvent(entity.getBukkitEntity(), this.getBukkitEntity(), !suppressCancellation); // Paper - Force entity dismount during teleportation
             // Suppress during worldgen
             if (this.valid) {
                 Bukkit.getPluginManager().callEvent(event);

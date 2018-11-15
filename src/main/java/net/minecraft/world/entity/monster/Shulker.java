@@ -288,7 +288,13 @@ public class Shulker extends AbstractGolem implements VariantHolder<Optional<Dye
 
     @Override
     public void stopRiding() {
-        super.stopRiding();
+        // Paper start - Force entity dismount during teleportation
+        this.stopRiding(false);
+    }
+    @Override
+    public void stopRiding(boolean suppressCancellation) {
+        super.stopRiding(suppressCancellation);
+        // Paper end - Force entity dismount during teleportation
         if (this.level().isClientSide) {
             this.clientOldAttachPosition = this.blockPosition();
         }
