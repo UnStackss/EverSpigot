@@ -36,6 +36,21 @@ public class ClientboundContainerSetContentPacket implements Packet<ClientGamePa
         this.carriedItem = ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
     }
 
+    // Paper start - Handle large packets disconnecting client
+    @Override
+    public boolean hasLargePacketFallback() {
+        return true;
+    }
+
+    @Override
+    public boolean packetTooLarge(net.minecraft.network.Connection manager) {
+        for (int i = 0 ; i < this.items.size() ; i++) {
+            manager.send(new ClientboundContainerSetSlotPacket(this.containerId, this.stateId, i, this.items.get(i)));
+        }
+        return true;
+    }
+    // Paper end - Handle large packets disconnecting client
+
     private void write(RegistryFriendlyByteBuf buf) {
         buf.writeByte(this.containerId);
         buf.writeVarInt(this.stateId);

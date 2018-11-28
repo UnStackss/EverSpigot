@@ -11,6 +11,19 @@ public interface Packet<T extends PacketListener> {
 
     void handle(T listener);
 
+    // Paper start
+    default boolean hasLargePacketFallback() {
+        return false;
+    }
+
+    /**
+     * override {@link #hasLargePacketFallback()} to return true when overriding in subclasses
+     */
+    default boolean packetTooLarge(net.minecraft.network.Connection manager) {
+        return false;
+    }
+    // Paper end
+
     default boolean isSkippable() {
         return false;
     }

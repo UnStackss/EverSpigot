@@ -40,7 +40,33 @@ public class PacketEncoder<T extends PacketListener> extends MessageToByteEncode
 
             throw var9;
         } finally {
+            // Paper start - Handle large packets disconnecting client
+            int packetLength = byteBuf.readableBytes();
+            if (packetLength > MAX_PACKET_SIZE || (packetLength > MAX_FINAL_PACKET_SIZE && packet.hasLargePacketFallback())) {
+                throw new PacketTooLargeException(packet, packetLength);
+            }
+            // Paper end - Handle large packets disconnecting client
             ProtocolSwapHandler.handleOutboundTerminalPacket(channelHandlerContext, packet);
         }
     }
+
+    // Paper start
+    // packet size is encoded into 3-byte varint
+    private static final int MAX_FINAL_PACKET_SIZE = (1 << 21) - 1;
+    // Vanilla Max size for the encoder (before compression)
+    private static final int MAX_PACKET_SIZE = 8388608;
+
+    public static class PacketTooLargeException extends RuntimeException {
+        private final Packet<?> packet;
+
+        PacketTooLargeException(Packet<?> packet, int packetLength) {
+            super("PacketTooLarge - " + packet.getClass().getSimpleName() + " is " + packetLength + ". Max is " + MAX_PACKET_SIZE);
+            this.packet = packet;
+        }
+
+        public Packet<?> getPacket() {
+            return this.packet;
+        }
+    }
+    // Paper end
 }

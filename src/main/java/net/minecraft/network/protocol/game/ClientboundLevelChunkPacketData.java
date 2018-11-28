@@ -52,7 +52,7 @@ public class ClientboundLevelChunkPacketData {
             throw new RuntimeException("Can't read heightmap in packet for [" + x + ", " + z + "]");
         } else {
             int i = buf.readVarInt();
-            if (i > 2097152) {
+            if (i > 2097152) { // Paper - diff on change - if this changes, update PacketEncoder
                 throw new RuntimeException("Chunk Packet trying to allocate too much memory on read.");
             } else {
                 this.buffer = new byte[i];
