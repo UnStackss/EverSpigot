@@ -2147,6 +2147,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.getPlayerList().reloadResources();
             this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
             this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
+            org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
         }, this);
 
         if (this.isSameThread()) {
