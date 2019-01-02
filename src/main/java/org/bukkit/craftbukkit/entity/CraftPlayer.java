@@ -210,6 +210,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     private BorderChangeListener clientWorldBorderListener = this.createWorldBorderListener();
     public org.bukkit.event.player.PlayerResourcePackStatusEvent.Status resourcePackStatus; // Paper - more resource pack API
     private static final boolean DISABLE_CHANNEL_LIMIT = System.getProperty("paper.disableChannelLimit") != null; // Paper - add a flag to disable the channel limit
+    private long lastSaveTime; // Paper - getLastPlayed replacement API
 
     public CraftPlayer(CraftServer server, ServerPlayer entity) {
         super(server, entity);
@@ -2049,6 +2050,18 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         this.firstPlayed = firstPlayed;
     }
 
+    // Paper start - getLastPlayed replacement API
+    @Override
+    public long getLastLogin() {
+        return this.getHandle().loginTime;
+    }
+
+    @Override
+    public long getLastSeen() {
+        return this.isOnline() ? System.currentTimeMillis() : this.lastSaveTime;
+    }
+    // Paper end - getLastPlayed replacement API
+
     public void readExtraData(CompoundTag nbttagcompound) {
         this.hasPlayedBefore = true;
         if (nbttagcompound.contains("bukkit")) {
@@ -2071,6 +2084,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     public void setExtraData(CompoundTag nbttagcompound) {
+        this.lastSaveTime = System.currentTimeMillis(); // Paper
+
         if (!nbttagcompound.contains("bukkit")) {
             nbttagcompound.put("bukkit", new CompoundTag());
         }
@@ -2085,6 +2100,16 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         data.putLong("firstPlayed", this.getFirstPlayed());
         data.putLong("lastPlayed", System.currentTimeMillis());
         data.putString("lastKnownName", handle.getScoreboardName());
+
+        // Paper start - persist for use in offline save data
+        if (!nbttagcompound.contains("Paper")) {
+            nbttagcompound.put("Paper", new CompoundTag());
+        }
+
+        CompoundTag paper = nbttagcompound.getCompound("Paper");
+        paper.putLong("LastLogin", handle.loginTime);
+        paper.putLong("LastSeen", System.currentTimeMillis());
+        // Paper end
     }
 
     @Override

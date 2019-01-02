@@ -182,6 +182,7 @@ public abstract class PlayerList {
 
     public void placeNewPlayer(Connection connection, ServerPlayer player, CommonListenerCookie clientData) {
         player.isRealPlayer = true; // Paper
+        player.loginTime = System.currentTimeMillis(); // Paper - Replace OfflinePlayer#getLastPlayed
         GameProfile gameprofile = player.getGameProfile();
         GameProfileCache usercache = this.server.getProfileCache();
         // Optional optional; // CraftBukkit - decompile error
