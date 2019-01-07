@@ -1833,6 +1833,13 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     public void disconnect() {
         this.disconnected = true;
         this.ejectPassengers();
+
+        // Paper start - Workaround vehicle not tracking the passenger disconnection dismount
+        if (this.isPassenger() && this.getVehicle() instanceof ServerPlayer) {
+            this.stopRiding();
+        }
+        // Paper end - Workaround vehicle not tracking the passenger disconnection dismount
+
         if (this.isSleeping()) {
             this.stopSleepInBed(true, false);
         }
