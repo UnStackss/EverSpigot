@@ -25,6 +25,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import io.papermc.paper.util.MCUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
@@ -576,9 +577,26 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             return false;
         } else {
             FluidState fluid = this.getFluidState(pos);
+            // Paper start - BlockDestroyEvent; while the above setAir method is named same and looks very similar
+            // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
+            // it doesn't imply destruction of a block that plays a sound effect / drops an item.
+            boolean playEffect = true;
+            BlockState effectType = iblockdata;
+            int xp = iblockdata.getBlock().getExpDrop(iblockdata, (ServerLevel) this, pos, ItemStack.EMPTY, true);
+            if (com.destroystokyo.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
+                com.destroystokyo.paper.event.block.BlockDestroyEvent event = new com.destroystokyo.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, pos), fluid.createLegacyBlock().createCraftBlockData(), effectType.createCraftBlockData(), xp, drop);
+                if (!event.callEvent()) {
+                    return false;
+                }
+                effectType = ((CraftBlockData) event.getEffectBlock()).getState();
+                playEffect = event.playEffect();
+                drop = event.willDrop();
+                xp = event.getExpToDrop();
+            }
+            // Paper end - BlockDestroyEvent
 
-            if (!(iblockdata.getBlock() instanceof BaseFireBlock)) {
-                this.levelEvent(2001, pos, Block.getId(iblockdata));
+            if (playEffect && !(effectType.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
+                this.levelEvent(2001, pos, Block.getId(effectType)); // Paper - BlockDestroyEvent
             }
 
             if (drop) {
