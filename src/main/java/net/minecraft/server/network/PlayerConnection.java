@@ -2904,7 +2904,7 @@ public class PlayerConnection extends ServerCommonPacketListenerImpl implements 
 
             CustomData customdata = (CustomData) itemstack.getOrDefault(DataComponents.BLOCK_ENTITY_DATA, CustomData.EMPTY);
 
-            if (customdata.contains("x") && customdata.contains("y") && customdata.contains("z")) {
+            if (customdata.contains("x") && customdata.contains("y") && customdata.contains("z") && this.player.getBukkitEntity().hasPermission("minecraft.nbt.copy")) { // Spigot
                 BlockPosition blockposition = TileEntity.getPosFromTag(customdata.getUnsafe());
 
                 if (this.player.level().isLoaded(blockposition)) {
