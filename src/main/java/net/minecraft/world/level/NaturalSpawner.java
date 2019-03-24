@@ -83,6 +83,13 @@ public final class NaturalSpawner {
             MobCategory enumcreaturetype = entity.getType().getCategory();
 
             if (enumcreaturetype != MobCategory.MISC) {
+                // Paper start - Only count natural spawns
+                if (!entity.level().paperConfig().entities.spawning.countAllMobsForSpawning &&
+                    !(entity.spawnReason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL ||
+                        entity.spawnReason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CHUNK_GEN)) {
+                    continue;
+                }
+                // Paper end - Only count natural spawns
                 BlockPos blockposition = entity.blockPosition();
 
                 chunkSource.query(ChunkPos.asLong(blockposition), (chunk) -> {
