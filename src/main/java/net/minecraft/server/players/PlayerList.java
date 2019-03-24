@@ -223,6 +223,11 @@ public abstract class PlayerList {
             worldserver1 = worldserver;
         }
 
+        // Paper start - Entity#getEntitySpawnReason
+        if (optional.isEmpty()) {
+            player.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT; // set Player SpawnReason to DEFAULT on first login
+        }
+        // Paper end - Entity#getEntitySpawnReason
         player.setServerLevel(worldserver1);
         String s1 = connection.getLoggableAddress(this.server.logIPs());
 
@@ -348,7 +353,7 @@ public abstract class PlayerList {
             CompoundTag nbttagcompound = ((CompoundTag) optional.get()).getCompound("RootVehicle");
             ServerLevel finalWorldServer = worldserver1; // CraftBukkit - decompile error
             Entity entity = EntityType.loadEntityRecursive(nbttagcompound.getCompound("Entity"), worldserver1, (entity1) -> {
-                return !finalWorldServer.addWithUUID(entity1) ? null : entity1; // CraftBukkit - decompile error
+                return !finalWorldServer.addWithUUID(entity1, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.MOUNT) ? null : entity1; // CraftBukkit - decompile error // Paper - Entity#getEntitySpawnReason
             });
 
             if (entity != null) {

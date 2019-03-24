@@ -191,6 +191,7 @@ public abstract class BaseSpawner {
                         }
 
                         entity.spawnedViaMobSpawner = true; // Paper
+                        entity.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER; // Paper - Entity#getEntitySpawnReason
                         flag = true; // Paper
                         // CraftBukkit start
                         if (org.bukkit.craftbukkit.event.CraftEventFactory.callSpawnerSpawnEvent(entity, pos).isCancelled()) {

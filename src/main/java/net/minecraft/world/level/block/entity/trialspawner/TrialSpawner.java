@@ -231,6 +231,7 @@ public final class TrialSpawner {
                             }
 
                             entity.spawnedViaMobSpawner = true; // Paper
+                            entity.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER; // Paper - Entity#getEntitySpawnReason
                             // CraftBukkit start
                             if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, pos).isCancelled()) {
                                 return Optional.empty();

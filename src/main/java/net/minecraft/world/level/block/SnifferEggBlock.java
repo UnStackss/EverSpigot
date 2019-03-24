@@ -73,7 +73,7 @@ public class SnifferEggBlock extends Block {
                 Vec3 vec3 = pos.getCenter();
                 sniffer.setBaby(true);
                 sniffer.moveTo(vec3.x(), vec3.y(), vec3.z(), Mth.wrapDegrees(world.random.nextFloat() * 360.0F), 0.0F);
-                world.addFreshEntity(sniffer);
+                world.addFreshEntity(sniffer, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EGG); // Paper - use correct spawn reason
             }
         }
     }

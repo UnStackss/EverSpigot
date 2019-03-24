@@ -89,7 +89,7 @@ public class OminousItemSpawner extends Entity {
                 entity = new ItemEntity(level, this.getX(), this.getY(), this.getZ(), itemStack);
             }
 
-            level.addFreshEntity(entity);
+            level.addFreshEntity(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.OMINOUS_ITEM_SPAWNER); // Paper - Fixes and additions to the SpawnReason API
             level.levelEvent(3021, this.blockPosition(), 1);
             level.gameEvent(entity, GameEvent.ENTITY_PLACE, this.position());
             this.setItem(ItemStack.EMPTY);

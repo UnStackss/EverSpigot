@@ -57,6 +57,7 @@ public class SummonCommand {
             ServerLevel worldserver = source.getLevel();
             Entity entity = EntityType.loadEntityRecursive(nbttagcompound1, worldserver, (entity1) -> {
                 entity1.moveTo(pos.x, pos.y, pos.z, entity1.getYRot(), entity1.getXRot());
+                entity1.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND; // Paper - Entity#getEntitySpawnReason
                 return entity1;
             });
 

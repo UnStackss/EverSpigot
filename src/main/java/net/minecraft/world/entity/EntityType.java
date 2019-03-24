@@ -366,7 +366,7 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
     @Nullable
     public T spawn(ServerLevel world, @Nullable ItemStack stack, @Nullable Player player, BlockPos pos, MobSpawnType spawnReason, boolean alignPosition, boolean invertY) {
         // CraftBukkit start
-        return this.spawn(world, stack, player, pos, spawnReason, alignPosition, invertY, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG);
+        return this.spawn(world, stack, player, pos, spawnReason, alignPosition, invertY, spawnReason == MobSpawnType.DISPENSER ? org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DISPENSE_EGG : org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG); // Paper - use correct spawn reason for dispenser spawn eggs
     }
 
     @Nullable

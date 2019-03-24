@@ -1207,6 +1207,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
             return true;
         }
         // Paper end - extra debug info
+        if (entity.spawnReason == null) entity.spawnReason = spawnReason; // Paper - Entity#getEntitySpawnReason
         if (entity.isRemoved()) {
             // WorldServer.LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityTypes.getKey(entity.getType())); // CraftBukkit
             return false;
