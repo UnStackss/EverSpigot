@@ -897,6 +897,46 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         });
     }
 
+    // Paper start - PlayerDeathEvent#getItemsToKeep
+    private static void processKeep(org.bukkit.event.entity.PlayerDeathEvent event, NonNullList<ItemStack> inv) {
+        List<org.bukkit.inventory.ItemStack> itemsToKeep = event.getItemsToKeep();
+        if (inv == null) {
+            // remainder of items left in toKeep - plugin added stuff on death that wasn't in the initial loot?
+            if (!itemsToKeep.isEmpty()) {
+                for (org.bukkit.inventory.ItemStack itemStack : itemsToKeep) {
+                    event.getEntity().getInventory().addItem(itemStack);
+                }
+            }
+
+            return;
+        }
+
+        for (int i = 0; i < inv.size(); ++i) {
+            ItemStack item = inv.get(i);
+            if (EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP) || itemsToKeep.isEmpty() || item.isEmpty()) {
+                inv.set(i, ItemStack.EMPTY);
+                continue;
+            }
+
+            final org.bukkit.inventory.ItemStack bukkitStack = item.getBukkitStack();
+            boolean keep = false;
+            final Iterator<org.bukkit.inventory.ItemStack> iterator = itemsToKeep.iterator();
+            while (iterator.hasNext()) {
+                final org.bukkit.inventory.ItemStack itemStack = iterator.next();
+                if (bukkitStack.equals(itemStack)) {
+                    iterator.remove();
+                    keep = true;
+                    break;
+                }
+            }
+
+            if (!keep) {
+                inv.set(i, ItemStack.EMPTY);
+            }
+        }
+    }
+    // Paper end - PlayerDeathEvent#getItemsToKeep
+
     @Override
     public void die(DamageSource damageSource) {
         // this.gameEvent(GameEvent.ENTITY_DIE); // Paper - move below event cancellation check
@@ -981,7 +1021,12 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         this.dropExperience(damageSource.getEntity());
         // we clean the player's inventory after the EntityDeathEvent is called so plugins can get the exact state of the inventory.
         if (!event.getKeepInventory()) {
-            this.getInventory().clearContent();
+            // Paper start - PlayerDeathEvent#getItemsToKeep
+            for (NonNullList<ItemStack> inv : this.getInventory().compartments) {
+                processKeep(event, inv);
+            }
+            processKeep(event, null);
+            // Paper end - PlayerDeathEvent#getItemsToKeep
         }
 
         this.setCamera(this); // Remove spectated target
