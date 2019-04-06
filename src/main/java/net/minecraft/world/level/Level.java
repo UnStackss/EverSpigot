@@ -912,9 +912,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
 
     @Nullable
     public BlockEntity getBlockEntity(BlockPos blockposition, boolean validate) {
-        if (this.capturedTileEntities.containsKey(blockposition)) {
-            return this.capturedTileEntities.get(blockposition);
+        // Paper start - Perf: Optimize capturedTileEntities lookup
+        net.minecraft.world.level.block.entity.BlockEntity blockEntity;
+        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(blockposition)) != null) {
+            return blockEntity;
         }
+        // Paper end - Perf: Optimize capturedTileEntities lookup
         // CraftBukkit end
         return this.isOutsideBuildHeight(blockposition) ? null : (!this.isClientSide && Thread.currentThread() != this.thread ? null : this.getChunkAt(blockposition).getBlockEntity(blockposition, LevelChunk.EntityCreationType.IMMEDIATE));
     }
