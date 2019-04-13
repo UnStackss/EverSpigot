@@ -325,7 +325,7 @@ public class IronGolem extends AbstractGolem implements NeutralMob {
         BlockPos blockposition1 = blockposition.below();
         BlockState iblockdata = world.getBlockState(blockposition1);
 
-        if (!iblockdata.entityCanStandOn(world, blockposition1, this)) {
+        if (!iblockdata.entityCanStandOn(world, blockposition1, this) && !this.level().paperConfig().entities.spawning.ironGolemsCanSpawnInAir) { // Paper - Add option to allow iron golems to spawn in air
             return false;
         } else {
             for (int i = 1; i < 3; ++i) {
