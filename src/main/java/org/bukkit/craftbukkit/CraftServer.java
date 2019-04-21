@@ -2918,5 +2918,10 @@ public final class CraftServer implements Server {
         profile.getGameProfile().getProperties().putAll(((CraftPlayer) player).getHandle().getGameProfile().getProperties());
         return profile;
     }
+
+    @Override
+    public int getCurrentTick() {
+        return net.minecraft.server.MinecraftServer.currentTick;
+    }
     // Paper end
 }
