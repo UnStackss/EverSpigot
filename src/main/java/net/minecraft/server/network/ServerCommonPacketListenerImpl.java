@@ -366,7 +366,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
         Objects.requireNonNull(this.connection);
         // CraftBukkit - Don't wait
-        minecraftserver.wrapRunnable(networkmanager::handleDisconnection);
+        minecraftserver.scheduleOnMain(networkmanager::handleDisconnection); // Paper
     }
 
     protected boolean isSingleplayerOwner() {
