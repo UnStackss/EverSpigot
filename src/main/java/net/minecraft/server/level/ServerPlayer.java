@@ -203,6 +203,7 @@ import org.bukkit.inventory.MainHand;
 public class ServerPlayer extends net.minecraft.world.entity.player.Player implements ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer { // Paper - rewrite chunk system
 
     private static final Logger LOGGER = LogUtils.getLogger();
+    public long lastSave = MinecraftServer.currentTick; // Paper - Incremental chunk and player saving
     private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_XZ = 32;
     private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_Y = 10;
     private static final int FLY_STAT_RECORDING_SPEED = 25;

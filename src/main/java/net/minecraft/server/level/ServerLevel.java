@@ -1315,6 +1315,35 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
         return !this.server.isUnderSpawnProtection(this, pos, player) && this.getWorldBorder().isWithinBounds(pos);
     }
 
+    // Paper start - Incremental chunk and player saving
+    public void saveIncrementally(boolean doFull) {
+        ServerChunkCache chunkproviderserver = this.getChunkSource();
+
+        if (doFull) {
+            org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld()));
+        }
+
+        try (co.aikar.timings.Timing ignored = this.timings.worldSave.startTiming()) {
+            if (doFull) {
+                this.saveLevelData(true);
+            }
+
+            // chunk autosave is already called by the ChunkSystem during unload processing (ChunkMap#processUnloads)
+
+            // Copied from save()
+            // CraftBukkit start - moved from MinecraftServer.saveChunks
+            if (doFull) { // Paper
+                ServerLevel worldserver1 = this;
+
+                this.serverLevelData.setWorldBorder(worldserver1.getWorldBorder().createSettings());
+                this.serverLevelData.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
+                this.convertable.saveDataTag(this.server.registryAccess(), this.serverLevelData, this.server.getPlayerList().getSingleplayerData());
+            }
+            // CraftBukkit end
+        }
+    }
+    // Paper end - Incremental chunk and player saving
+
     public void save(@Nullable ProgressListener progressListener, boolean flush, boolean savingDisabled) {
         // Paper start - add close param
         this.save(progressListener, flush, savingDisabled, false);
