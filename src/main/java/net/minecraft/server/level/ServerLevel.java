@@ -231,7 +231,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
     public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 
     public LevelChunk getChunkIfLoaded(int x, int z) {
-        return this.chunkSource.getChunk(x, z, false);
+        return this.chunkSource.getChunkAtIfLoadedImmediately(x, z); // Paper - Use getChunkIfLoadedImmediately
     }
 
     @Override

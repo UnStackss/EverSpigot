@@ -56,7 +56,7 @@ public class GameEventDispatcher {
 
         for (int l1 = j; l1 <= i1; ++l1) {
             for (int i2 = l; i2 <= k1; ++i2) {
-                LevelChunk chunk = this.level.getChunkSource().getChunkNow(l1, i2);
+                LevelChunk chunk = (LevelChunk) this.level.getChunkIfLoadedImmediately(l1, i2); // Paper - Use getChunkIfLoadedImmediately
 
                 if (chunk != null) {
                     for (int j2 = k; j2 <= j1; ++j2) {
