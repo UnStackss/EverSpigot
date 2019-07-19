@@ -422,6 +422,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
         this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
     }
 
+    // Paper start
+    @Override
+    public boolean hasChunk(int chunkX, int chunkZ) {
+        return this.getChunkSource().getChunkAtIfLoadedImmediately(chunkX, chunkZ) != null;
+    }
+    // Paper end
+
     /** @deprecated */
     @Deprecated
     @VisibleForTesting

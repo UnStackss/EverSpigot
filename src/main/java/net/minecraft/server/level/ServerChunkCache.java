@@ -206,6 +206,7 @@ public class ServerChunkCache extends ChunkSource {
 
             Objects.requireNonNull(completablefuture);
             if (!completablefuture.isDone()) { // Paper
+                com.destroystokyo.paper.io.SyncLoadFinder.logSyncLoad(this.level, x, z); // Paper - Add debug for sync chunk loads
                 this.level.timings.syncChunkLoad.startTiming(); // Paper
             chunkproviderserver_b.managedBlock(completablefuture::isDone);
                 this.level.timings.syncChunkLoad.stopTiming(); // Paper
