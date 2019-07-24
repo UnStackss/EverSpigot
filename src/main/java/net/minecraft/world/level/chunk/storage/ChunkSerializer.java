@@ -86,6 +86,10 @@ public class ChunkSerializer {
     public static final String BLOCK_LIGHT_TAG = "BlockLight";
     public static final String SKY_LIGHT_TAG = "SkyLight";
 
+    // Paper start - Do not let the server load chunks from newer versions
+    private static final int CURRENT_DATA_VERSION = net.minecraft.SharedConstants.getCurrentVersion().getDataVersion().getVersion();
+    private static final boolean JUST_CORRUPT_IT = Boolean.getBoolean("Paper.ignoreWorldDataVersion");
+    // Paper end - Do not let the server load chunks from newer versions
     public ChunkSerializer() {}
 
     // Paper start - guard against serializing mismatching coordinates
@@ -102,6 +106,15 @@ public class ChunkSerializer {
     // Paper end - guard against serializing mismatching coordinates
 
     public static ProtoChunk read(ServerLevel world, PoiManager poiStorage, RegionStorageInfo key, ChunkPos chunkPos, CompoundTag nbt) {
+        // Paper start - Do not let the server load chunks from newer versions
+        if (nbt.contains("DataVersion", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC)) {
+            final int dataVersion = nbt.getInt("DataVersion");
+            if (!JUST_CORRUPT_IT && dataVersion > CURRENT_DATA_VERSION) {
+                new RuntimeException("Server attempted to load chunk saved with newer version of minecraft! " + dataVersion + " > " + CURRENT_DATA_VERSION).printStackTrace();
+                System.exit(1);
+            }
+        }
+        // Paper end - Do not let the server load chunks from newer versions
         ChunkPos chunkcoordintpair1 = new ChunkPos(nbt.getInt("xPos"), nbt.getInt("zPos")); // Paper - guard against serializing mismatching coordinates; diff on change, see ChunkSerializer#getChunkCoordinate
 
         if (!Objects.equals(chunkPos, chunkcoordintpair1)) {
