@@ -26,7 +26,7 @@ import org.bukkit.event.hanging.HangingBreakEvent;
 public abstract class BlockAttachedEntity extends Entity {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    private int checkInterval;
+    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
     protected BlockPos pos;
 
     protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> type, Level world) {
