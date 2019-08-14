@@ -63,6 +63,18 @@ public class FlowerPotBlock extends Block {
         } else if (!this.isEmpty()) {
             return ItemInteractionResult.CONSUME;
         } else {
+            // Paper start - Add PlayerFlowerPotManipulateEvent
+            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(world, pos);
+            org.bukkit.inventory.ItemStack placedStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(stack);
+
+            io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent event = new io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent((org.bukkit.entity.Player) player.getBukkitEntity(), block, placedStack, true);
+            if (!event.callEvent()) {
+                // Update client
+                player.containerMenu.sendAllDataToRemote();
+
+                return ItemInteractionResult.CONSUME;
+            }
+            // Paper end - Add PlayerFlowerPotManipulateEvent
             world.setBlock(pos, blockState, 3);
             world.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
             player.awardStat(Stats.POT_FLOWER);
@@ -77,6 +89,18 @@ public class FlowerPotBlock extends Block {
             return InteractionResult.CONSUME;
         } else {
             ItemStack itemStack = new ItemStack(this.potted);
+            // Paper start - Add PlayerFlowerPotManipulateEvent
+            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(world, pos);
+            org.bukkit.inventory.ItemStack pottedStack = new org.bukkit.inventory.ItemStack(org.bukkit.craftbukkit.block.CraftBlockType.minecraftToBukkit(this.potted));
+
+            io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent event = new io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent((org.bukkit.entity.Player) player.getBukkitEntity(), block, pottedStack, false);
+            if (!event.callEvent()) {
+                // Update client
+                player.containerMenu.sendAllDataToRemote();
+
+                return InteractionResult.PASS;
+            }
+            // Paper end - Add PlayerFlowerPotManipulateEvent
             if (!player.addItem(itemStack)) {
                 player.drop(itemStack, false);
             }
