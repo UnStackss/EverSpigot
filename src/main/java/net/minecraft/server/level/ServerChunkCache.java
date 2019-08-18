@@ -450,14 +450,26 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
                 gameprofilerfiller.popPush("naturalSpawnCount");
                 this.level.timings.countNaturalMobs.startTiming(); // Paper - timings
                 int k = this.distanceManager.getNaturalSpawnChunkCount();
-                NaturalSpawner.SpawnState spawnercreature_d = NaturalSpawner.createState(k, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
+                // Paper start - Optional per player mob spawns
+                int naturalSpawnChunkCount = k;
+                NaturalSpawner.SpawnState spawnercreature_d; // moved down
+                if ((this.spawnFriendlies || this.spawnEnemies) && this.level.paperConfig().entities.spawning.perPlayerMobSpawns) { // don't count mobs when animals and monsters are disabled
+                    // re-set mob counts
+                    for (ServerPlayer player : this.level.players) {
+                        Arrays.fill(player.mobCounts, 0);
+                    }
+                    spawnercreature_d = NaturalSpawner.createState(naturalSpawnChunkCount, this.level.getAllEntities(), this::getFullChunk, null, true);
+                } else {
+                    spawnercreature_d = NaturalSpawner.createState(naturalSpawnChunkCount, this.level.getAllEntities(), this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
+                }
+                // Paper end - Optional per player mob spawns
                 this.level.timings.countNaturalMobs.stopTiming(); // Paper - timings
 
                 this.lastSpawnState = spawnercreature_d;
                 gameprofilerfiller.popPush("spawnAndTick");
                 boolean flag = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit
 
-                Util.shuffle(list, this.level.random);
+                if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) Util.shuffle(list, this.level.random); // Paper - per player mob spawns - do not need this when per-player is enabled
                 // Paper start - PlayerNaturallySpawnCreaturesEvent
                 int chunkRange = level.spigotConfig.mobSpawnRange;
                 chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;

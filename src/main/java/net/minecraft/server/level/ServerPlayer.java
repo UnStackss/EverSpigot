@@ -276,6 +276,10 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
     public boolean queueHealthUpdatePacket;
     public net.minecraft.network.protocol.game.ClientboundSetHealthPacket queuedHealthUpdatePacket;
     // Paper end - cancellable death event
+    // Paper start - Optional per player mob spawns
+    public static final int MOBCATEGORY_TOTAL_ENUMS = net.minecraft.world.entity.MobCategory.values().length;
+    public final int[] mobCounts = new int[MOBCATEGORY_TOTAL_ENUMS]; // Paper
+    // Paper end - Optional per player mob spawns
 
     // CraftBukkit start
     public CraftPlayer.TransferCookieConnection transferCookieConnection;
