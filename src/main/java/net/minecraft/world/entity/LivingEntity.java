@@ -3855,9 +3855,14 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     public void startUsingItem(InteractionHand hand) {
+        // Paper start - Prevent consuming the wrong itemstack
+        this.startUsingItem(hand, false);
+    }
+    public void startUsingItem(InteractionHand hand, boolean forceUpdate) {
+        // Paper end - Prevent consuming the wrong itemstack
         ItemStack itemstack = this.getItemInHand(hand);
 
-        if (!itemstack.isEmpty() && !this.isUsingItem()) {
+        if (!itemstack.isEmpty() && !this.isUsingItem() || forceUpdate) { // Paper - Prevent consuming the wrong itemstack
             this.useItem = itemstack;
             this.useItemRemaining = itemstack.getUseDuration(this);
             if (!this.level().isClientSide) {
@@ -3942,6 +3947,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 this.releaseUsingItem();
             } else {
                 if (!this.useItem.isEmpty() && this.isUsingItem()) {
+                    this.startUsingItem(this.getUsedItemHand(), true); // Paper - Prevent consuming the wrong itemstack
                     this.triggerItemUseEffects(this.useItem, 16);
                     // CraftBukkit start - fire PlayerItemConsumeEvent
                     ItemStack itemstack;
@@ -3976,8 +3982,8 @@ public abstract class LivingEntity extends Entity implements Attackable {
                     }
 
                     this.stopUsingItem();
-                    // Paper start - if the replacement is anything but the default, update the client inventory
-                    if (this instanceof ServerPlayer && !com.google.common.base.Objects.equal(defaultReplacement, itemstack)) {
+                    // Paper start
+                    if (this instanceof ServerPlayer) {
                         ((ServerPlayer) this).getBukkitEntity().updateInventory();
                     }
                     // Paper end
