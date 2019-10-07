@@ -116,6 +116,13 @@ public abstract class AbstractVillager extends AgeableMob implements InventoryCa
         return this.tradingPlayer != null;
     }
 
+    // Paper start - Villager#resetOffers
+    public void resetOffers() {
+        this.offers = new MerchantOffers();
+        this.updateTrades();
+    }
+    // Paper end - Villager#resetOffers
+
     @Override
     public MerchantOffers getOffers() {
         if (this.level().isClientSide) {

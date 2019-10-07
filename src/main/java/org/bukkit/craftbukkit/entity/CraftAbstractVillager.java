@@ -70,4 +70,11 @@ public class CraftAbstractVillager extends CraftAgeable implements AbstractVilla
     public HumanEntity getTrader() {
         return this.getMerchant().getTrader();
     }
+
+    // Paper start - Villager#resetOffers
+    @Override
+    public void resetOffers() {
+        getHandle().resetOffers();
+    }
+    // Paper end - Villager#resetOffers
 }
