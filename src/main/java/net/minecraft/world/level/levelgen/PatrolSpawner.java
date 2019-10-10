@@ -24,6 +24,7 @@ public class PatrolSpawner implements CustomSpawner {
 
     @Override
     public int tick(ServerLevel world, boolean spawnMonsters, boolean spawnAnimals) {
+        if (world.paperConfig().entities.behavior.pillagerPatrols.disable) return 0; // Paper - Add option to disable pillager patrols
         if (!spawnMonsters) {
             return 0;
         } else if (!world.getGameRules().getBoolean(GameRules.RULE_DO_PATROL_SPAWNING)) {
