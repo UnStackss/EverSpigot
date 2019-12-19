@@ -38,6 +38,7 @@ public class NearestAttackableTargetGoal<T extends LivingEntity> extends TargetG
         this.randomInterval = reducedTickDelay(reciprocalChance);
         this.setFlags(EnumSet.of(Goal.Flag.TARGET));
         this.targetConditions = TargetingConditions.forCombat().range(this.getFollowDistance()).selector(targetPredicate);
+        if (mob.level().paperConfig().entities.entitiesTargetWithFollowRange) this.targetConditions.useFollowRange(); // Paper - Fix MC-145656
     }
 
     @Override
