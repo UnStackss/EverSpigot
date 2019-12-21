@@ -1545,6 +1545,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
             while (iterator.hasNext()) {
                 Entity entity = (Entity) iterator.next();
                 int j = entity.getType().clientTrackingRange() * 16;
+                j = org.spigotmc.TrackingRange.getEntityTrackingRange(entity, j); // Paper
 
                 if (j > i) {
                     i = j;
