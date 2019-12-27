@@ -88,8 +88,21 @@ public class ChunkSerializer {
 
     public ChunkSerializer() {}
 
+    // Paper start - guard against serializing mismatching coordinates
+    // TODO Note: This needs to be re-checked each update
+    public static ChunkPos getChunkCoordinate(final CompoundTag chunkData) {
+        final int dataVersion = ChunkStorage.getVersion(chunkData);
+        if (dataVersion < 2842) { // Level tag is removed after this version
+            final CompoundTag levelData = chunkData.getCompound("Level");
+            return new ChunkPos(levelData.getInt("xPos"), levelData.getInt("zPos"));
+        } else {
+            return new ChunkPos(chunkData.getInt("xPos"), chunkData.getInt("zPos"));
+        }
+    }
+    // Paper end - guard against serializing mismatching coordinates
+
     public static ProtoChunk read(ServerLevel world, PoiManager poiStorage, RegionStorageInfo key, ChunkPos chunkPos, CompoundTag nbt) {
-        ChunkPos chunkcoordintpair1 = new ChunkPos(nbt.getInt("xPos"), nbt.getInt("zPos"));
+        ChunkPos chunkcoordintpair1 = new ChunkPos(nbt.getInt("xPos"), nbt.getInt("zPos")); // Paper - guard against serializing mismatching coordinates; diff on change, see ChunkSerializer#getChunkCoordinate
 
         if (!Objects.equals(chunkPos, chunkcoordintpair1)) {
             ChunkSerializer.LOGGER.error("Chunk file at {} is in the wrong location; relocating. (Expected {}, got {})", new Object[]{chunkPos, chunkPos, chunkcoordintpair1});
