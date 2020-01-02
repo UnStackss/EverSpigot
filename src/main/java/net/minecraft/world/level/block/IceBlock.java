@@ -35,6 +35,11 @@ public class IceBlock extends HalfTransparentBlock {
     @Override
     public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool) {
         super.playerDestroy(world, player, pos, state, blockEntity, tool);
+        // Paper start - Improve Block#breakNaturally API
+        this.afterDestroy(world, pos, tool);
+    }
+    public void afterDestroy(Level world, BlockPos pos, ItemStack tool) {
+        // Paper end - Improve Block#breakNaturally API
         if (!EnchantmentHelper.hasTag(tool, EnchantmentTags.PREVENTS_ICE_MELTING)) {
             if (world.dimensionType().ultraWarm()) {
                 world.removeBlock(pos, false);
