@@ -51,7 +51,19 @@ public abstract class Goal {
         return Mth.positiveCeilDiv(serverTicks, 2);
     }
 
+    // Paper start - Mob goal api
+    private com.destroystokyo.paper.entity.ai.PaperVanillaGoal<?> vanillaGoal;
+    public <T extends org.bukkit.entity.Mob> com.destroystokyo.paper.entity.ai.Goal<T> asPaperVanillaGoal() {
+        if(this.vanillaGoal == null) {
+            this.vanillaGoal = new com.destroystokyo.paper.entity.ai.PaperVanillaGoal<>(this);
+        }
+        //noinspection unchecked
+        return (com.destroystokyo.paper.entity.ai.Goal<T>) this.vanillaGoal;
+    }
+    // Paper end - Mob goal api
+
     public static enum Flag {
+        UNKNOWN_BEHAVIOR, // Paper - add UNKNOWN_BEHAVIOR
         MOVE,
         LOOK,
         JUMP,

@@ -2939,5 +2939,11 @@ public final class CraftServer implements Server {
     public boolean isStopping() {
         return net.minecraft.server.MinecraftServer.getServer().hasStopped();
     }
+
+    private com.destroystokyo.paper.entity.ai.MobGoals mobGoals = new com.destroystokyo.paper.entity.ai.PaperMobGoals();
+    @Override
+    public com.destroystokyo.paper.entity.ai.MobGoals getMobGoals() {
+        return mobGoals;
+    }
     // Paper end
 }
