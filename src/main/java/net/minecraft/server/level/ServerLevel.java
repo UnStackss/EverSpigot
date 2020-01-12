@@ -330,6 +330,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
     }
     // Paper end
 
+    // Paper start - optimise getPlayerByUUID
+    @Nullable
+    @Override
+    public Player getPlayerByUUID(UUID uuid) {
+        final Player player = this.getServer().getPlayerList().getPlayer(uuid);
+        return player != null && player.level() == this ? player : null;
+    }
+    // Paper end - optimise getPlayerByUUID
+
     // Add env and gen to constructor, IWorldDataServer -> WorldDataServer
     public ServerLevel(MinecraftServer minecraftserver, Executor executor, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PrimaryLevelData iworlddataserver, ResourceKey<Level> resourcekey, LevelStem worlddimension, ChunkProgressListener worldloadlistener, boolean flag, long i, List<CustomSpawner> list, boolean flag1, @Nullable RandomSequences randomsequences, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider) {
         // IRegistryCustom.Dimension iregistrycustom_dimension = minecraftserver.registryAccess(); // CraftBukkit - decompile error
