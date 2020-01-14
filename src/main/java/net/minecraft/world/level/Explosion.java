@@ -193,7 +193,7 @@ public class Explosion {
                         for (float f1 = 0.3F; f > 0.0F; f -= 0.22500001F) {
                             BlockPos blockposition = BlockPos.containing(d4, d5, d6);
                             BlockState iblockdata = this.level.getBlockState(blockposition);
-                            FluidState fluid = this.level.getFluidState(blockposition);
+                            FluidState fluid = iblockdata.getFluidState(); // Paper - Perf: Optimize call to getFluid for explosions
 
                             if (!this.level.isInWorldBounds(blockposition)) {
                                 break;
