@@ -256,7 +256,7 @@ public class ActivationRange
                 isActive = true;
             }
             // Add a little performance juice to active entities. Skip 1/4 if not immune.
-        } else if ( !entity.defaultActivationState && entity.tickCount % 4 == 0 && !ActivationRange.checkEntityImmunities( entity ) )
+        } else if ( !entity.defaultActivationState && (entity.tickCount + entity.getId()) % 4 == 0 && !ActivationRange.checkEntityImmunities( entity ) ) // Paper - Ensure checking item movement is offset from Spigot's entity activation range check
         {
             isActive = false;
         }

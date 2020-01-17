@@ -176,7 +176,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
                 }
             }
 
-            if (!this.onGround() || this.getDeltaMovement().horizontalDistanceSqr() > 9.999999747378752E-6D || (this.tickCount + this.getId()) % 4 == 0) {
+            if (!this.onGround() || this.getDeltaMovement().horizontalDistanceSqr() > 9.999999747378752E-6D || (this.tickCount + this.getId()) % 4 == 0) { // Paper - Diff on change
                 this.move(MoverType.SELF, this.getDeltaMovement());
                 float f = 0.98F;
 
