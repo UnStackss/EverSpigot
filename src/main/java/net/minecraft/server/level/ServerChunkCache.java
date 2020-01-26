@@ -179,6 +179,12 @@ public class ServerChunkCache extends ChunkSource {
                 return this.getChunk(x, z, leastStatus, create);
             }, this.mainThreadProcessor).join();
         } else {
+            // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
+            LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
+            if (ifLoaded != null) {
+                return ifLoaded;
+            }
+            // Paper end - Perf: Optimise getChunkAt calls for loaded chunks
             ProfilerFiller gameprofilerfiller = this.level.getProfiler();
 
             gameprofilerfiller.incrementCounter("getChunk");
@@ -222,33 +228,7 @@ public class ServerChunkCache extends ChunkSource {
         if (Thread.currentThread() != this.mainThread) {
             return null;
         } else {
-            this.level.getProfiler().incrementCounter("getChunkNow");
-            long k = ChunkPos.asLong(chunkX, chunkZ);
-
-            ChunkAccess ichunkaccess;
-
-            for (int l = 0; l < 4; ++l) {
-                if (k == this.lastChunkPos[l] && this.lastChunkStatus[l] == ChunkStatus.FULL) {
-                    ichunkaccess = this.lastChunk[l];
-                    return ichunkaccess instanceof LevelChunk ? (LevelChunk) ichunkaccess : null;
-                }
-            }
-
-            ChunkHolder playerchunk = this.getVisibleChunkIfPresent(k);
-
-            if (playerchunk == null) {
-                return null;
-            } else {
-                ichunkaccess = playerchunk.getChunkIfPresent(ChunkStatus.FULL);
-                if (ichunkaccess != null) {
-                    this.storeInCache(k, ichunkaccess, ChunkStatus.FULL);
-                    if (ichunkaccess instanceof LevelChunk) {
-                        return (LevelChunk) ichunkaccess;
-                    }
-                }
-
-                return null;
-            }
+            return this.getChunkAtIfLoadedMainThread(chunkX, chunkZ); // Paper - Perf: Optimise getChunkAt calls for loaded chunks
         }
     }
 
