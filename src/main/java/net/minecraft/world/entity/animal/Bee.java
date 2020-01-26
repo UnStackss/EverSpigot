@@ -144,7 +144,22 @@ public class Bee extends Animal implements NeutralMob, FlyingAnimal {
     public Bee(EntityType<? extends Bee> type, Level world) {
         super(type, world);
         this.remainingCooldownBeforeLocatingNewFlower = Mth.nextInt(this.random, 20, 60);
-        this.moveControl = new FlyingMoveControl(this, 20, true);
+        // Paper start - Fix MC-167279
+        class BeeFlyingMoveControl extends FlyingMoveControl {
+            public BeeFlyingMoveControl(final Mob entity, final int maxPitchChange, final boolean noGravity) {
+                super(entity, maxPitchChange, noGravity);
+            }
+
+            @Override
+            public void tick() {
+                if (this.mob.getY() <= Bee.this.level().getMinBuildHeight()) {
+                    this.mob.setNoGravity(false);
+                }
+                super.tick();
+            }
+        }
+        this.moveControl = new BeeFlyingMoveControl(this, 20, true);
+        // Paper end - Fix MC-167279
         this.lookControl = new Bee.BeeLookControl(this);
         this.setPathfindingMalus(PathType.DANGER_FIRE, -1.0F);
         this.setPathfindingMalus(PathType.WATER, -1.0F);
