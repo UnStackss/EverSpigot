@@ -270,6 +270,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     public boolean wonGame;
     private int containerUpdateDelay; // Paper - Configurable container update tick rate
     public long loginTime; // Paper - Replace OfflinePlayer#getLastPlayed
+    public int patrolSpawnDelay; // Paper - Pillager patrol spawn settings and per player options
     // Paper start - cancellable death event
     public boolean queueHealthUpdatePacket;
     public net.minecraft.network.protocol.game.ClientboundSetHealthPacket queuedHealthUpdatePacket;
