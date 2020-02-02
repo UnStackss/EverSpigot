@@ -95,7 +95,7 @@ public class MinecraftServerGui extends JComponent {
 
     private JComponent buildInfoPanel() {
         JPanel jpanel = new JPanel(new BorderLayout());
-        StatsComponent guistatscomponent = new StatsComponent(this.server);
+        com.destroystokyo.paper.gui.GuiStatsComponent guistatscomponent = new com.destroystokyo.paper.gui.GuiStatsComponent(this.server); // Paper - Make GUI graph fancier
         Collection<Runnable> collection = this.finalizers; // CraftBukkit - decompile error
 
         Objects.requireNonNull(guistatscomponent);
