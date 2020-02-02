@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 
 public class RegionFileVersion {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Int2ObjectMap<RegionFileVersion> VERSIONS = new Int2ObjectOpenHashMap<>();
+    public static final Int2ObjectMap<RegionFileVersion> VERSIONS = new Int2ObjectOpenHashMap<>(); // Paper - private -> public
     private static final Object2ObjectMap<String, RegionFileVersion> VERSIONS_BY_NAME = new Object2ObjectOpenHashMap<>();
     public static final RegionFileVersion VERSION_GZIP = register(
         new RegionFileVersion(
