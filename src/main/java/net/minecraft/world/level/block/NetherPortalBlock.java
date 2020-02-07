@@ -88,6 +88,8 @@ public class NetherPortalBlock extends Block implements Portal {
 
                 if (entity != null) {
                     entity.setPortalCooldown();
+                    entity.fromNetherPortal = true; // Paper - Add option to nerf pigmen from nether portals
+                    if (world.paperConfig().entities.behavior.nerfPigmenFromNetherPortals) ((net.minecraft.world.entity.Mob) entity).aware = false; // Paper - Add option to nerf pigmen from nether portals
                 }
             }
         }
