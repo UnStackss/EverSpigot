@@ -86,6 +86,13 @@ public class ThrownEgg extends ThrowableItemProjectile {
                     }
                 }
                 // CraftBukkit end
+                // Paper start - Add ThrownEggHatchEvent
+                com.destroystokyo.paper.event.entity.ThrownEggHatchEvent event = new com.destroystokyo.paper.event.entity.ThrownEggHatchEvent((org.bukkit.entity.Egg) getBukkitEntity(), hatching, b0, hatchingType);
+                event.callEvent();
+                hatching = event.isHatching();
+                b0 = hatching ? event.getNumHatches() : 0; // If hatching is set to false, ensure child count is 0
+                hatchingType = event.getHatchingType();
+                // Paper end - Add ThrownEggHatchEvent
 
                 for (int i = 0; i < b0; ++i) {
                     Entity entitychicken = this.level().getWorld().makeEntity(new org.bukkit.Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), 0.0F), hatchingType.getEntityClass()); // CraftBukkit
