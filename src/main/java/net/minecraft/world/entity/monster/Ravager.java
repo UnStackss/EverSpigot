@@ -160,7 +160,9 @@ public class Ravager extends Raider {
                 }
 
                 if (!flag && this.onGround()) {
+                    if (new com.destroystokyo.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
                     this.jumpFromGround();
+                    } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
                 }
             }
 
