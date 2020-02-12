@@ -228,6 +228,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
     public final LevelStorageSource.LevelStorageAccess convertable;
     public final UUID uuid;
     public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
+    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 
     public LevelChunk getChunkIfLoaded(int x, int z) {
         return this.chunkSource.getChunk(x, z, false);
