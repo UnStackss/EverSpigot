@@ -454,10 +454,8 @@ public class Zombie extends Monster {
     public boolean killedEntity(ServerLevel world, LivingEntity other) {
         boolean flag = super.killedEntity(world, other);
 
-        if ((world.getDifficulty() == Difficulty.NORMAL || world.getDifficulty() == Difficulty.HARD) && other instanceof Villager entityvillager) {
-            if (world.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) {
-                return flag;
-            }
+        final double fallbackChance = world.getDifficulty() == Difficulty.HARD ? 100d : world.getDifficulty() == Difficulty.NORMAL ? 50d : 0d; // Paper - Configurable chance of villager zombie infection
+        if (this.random.nextDouble() * 100 < world.paperConfig().entities.behavior.zombieVillagerInfectionChance.or(fallbackChance) && other instanceof Villager entityvillager) { // Paper - Configurable chance of villager zombie infection
             // CraftBukkit start
             flag = Zombie.zombifyVillager(world, entityvillager, this.blockPosition(), this.isSilent(), CreatureSpawnEvent.SpawnReason.INFECTION) == null;
         }
