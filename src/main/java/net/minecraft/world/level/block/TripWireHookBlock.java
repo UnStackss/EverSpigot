@@ -189,6 +189,7 @@ public class TripWireHookBlock extends Block {
 
             TripWireHookBlock.emitState(world, pos, flag4, flag5, flag2, flag3);
             if (!flag) {
+                if (world.getBlockState(pos).getBlock() == Blocks.TRIPWIRE_HOOK) // Paper - Validate tripwire hook placement before update
                 world.setBlock(pos, (BlockState) iblockdata3.setValue(TripWireHookBlock.FACING, enumdirection), 3);
                 if (flag1) {
                     TripWireHookBlock.notifyNeighbors(block, world, pos, enumdirection);
