@@ -1199,7 +1199,26 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
 
     }
 
+    // Paper start - log detailed entity tick information
+    // TODO replace with varhandle
+    static final java.util.concurrent.atomic.AtomicReference<Entity> currentlyTickingEntity = new java.util.concurrent.atomic.AtomicReference<>();
+
+    public static List<Entity> getCurrentlyTickingEntities() {
+        Entity ticking = currentlyTickingEntity.get();
+        List<Entity> ret = java.util.Arrays.asList(ticking == null ? new Entity[0] : new Entity[] { ticking });
+
+        return ret;
+    }
+    // Paper end - log detailed entity tick information
+
     public void tickNonPassenger(Entity entity) {
+        // Paper start - log detailed entity tick information
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot tick an entity off-main");
+        try {
+            if (currentlyTickingEntity.get() == null) {
+                currentlyTickingEntity.lazySet(entity);
+            }
+            // Paper end - log detailed entity tick information
         ++TimingHistory.entityTicks; // Paper - timings
         // Spigot start
         co.aikar.timings.Timing timer; // Paper
@@ -1239,7 +1258,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
             this.tickPassenger(entity, entity1);
         }
         // } finally { timer.stopTiming(); } // Paper - timings - move up
-
+        // Paper start - log detailed entity tick information
+        } finally {
+            if (currentlyTickingEntity.get() == entity) {
+                currentlyTickingEntity.lazySet(null);
+            }
+        }
+        // Paper end - log detailed entity tick information
     }
 
     private void tickPassenger(Entity vehicle, Entity passenger) {

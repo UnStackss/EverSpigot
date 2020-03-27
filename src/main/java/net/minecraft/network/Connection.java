@@ -632,7 +632,13 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
             if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
                 || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
                 || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {
+            // Paper start - detailed watchdog information
+            net.minecraft.network.protocol.PacketUtils.packetProcessing.push(this.packetListener);
+            try {
             tickablepacketlistener.tick();
+            } finally {
+                net.minecraft.network.protocol.PacketUtils.packetProcessing.pop();
+            } // Paper end - detailed watchdog information
             } // Paper end - Buffer joins to world
         }
 
