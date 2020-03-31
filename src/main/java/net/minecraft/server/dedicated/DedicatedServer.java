@@ -416,11 +416,11 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         }
 
         if (this.rconThread != null) {
-            this.rconThread.stop();
+            this.rconThread.stopNonBlocking(); // Paper - don't wait for remote connections
         }
 
         if (this.queryThreadGs4 != null) {
-            this.queryThreadGs4.stop();
+            // this.remoteStatusListener.stop(); // Paper - don't wait for remote connections
         }
 
         System.exit(0); // CraftBukkit

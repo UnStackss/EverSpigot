@@ -104,6 +104,14 @@ public class RconThread extends GenericThread {
 
         this.clients.clear();
     }
+    // Paper start - don't wait for remote connections
+    public void stopNonBlocking() {
+        this.running = false;
+        for (RconClient client : this.clients) {
+            client.running = false;
+        }
+    }
+    // Paper end - don't wait for remote connections
 
     private void closeSocket(ServerSocket socket) {
         LOGGER.debug("closeSocket: {}", socket);
