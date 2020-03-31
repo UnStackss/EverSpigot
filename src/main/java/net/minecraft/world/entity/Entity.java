@@ -2385,27 +2385,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             }
             // CraftBukkit end
 
-            // CraftBukkit start - Reset world
-            if (this instanceof ServerPlayer) {
-                Server server = Bukkit.getServer();
-                org.bukkit.World bworld = null;
-
-                // TODO: Remove World related checks, replaced with WorldUID
-                String worldName = nbt.getString("world");
-
-                if (nbt.contains("WorldUUIDMost") && nbt.contains("WorldUUIDLeast")) {
-                    UUID uid = new UUID(nbt.getLong("WorldUUIDMost"), nbt.getLong("WorldUUIDLeast"));
-                    bworld = server.getWorld(uid);
-                } else {
-                    bworld = server.getWorld(worldName);
-                }
-
-                if (bworld == null) {
-                    bworld = ((org.bukkit.craftbukkit.CraftServer) server).getServer().getLevel(Level.OVERWORLD).getWorld();
-                }
-
-                ((ServerPlayer) this).setLevel(bworld == null ? null : ((CraftWorld) bworld).getHandle());
-            }
+            // CraftBukkit start
+            // Paper - move world parsing/loading to PlayerList#placeNewPlayer
             this.getBukkitEntity().readBukkitValues(nbt);
             if (nbt.contains("Bukkit.invisible")) {
                 boolean bukkitInvisible = nbt.getBoolean("Bukkit.invisible");
