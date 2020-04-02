@@ -1173,7 +1173,7 @@ public abstract class Player extends LivingEntity {
 
     @Override
     protected boolean isImmobile() {
-        return super.isImmobile() || this.isSleeping();
+        return super.isImmobile() || this.isSleeping() || this.isRemoved() || !valid; // Paper - player's who are dead or not in a world shouldn't move...
     }
 
     @Override
