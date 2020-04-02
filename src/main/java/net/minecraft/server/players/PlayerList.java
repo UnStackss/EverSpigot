@@ -868,6 +868,7 @@ public abstract class PlayerList {
         Vec3 vec3d = dimensiontransition.pos();
 
         entityplayer1.forceSetPositionRotation(vec3d.x, vec3d.y, vec3d.z, dimensiontransition.yRot(), dimensiontransition.xRot());
+        worldserver.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.POST_TELEPORT, new net.minecraft.world.level.ChunkPos(net.minecraft.util.Mth.floor(vec3d.x()) >> 4, net.minecraft.util.Mth.floor(vec3d.z()) >> 4), 1, entityplayer.getId()); // Paper
         // CraftBukkit end
         if (dimensiontransition.missingRespawnBlock()) {
             entityplayer1.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.NO_RESPAWN_BLOCK_AVAILABLE, 0.0F));

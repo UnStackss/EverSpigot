@@ -250,6 +250,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     // Paper end - Share random for entities to make them more random
     public org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason; // Paper - Entity#getEntitySpawnReason
 
+    public boolean collisionLoadChunks = false; // Paper
     private CraftEntity bukkitEntity;
 
     public CraftEntity getBukkitEntity() {

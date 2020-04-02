@@ -44,11 +44,13 @@ public interface CollisionGetter extends BlockGetter {
     }
 
     default boolean noCollision(@Nullable Entity entity, AABB box) {
+        try { if (entity != null) entity.collisionLoadChunks = true; // Paper
         for (VoxelShape voxelShape : this.getBlockCollisions(entity, box)) {
             if (!voxelShape.isEmpty()) {
                 return false;
             }
         }
+        } finally { if (entity != null) entity.collisionLoadChunks = false; } // Paper
 
         if (!this.getEntityCollisions(entity, box).isEmpty()) {
             return false;
