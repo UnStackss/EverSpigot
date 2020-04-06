@@ -2689,6 +2689,16 @@ public final class CraftServer implements Server {
         return CraftMagicNumbers.INSTANCE;
     }
 
+    @Override
+    public long[] getTickTimes() {
+        return this.getServer().tickTimes5s.getTimes();
+    }
+
+    @Override
+    public double getAverageTickTime() {
+        return this.getServer().tickTimes5s.getAverage();
+    }
+
     // Spigot start
     private final org.bukkit.Server.Spigot spigot = new org.bukkit.Server.Spigot()
     {

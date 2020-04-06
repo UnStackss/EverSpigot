@@ -258,6 +258,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     private int playerIdleTimeout;
     private final long[] tickTimesNanos;
     private long aggregatedTickTimesNanos;
+    // Paper start - Add tick times API and /mspt command
+    public final TickTimes tickTimes5s = new TickTimes(100);
+    public final TickTimes tickTimes10s = new TickTimes(200);
+    public final TickTimes tickTimes60s = new TickTimes(1200);
+    // Paper end - Add tick times API and /mspt command
     @Nullable
     private KeyPair keyPair;
     @Nullable
@@ -1474,6 +1479,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         this.aggregatedTickTimesNanos += j;
         this.tickTimesNanos[k] = j;
         this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float) j / (float) TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
+        // Paper start - Add tick times API and /mspt command
+        this.tickTimes5s.add(this.tickCount, j);
+        this.tickTimes10s.add(this.tickCount, j);
+        this.tickTimes60s.add(this.tickCount, j);
+        // Paper end - Add tick times API and /mspt command
         this.logTickMethodTime(i);
         this.profiler.pop();
         org.spigotmc.WatchdogThread.tick(); // Spigot
@@ -2857,4 +2867,30 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     public static record ServerResourcePackInfo(UUID id, String url, String hash, boolean isRequired, @Nullable Component prompt) {
 
     }
+
+    // Paper start - Add tick times API and /mspt command
+    public static class TickTimes {
+        private final long[] times;
+
+        public TickTimes(int length) {
+            times = new long[length];
+        }
+
+        void add(int index, long time) {
+            times[index % times.length] = time;
+        }
+
+        public long[] getTimes() {
+            return times.clone();
+        }
+
+        public double getAverage() {
+            long total = 0L;
+            for (long value : times) {
+                total += value;
+            }
+            return ((double) total / (double) times.length) * 1.0E-6D;
+        }
+    }
+    // Paper end - Add tick times API and /mspt command
 }
