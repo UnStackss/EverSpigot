@@ -49,7 +49,7 @@ public class CompoundTag implements Tag {
 
         private static CompoundTag loadCompound(DataInput input, NbtAccounter tracker) throws IOException {
             tracker.accountBytes(48L);
-            Map<String, Tag> map = Maps.newHashMap();
+            it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<String, Tag> map = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(8, 0.8f); // Paper - Reduce memory footprint of CompoundTag
 
             byte b;
             while ((b = input.readByte()) != 0) {
@@ -166,7 +166,7 @@ public class CompoundTag implements Tag {
     }
 
     public CompoundTag() {
-        this(Maps.newHashMap());
+        this(new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(8, 0.8f)); // Paper - Reduce memory footprint of CompoundTag
     }
 
     @Override
@@ -481,8 +481,16 @@ public class CompoundTag implements Tag {
 
     @Override
     public CompoundTag copy() {
-        Map<String, Tag> map = Maps.newHashMap(Maps.transformValues(this.tags, Tag::copy));
-        return new CompoundTag(map);
+        // Paper start - Reduce memory footprint of CompoundTag
+        it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<String, Tag> ret = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(this.tags.size(), 0.8f);
+        java.util.Iterator<java.util.Map.Entry<String, Tag>> iterator = (this.tags instanceof it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap) ? ((it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap)this.tags).object2ObjectEntrySet().fastIterator() : this.tags.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Tag> entry = iterator.next();
+            ret.put(entry.getKey(), entry.getValue().copy());
+        }
+
+        return new CompoundTag(ret);
+        // Paper end - Reduce memory footprint of CompoundTag
     }
 
     @Override
