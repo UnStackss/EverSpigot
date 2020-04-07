@@ -25,7 +25,8 @@ public class GoalSelector {
     private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);
     private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
     private final Supplier<ProfilerFiller> profiler;
-    private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
+    private static final Goal.Flag[] GOAL_FLAG_VALUES = Goal.Flag.values(); // Paper - remove streams from pathfindergoalselector
+    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from pathfindergoalselector
     private int curRate;
 
     public GoalSelector(Supplier<ProfilerFiller> profiler) {
@@ -65,18 +66,18 @@ public class GoalSelector {
         this.availableGoals.removeIf(wrappedGoalx -> wrappedGoalx.getGoal() == goal);
     }
 
-    private static boolean goalContainsAnyFlags(WrappedGoal goal, EnumSet<Goal.Flag> controls) {
-        for (Goal.Flag flag : goal.getFlags()) {
-            if (controls.contains(flag)) {
-                return true;
-            }
-        }
-
-        return false;
+    // Paper start
+    private static boolean goalContainsAnyFlags(WrappedGoal goal, ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> controls) {
+        return goal.getFlags().hasCommonElements(controls);
     }
 
     private static boolean goalCanBeReplacedForAllFlags(WrappedGoal goal, Map<Goal.Flag, WrappedGoal> goalsByControl) {
-        for (Goal.Flag flag : goal.getFlags()) {
+        long flagIterator = goal.getFlags().getBackingSet();
+        int wrappedGoalSize = goal.getFlags().size();
+        for (int i = 0; i < wrappedGoalSize; ++i) {
+            final Goal.Flag flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
+            flagIterator ^= ca.spottedleaf.concurrentutil.util.IntegerUtil.getTrailingBit(flagIterator);
+            // Paper end
             if (!goalsByControl.getOrDefault(flag, NO_GOAL).canBeReplacedBy(goal)) {
                 return false;
             }
@@ -90,7 +91,7 @@ public class GoalSelector {
         profilerFiller.push("goalCleanup");
 
         for (WrappedGoal wrappedGoal : this.availableGoals) {
-            if (wrappedGoal.isRunning() && (goalContainsAnyFlags(wrappedGoal, this.disabledFlags) || !wrappedGoal.canContinueToUse())) {
+            if (wrappedGoal.isRunning() && (goalContainsAnyFlags(wrappedGoal, this.goalTypes) || !wrappedGoal.canContinueToUse())) { // Paper - Perf: optimize goal types by removing streams
                 wrappedGoal.stop();
             }
         }
@@ -100,11 +101,14 @@ public class GoalSelector {
         profilerFiller.push("goalUpdate");
 
         for (WrappedGoal wrappedGoal2 : this.availableGoals) {
-            if (!wrappedGoal2.isRunning()
-                && !goalContainsAnyFlags(wrappedGoal2, this.disabledFlags)
-                && goalCanBeReplacedForAllFlags(wrappedGoal2, this.lockedFlags)
-                && wrappedGoal2.canUse()) {
-                for (Goal.Flag flag : wrappedGoal2.getFlags()) {
+            // Paper start
+            if (!wrappedGoal2.isRunning() && !goalContainsAnyFlags(wrappedGoal2, this.goalTypes) && goalCanBeReplacedForAllFlags(wrappedGoal2, this.lockedFlags) && wrappedGoal2.canUse()) {
+                long flagIterator = wrappedGoal2.getFlags().getBackingSet();
+                int wrappedGoalSize = wrappedGoal2.getFlags().size();
+                for (int i = 0; i < wrappedGoalSize; ++i) {
+                    final Goal.Flag flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
+                    flagIterator ^= ca.spottedleaf.concurrentutil.util.IntegerUtil.getTrailingBit(flagIterator);
+                    // Paper end
                     WrappedGoal wrappedGoal3 = this.lockedFlags.getOrDefault(flag, NO_GOAL);
                     wrappedGoal3.stop();
                     this.lockedFlags.put(flag, wrappedGoal2);
@@ -136,11 +140,11 @@ public class GoalSelector {
     }
 
     public void disableControlFlag(Goal.Flag control) {
-        this.disabledFlags.add(control);
+        this.goalTypes.addUnchecked(control); // Paper - remove streams from pathfindergoalselector
     }
 
     public void enableControlFlag(Goal.Flag control) {
-        this.disabledFlags.remove(control);
+        this.goalTypes.removeUnchecked(control); // Paper - remove streams from pathfindergoalselector
     }
 
     public void setControlFlag(Goal.Flag control, boolean enabled) {

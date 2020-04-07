@@ -69,8 +69,10 @@ public class WrappedGoal extends Goal {
     }
 
     @Override
-    public EnumSet<Goal.Flag> getFlags() {
+    // Paper start - remove streams from pathfindergoalselector
+    public ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> getFlags() {
         return this.goal.getFlags();
+        // Paper end - remove streams from pathfindergoalselector
     }
 
     public boolean isRunning() {
