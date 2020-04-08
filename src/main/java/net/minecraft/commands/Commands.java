@@ -450,6 +450,24 @@ public class Commands {
         if ( org.spigotmc.SpigotConfig.tabComplete < 0 ) return; // Spigot
         // CraftBukkit start
         // Register Vanilla commands into builtRoot as before
+        // Paper start - Perf: Async command map building
+        COMMAND_SENDING_POOL.execute(() -> {
+                this.sendAsync(player);
+        });
+    }
+
+    public static final java.util.concurrent.ThreadPoolExecutor COMMAND_SENDING_POOL = new java.util.concurrent.ThreadPoolExecutor(
+        0, 2, 60L, java.util.concurrent.TimeUnit.SECONDS,
+        new java.util.concurrent.LinkedBlockingQueue<>(),
+        new com.google.common.util.concurrent.ThreadFactoryBuilder()
+            .setNameFormat("Paper Async Command Builder Thread Pool - %1$d")
+            .setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
+            .build(),
+        new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy()
+    );
+
+    private void sendAsync(ServerPlayer player) {
+        // Paper end - Perf: Async command map building
         Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> map = Maps.newIdentityHashMap(); // Use identity to prevent aliasing issues
         RootCommandNode vanillaRoot = new RootCommandNode();
 
@@ -467,7 +485,14 @@ public class Commands {
         for (CommandNode node : rootcommandnode.getChildren()) {
             bukkit.add(node.getName());
         }
+        // Paper start - Perf: Async command map building
+        net.minecraft.server.MinecraftServer.getServer().execute(() -> {
+           runSync(player, bukkit, rootcommandnode);
+        });
+    }
 
+    private void runSync(ServerPlayer player, Collection<String> bukkit, RootCommandNode<SharedSuggestionProvider> rootcommandnode) {
+        // Paper end - Perf: Async command map building
         PlayerCommandSendEvent event = new PlayerCommandSendEvent(player.getBukkitEntity(), new LinkedHashSet<>(bukkit));
         event.getPlayer().getServer().getPluginManager().callEvent(event);
 

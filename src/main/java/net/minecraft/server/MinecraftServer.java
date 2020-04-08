@@ -931,6 +931,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         }
 
         MinecraftServer.LOGGER.info("Stopping server");
+        Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
         MinecraftTimings.stopServer(); // Paper
         // CraftBukkit start
         if (this.server != null) {
