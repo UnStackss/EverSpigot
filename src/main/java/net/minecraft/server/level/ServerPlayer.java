@@ -358,7 +358,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         this.server = server;
         this.stats = server.getPlayerList().getPlayerStats(this);
         this.advancements = server.getPlayerList().getPlayerAdvancements(this);
-        this.moveTo(this.adjustSpawnLocation(world, world.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F);
+        // this.moveTo(this.adjustSpawnLocation(world, world.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F); // Paper - Don't move existing players to world spawn
         this.updateOptions(clientOptions);
         this.object = null;
 
@@ -628,7 +628,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
                 position = Vec3.atCenterOf(world.getSharedSpawnPos());
             }
             this.setLevel(world);
-            this.setPos(position);
+            this.setPosRaw(position.x(), position.y(), position.z()); // Paper - don't register to chunks yet
         }
         this.gameMode.setLevel((ServerLevel) world);
     }
