@@ -78,6 +78,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
     private volatile boolean suspendFlushingOnServerThread = false;
     public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
     private static final long KEEPALIVE_LIMIT = Long.getLong("paper.playerconnection.keepalive", 30) * 1000; // Paper - provide property to set keepalive limit
+    protected static final ResourceLocation MINECRAFT_BRAND = ResourceLocation.withDefaultNamespace("brand"); // Paper - Brand support
 
     public ServerCommonPacketListenerImpl(MinecraftServer minecraftserver, Connection networkmanager, CommonListenerCookie commonlistenercookie, ServerPlayer player) { // CraftBukkit
         this.server = minecraftserver;
@@ -143,6 +144,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
     @Override
     public void handleCustomPayload(ServerboundCustomPayloadPacket packet) {
+        // Paper start - Brand support
+        if (packet.payload() instanceof net.minecraft.network.protocol.common.custom.BrandPayload brandPayload) {
+            this.player.clientBrandName = brandPayload.brand();
+        }
+        // Paper end - Brand support
         if (!(packet.payload() instanceof DiscardedPayload)) {
             return;
         }
@@ -174,6 +180,15 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
             try {
                 byte[] data = new byte[payload.readableBytes()];
                 payload.readBytes(data);
+                // Paper start - Brand support; Retain this incase upstream decides to 'break' the new mechanism in favour of backwards compat...
+                if (identifier.equals(MINECRAFT_BRAND)) {
+                    try {
+                        this.player.clientBrandName = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.copiedBuffer(data)).readUtf(256);
+                    } catch (StringIndexOutOfBoundsException ex) {
+                        this.player.clientBrandName = "illegal";
+                    }
+                }
+                // Paper end - Brand support
                 this.cserver.getMessenger().dispatchIncomingMessage(this.player.getBukkitEntity(), identifier.toString(), data);
             } catch (Exception ex) {
                 ServerGamePacketListenerImpl.LOGGER.error("Couldn\'t dispatch custom payload", ex);

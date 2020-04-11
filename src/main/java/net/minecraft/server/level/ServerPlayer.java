@@ -294,6 +294,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     // CraftBukkit end
     public boolean isRealPlayer; // Paper
     public com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
+    public @Nullable String clientBrandName = null; // Paper - Brand support
 
     public ServerPlayer(MinecraftServer server, ServerLevel world, GameProfile profile, ClientInformation clientOptions) {
         super(world, world.getSharedSpawnPos(), world.getSharedSpawnAngle(), profile);
