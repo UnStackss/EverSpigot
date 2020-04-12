@@ -307,7 +307,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     public java.util.Queue<Runnable> processQueue = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
     public int autosavePeriod;
     // Paper - don't store the vanilla dispatcher
-    private boolean forceTicks;
+    public boolean forceTicks; // Paper - Improved watchdog support
     // CraftBukkit end
     // Spigot start
     public static final int TPS = 20;
@@ -319,6 +319,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
     public static long currentTickLong = 0L; // Paper - track current tick as a long
     public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
+
+    public volatile Thread shutdownThread; // Paper
+    public volatile boolean abnormalExit = false; // Paper
 
     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
         AtomicReference<S> atomicreference = new AtomicReference();
@@ -489,6 +492,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         }
         */
         // Paper end
+        io.papermc.paper.util.LogManagerShutdownThread.unhook(); // Paper
         Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
         // CraftBukkit end
         this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
@@ -1005,6 +1009,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     // CraftBukkit start
     private boolean hasStopped = false;
     private boolean hasLoggedStop = false; // Paper - Debugging
+    public volatile boolean hasFullyShutdown = false; // Paper
     private final Object stopLock = new Object();
     public final boolean hasStopped() {
         synchronized (this.stopLock) {
@@ -1020,6 +1025,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.hasStopped = true;
         }
         if (!hasLoggedStop && isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper - Debugging
+        // Paper start - kill main thread, and kill it hard
+        shutdownThread = Thread.currentThread();
+        org.spigotmc.WatchdogThread.doStop(); // Paper
+        // Paper end
         // CraftBukkit end
         if (this.metricsRecorder.isRecording()) {
             this.cancelRecordingMetrics();
@@ -1093,7 +1102,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         }
         // Spigot end
 
+        // Paper end - Improved watchdog support; move final shutdown items here
         ca.spottedleaf.moonrise.patches.chunk_system.io.RegionFileIOThread.deinit(); // Paper - rewrite chunk system
+        // Paper start - move final shutdown items here
+        Util.shutdownExecutors();
+        try {
+            net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Use TerminalConsoleAppender
+        } catch (final Exception ignored) {
+        }
+        io.papermc.paper.log.CustomLogManager.forceReset(); // Paper - Reset loggers after shutdown
+        this.onServerExit();
+        // Paper end - Improved watchdog support
     }
 
     public String getLocalIp() {
@@ -1188,6 +1207,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
 
     protected void runServer() {
         try {
+            long serverStartTime = Util.getNanos(); // Paper
             if (!this.initServer()) {
                 throw new IllegalStateException("Failed to initialize server");
             }
@@ -1197,6 +1217,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.status = this.buildServerStatus();
 
             // Spigot start
+            // Paper start - Improved Watchdog Support
+            LOGGER.info("Running delayed init tasks");
+            this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // run all 1 tick delay tasks during init,
+            // this is going to be the first thing the tick process does anyways, so move done and run it after
+            // everything is init before watchdog tick.
+            // anything at 3+ won't be caught here but also will trip watchdog....
+            // tasks are default scheduled at -1 + delay, and first tick will tick at 1
+            final long actualDoneTimeMs = System.currentTimeMillis() - org.bukkit.craftbukkit.Main.BOOT_TIME.toEpochMilli(); // Paper - Add total time
+            LOGGER.info("Done ({})! For help, type \"help\"", String.format(java.util.Locale.ROOT, "%.3fs", actualDoneTimeMs / 1000.00D)); // Paper - Add total time
+            org.spigotmc.WatchdogThread.tick();
+            // Paper end - Improved Watchdog Support
             org.spigotmc.WatchdogThread.hasStarted = true; // Paper
             Arrays.fill( this.recentTps, 20 );
             // Paper start - further improve server tick loop
@@ -1292,6 +1323,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                 JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
             }
         } catch (Throwable throwable) {
+            // Paper start
+            if (throwable instanceof ThreadDeath) {
+                MinecraftServer.LOGGER.error("Main thread terminated by WatchDog due to hard crash", throwable);
+                return;
+            }
+            // Paper end
             MinecraftServer.LOGGER.error("Encountered an unexpected exception", throwable);
             CrashReport crashreport = MinecraftServer.constructOrExtractCrashReport(throwable);
 
@@ -1316,15 +1353,15 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                     this.services.profileCache().clearExecutor();
                 }
 
-                org.spigotmc.WatchdogThread.doStop(); // Spigot
+                //org.spigotmc.WatchdogThread.doStop(); // Spigot // Paper - move into stop
                 // CraftBukkit start - Restore terminal to original settings
                 try {
-                    net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Use TerminalConsoleAppender
+                    //net.minecrell.terminalconsole.TerminalConsoleAppender.close(); // Paper - Move into stop
                 } catch (Exception ignored) {
                 }
                 // CraftBukkit end
-                io.papermc.paper.log.CustomLogManager.forceReset(); // Paper - Reset loggers after shutdown
-                this.onServerExit();
+                //io.papermc.paper.log.CustomLogManager.forceReset(); // Paper - Reset loggers after shutdown
+                //this.onServerExit(); // Paper - moved into stop
             }
 
         }
@@ -1447,6 +1484,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
 
     @Override
     public TickTask wrapRunnable(Runnable runnable) {
+        // Paper start - anything that does try to post to main during watchdog crash, run on watchdog
+        if (this.hasStopped && Thread.currentThread().equals(shutdownThread)) {
+            runnable.run();
+            runnable = () -> {};
+        }
+        // Paper end
         return new TickTask(this.tickCount, runnable);
     }
 
@@ -2266,7 +2309,15 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.worldData.setDataConfiguration(worlddataconfiguration);
             this.resources.managers.updateRegistryTags();
             this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
-            this.getPlayerList().saveAll();
+            // Paper start
+            if (Thread.currentThread() != this.serverThread) {
+                return;
+            }
+            // this.getPlayerList().saveAll(); // Paper - we don't need to save everything, just advancements // TODO Move this to a different patch
+            for (ServerPlayer player : this.getPlayerList().getPlayers()) {
+                player.getAdvancements().save();
+            }
+            // Paper end
             this.getPlayerList().reloadResources();
             this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
             this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);

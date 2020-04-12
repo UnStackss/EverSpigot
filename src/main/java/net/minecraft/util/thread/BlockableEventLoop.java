@@ -150,6 +150,7 @@ public abstract class BlockableEventLoop<R extends Runnable> implements Profiler
         try {
             task.run();
         } catch (Exception var3) {
+            if (var3.getCause() instanceof ThreadDeath) throw var3; // Paper
             LOGGER.error(LogUtils.FATAL_MARKER, "Error executing task on {}", this.name(), var3);
         }
     }

@@ -1419,6 +1419,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
         try {
             tickConsumer.accept(entity);
         } catch (Throwable throwable) {
+            if (throwable instanceof ThreadDeath) throw throwable; // Paper
             // Paper start - Prevent block entity and entity crashes
             final String msg = String.format("Entity threw exception at %s:%s,%s,%s", entity.level().getWorld().getName(), entity.getX(), entity.getY(), entity.getZ());
             MinecraftServer.LOGGER.error(msg, throwable);

@@ -77,6 +77,7 @@ public class Main {
 
     @DontObfuscate
     public static void main(final OptionSet optionset) { // CraftBukkit - replaces main(String[] astring)
+        io.papermc.paper.util.LogManagerShutdownThread.hook(); // Paper
         SharedConstants.tryDetectVersion();
         /* CraftBukkit start - Replace everything
         OptionParser optionparser = new OptionParser();

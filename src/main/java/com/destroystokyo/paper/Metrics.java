@@ -92,7 +92,12 @@ public class Metrics {
      * Starts the Scheduler which submits our data every 30 minutes.
      */
     private void startSubmitting() {
-        final Runnable submitTask = this::submitData;
+        final Runnable submitTask = () -> {
+            if (MinecraftServer.getServer().hasStopped()) {
+                return;
+            }
+            submitData();
+        };
 
         // Many servers tend to restart at a fixed time at xx:00 which causes an uneven distribution of requests on the
         // bStats backend. To circumvent this problem, we introduce some randomness into the initial and second delay.

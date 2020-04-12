@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThread // Paper - rewrite chunk system
 {
 
+    public static final boolean DISABLE_WATCHDOG = Boolean.getBoolean("disable.watchdog"); // Paper - Improved watchdog support
     private static WatchdogThread instance;
     private long timeoutTime;
     private boolean restart;
@@ -39,6 +40,7 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
     {
         if ( WatchdogThread.instance == null )
         {
+            if (timeoutTime <= 0) timeoutTime = 300; // Paper
             WatchdogThread.instance = new WatchdogThread( timeoutTime * 1000L, restart );
             WatchdogThread.instance.start();
         } else
@@ -70,12 +72,13 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
             // Paper start
             Logger log = Bukkit.getServer().getLogger();
             long currentTime = WatchdogThread.monotonicMillis();
-            if ( this.lastTick != 0 && this.timeoutTime > 0 && currentTime > this.lastTick + this.earlyWarningEvery && !Boolean.getBoolean("disable.watchdog")) // Paper - Add property to disable
+            MinecraftServer server = MinecraftServer.getServer();
+            if ( this.lastTick != 0 && this.timeoutTime > 0 && WatchdogThread.hasStarted && (!server.isRunning() || (currentTime > this.lastTick + this.earlyWarningEvery && !DISABLE_WATCHDOG) )) // Paper - add property to disable
             {
-                boolean isLongTimeout = currentTime > lastTick + timeoutTime;
+                boolean isLongTimeout = currentTime > lastTick + timeoutTime || (!server.isRunning() && !server.hasStopped() && currentTime > lastTick + 1000);
                 // Don't spam early warning dumps
                 if ( !isLongTimeout && (earlyWarningEvery <= 0 || !hasStarted || currentTime < lastEarlyWarning + earlyWarningEvery || currentTime < lastTick + earlyWarningDelay)) continue;
-                if ( !isLongTimeout && MinecraftServer.getServer().hasStopped()) continue; // Don't spam early watchdog warnings during shutdown, we'll come back to this...
+                if ( !isLongTimeout && server.hasStopped()) continue; // Don't spam early watchdog warnings during shutdown, we'll come back to this...
                 lastEarlyWarning = currentTime;
                 if (isLongTimeout) {
                 // Paper end
@@ -136,9 +139,24 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
 
                 if ( isLongTimeout )
                 {
-                if ( this.restart && !MinecraftServer.getServer().hasStopped() )
+                if ( !server.hasStopped() )
                 {
-                    RestartCommand.restart();
+                    AsyncCatcher.enabled = false; // Disable async catcher incase it interferes with us
+                    server.forceTicks = true;
+                    if (restart) {
+                        RestartCommand.addShutdownHook( SpigotConfig.restartScript );
+                    }
+                    // try one last chance to safe shutdown on main incase it 'comes back'
+                    server.abnormalExit = true;
+                    server.safeShutdown(false, restart);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    if (!server.hasStopped()) {
+                        server.close();
+                    }
                 }
                 break;
                 } // Paper end
