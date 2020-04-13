@@ -710,7 +710,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             containerUpdateDelay = this.level().paperConfig().tickRates.containerUpdate;
         }
         // Paper end - Configurable container update tick rate
-        if (!this.level().isClientSide && !this.containerMenu.stillValid(this)) {
+        if (!this.level().isClientSide && this.containerMenu != this.inventoryMenu && (this.isImmobile() || !this.containerMenu.stillValid(this))) { // Paper - Prevent opening inventories when frozen
             this.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
             this.containerMenu = this.inventoryMenu;
         }
@@ -1634,7 +1634,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             } else {
                 // CraftBukkit start
                 this.containerMenu = container;
-                this.connection.send(new ClientboundOpenScreenPacket(container.containerId, container.getType(), container.getTitle()));
+                if (!this.isImmobile()) this.connection.send(new ClientboundOpenScreenPacket(container.containerId, container.getType(), container.getTitle())); // Paper - Prevent opening inventories when frozen
                 // CraftBukkit end
                 this.initMenu(container);
                 return OptionalInt.of(this.containerCounter);
