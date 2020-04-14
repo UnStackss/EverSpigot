@@ -1758,8 +1758,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                     int i = this.player.level().getMaxBuildHeight();
 
                     if (blockposition.getY() < i) {
-                        if (this.awaitingPositionFromClient == null && worldserver.mayInteract(this.player, blockposition)) {
-                            this.player.stopUsingItem(); // CraftBukkit - SPIGOT-4706
+                        if (this.awaitingPositionFromClient == null && (worldserver.mayInteract(this.player, blockposition) || (worldserver.paperConfig().spawn.allowUsingSignsInsideSpawnProtection && worldserver.getBlockState(blockposition).getBlock() instanceof net.minecraft.world.level.block.SignBlock))) { // Paper - Allow using signs inside spawn protection
                             InteractionResult enuminteractionresult = this.player.gameMode.useItemOn(this.player, worldserver, itemstack, enumhand, movingobjectpositionblock);
 
                             if (enuminteractionresult.consumesAction()) {
