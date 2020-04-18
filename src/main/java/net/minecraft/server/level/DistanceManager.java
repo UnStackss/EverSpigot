@@ -270,8 +270,8 @@ public abstract class DistanceManager {
         ObjectSet<ServerPlayer> objectset = (ObjectSet) this.playersPerChunk.get(i);
         if (objectset == null) return; // CraftBukkit - SPIGOT-6208
 
-        objectset.remove(player);
-        if (objectset.isEmpty()) {
+        if (objectset != null) objectset.remove(player); // Paper - some state corruption happens here, don't crash, clean up gracefully
+        if (objectset == null || objectset.isEmpty()) { // Paper
             this.playersPerChunk.remove(i);
             this.naturalSpawnChunkCounter.update(i, Integer.MAX_VALUE, false);
             this.playerTicketManager.update(i, Integer.MAX_VALUE, false);
