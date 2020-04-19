@@ -289,6 +289,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
     public double maxHealthCache;
     public boolean joining = true;
     public boolean sentListPacket = false;
+    public boolean supressTrackerForLogin = false; // Paper - Fire PlayerJoinEvent when Player is actually ready
     public String kickLeaveMessage = null; // SPIGOT-3034: Forward leave message to PlayerQuitEvent
     // CraftBukkit end
     public boolean isRealPlayer; // Paper

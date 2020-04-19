@@ -297,6 +297,12 @@ public abstract class PlayerList {
         this.playersByUUID.put(player.getUUID(), player);
         // this.broadcastAll(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(entityplayer))); // CraftBukkit - replaced with loop below
 
+        // Paper start - Fire PlayerJoinEvent when Player is actually ready; correctly register player BEFORE PlayerJoinEvent, so the entity is valid and doesn't require tick delay hacks
+        player.supressTrackerForLogin = true;
+        worldserver1.addNewPlayer(player);
+        this.server.getCustomBossEvents().onPlayerConnect(player); // see commented out section below worldserver.addPlayerJoin(entityplayer);
+        this.mountSavedVehicle(player, worldserver1, optional);
+        // Paper end - Fire PlayerJoinEvent when Player is actually ready
         // CraftBukkit start
         CraftPlayer bukkitPlayer = player.getBukkitEntity();
 
@@ -335,6 +341,8 @@ public abstract class PlayerList {
             player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(entityplayer1)));
         }
         player.sentListPacket = true;
+        player.supressTrackerForLogin = false; // Paper - Fire PlayerJoinEvent when Player is actually ready
+        ((ServerLevel)player.level()).getChunkSource().chunkMap.addEntity(player); // Paper - Fire PlayerJoinEvent when Player is actually ready; track entity now
         // CraftBukkit end
 
         player.refreshEntityData(player); // CraftBukkit - BungeeCord#2321, send complete data to self on spawn
@@ -350,6 +358,11 @@ public abstract class PlayerList {
         worldserver1 = player.serverLevel(); // CraftBukkit - Update in case join event changed it
         // CraftBukkit end
         this.sendActivePlayerEffects(player);
+        // Paper start - Fire PlayerJoinEvent when Player is actually ready; move vehicle into method so it can be called above - short circuit around that code
+        this.onPlayerJoinFinish(player, worldserver1, s1);
+    }
+    private void mountSavedVehicle(ServerPlayer player, ServerLevel worldserver1, Optional<CompoundTag> optional) {
+        // Paper end - Fire PlayerJoinEvent when Player is actually ready
         if (optional.isPresent() && ((CompoundTag) optional.get()).contains("RootVehicle", 10)) {
             CompoundTag nbttagcompound = ((CompoundTag) optional.get()).getCompound("RootVehicle");
             ServerLevel finalWorldServer = worldserver1; // CraftBukkit - decompile error
@@ -396,6 +409,10 @@ public abstract class PlayerList {
             }
         }
 
+        // Paper start - Fire PlayerJoinEvent when Player is actually ready
+    }
+    public void onPlayerJoinFinish(ServerPlayer player, ServerLevel worldserver1, String s1) {
+        // Paper end - Fire PlayerJoinEvent when Player is actually ready
         player.initInventoryMenu();
         // CraftBukkit - Moved from above, added world
         // Paper start - Configurable player collision; Add to collideRule team if needed
