@@ -486,6 +486,7 @@ public class Commands {
             bukkit.add(node.getName());
         }
         // Paper start - Perf: Async command map building
+        new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendCommandsEvent<CommandSourceStack>(player.getBukkitEntity(), (RootCommandNode) rootcommandnode, false).callEvent(); // Paper - Brigadier API
         net.minecraft.server.MinecraftServer.getServer().execute(() -> {
            runSync(player, bukkit, rootcommandnode);
         });
@@ -493,6 +494,7 @@ public class Commands {
 
     private void runSync(ServerPlayer player, Collection<String> bukkit, RootCommandNode<SharedSuggestionProvider> rootcommandnode) {
         // Paper end - Perf: Async command map building
+        new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendCommandsEvent<CommandSourceStack>(player.getBukkitEntity(), (RootCommandNode) rootcommandnode, true).callEvent(); // Paper - Brigadier API
         PlayerCommandSendEvent event = new PlayerCommandSendEvent(player.getBukkitEntity(), new LinkedHashSet<>(bukkit));
         event.getPlayer().getServer().getPluginManager().callEvent(event);
 
@@ -511,6 +513,11 @@ public class Commands {
 
         while (iterator.hasNext()) {
             CommandNode<CommandSourceStack> commandnode2 = (CommandNode) iterator.next();
+            // Paper start - Brigadier API
+            if (commandnode2.clientNode != null) {
+                commandnode2 = commandnode2.clientNode;
+            }
+            // Paper end - Brigadier API
             if ( !org.spigotmc.SpigotConfig.sendNamespaced && commandnode2.getName().contains( ":" ) ) continue; // Spigot
 
             if (commandnode2.canUse(source)) {

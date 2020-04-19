@@ -5,7 +5,7 @@ package com.mojang.brigadier.exceptions;
 
 import com.mojang.brigadier.Message;
 
-public class CommandSyntaxException extends Exception {
+public class CommandSyntaxException extends Exception implements net.kyori.adventure.util.ComponentMessageThrowable { // Paper - Brigadier API
     public static final int CONTEXT_AMOUNT = 10;
     public static boolean ENABLE_COMMAND_STACK_TRACES = true;
     public static BuiltInExceptionProvider BUILT_IN_EXCEPTIONS = new BuiltInExceptions();
@@ -73,4 +73,11 @@ public class CommandSyntaxException extends Exception {
     public int getCursor() {
         return cursor;
     }
+
+    // Paper start - Brigadier API
+    @Override
+    public @org.jetbrains.annotations.Nullable net.kyori.adventure.text.Component componentMessage() {
+        return io.papermc.paper.brigadier.PaperBrigadier.componentFromMessage(this.message);
+    }
+    // Paper end - Brigadier API
 }
