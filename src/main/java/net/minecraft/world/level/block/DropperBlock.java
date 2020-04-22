@@ -60,6 +60,7 @@ public class DropperBlock extends DispenserBlock {
             int i = tileentitydispenser.getRandomSlot(world.random);
 
             if (i < 0) {
+                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFailedDispenseEvent(world, pos)) // Paper - Add BlockFailedDispenseEvent
                 world.levelEvent(1001, pos, 0);
             } else {
                 ItemStack itemstack = tileentitydispenser.getItem(i);
