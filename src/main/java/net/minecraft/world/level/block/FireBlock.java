@@ -108,6 +108,7 @@ public class FireBlock extends BaseFireBlock {
     @Override
     protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
         // CraftBukkit start
+        if (!(world instanceof ServerLevel)) return this.canSurvive(state, world, pos) ? (BlockState) this.getStateWithAge(world, pos, (Integer) state.getValue(FireBlock.AGE)) : Blocks.AIR.defaultBlockState(); // Paper - don't fire events in world generation
         if (!this.canSurvive(state, world, pos)) {
             // Suppress during worldgen
             if (!(world instanceof Level)) {
@@ -123,7 +124,7 @@ public class FireBlock extends BaseFireBlock {
                 return blockState.getHandle();
             }
         }
-        return this.getStateWithAge(world, pos, (Integer) state.getValue(FireBlock.AGE));
+        return this.getStateWithAge(world, pos, (Integer) state.getValue(FireBlock.AGE)); // Paper - don't fire events in world generation; diff on change, see "don't fire events in world generation"
         // CraftBukkit end
     }
 
