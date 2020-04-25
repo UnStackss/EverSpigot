@@ -48,7 +48,7 @@ public class PhantomSpawner implements CustomSpawner {
                     while (iterator.hasNext()) {
                         ServerPlayer entityplayer = (ServerPlayer) iterator.next();
 
-                        if (!entityplayer.isSpectator()) {
+                        if (!entityplayer.isSpectator() && (!world.paperConfig().entities.behavior.phantomsDoNotSpawnOnCreativePlayers || !entityplayer.isCreative())) { // Paper - Add phantom creative and insomniac controls
                             BlockPos blockposition = entityplayer.blockPosition();
 
                             if (!world.dimensionType().hasSkyLight() || blockposition.getY() >= world.getSeaLevel() && world.canSeeSky(blockposition)) {

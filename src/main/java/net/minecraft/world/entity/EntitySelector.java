@@ -28,6 +28,7 @@ public final class EntitySelector {
         return !entity.isSpectator();
     };
     public static final Predicate<Entity> CAN_BE_COLLIDED_WITH = EntitySelector.NO_SPECTATORS.and(Entity::canBeCollidedWith);
+    public static Predicate<Player> IS_INSOMNIAC = (player) -> net.minecraft.util.Mth.clamp(((net.minecraft.server.level.ServerPlayer) player).getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.TIME_SINCE_REST)), 1, Integer.MAX_VALUE) >= 72000; // Paper - Add phantom creative and insomniac controls
 
     private EntitySelector() {}
     // Paper start - Affects Spawning API
