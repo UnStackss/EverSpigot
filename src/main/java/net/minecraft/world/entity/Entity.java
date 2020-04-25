@@ -2515,11 +2515,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         } else {
             // CraftBukkit start - Capture drops for death event
             if (this instanceof net.minecraft.world.entity.LivingEntity && !((net.minecraft.world.entity.LivingEntity) this).forceDrops) {
-                ((net.minecraft.world.entity.LivingEntity) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(stack));
+                ((net.minecraft.world.entity.LivingEntity) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(stack)); // Paper - mirror so we can destroy it later
                 return null;
             }
             // CraftBukkit end
-            ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY() + (double) yOffset, this.getZ(), stack);
+            ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY() + (double) yOffset, this.getZ(), stack.copy()); // Paper - copy so we can destroy original
+            stack.setCount(0); // Paper - destroy this item - if this ever leaks due to game bugs, ensure it doesn't dupe
 
             entityitem.setDefaultPickUpDelay();
             // CraftBukkit start
@@ -3335,6 +3336,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     public Entity changeDimension(DimensionTransition teleportTarget) {
         Level world = this.level();
 
+        // Paper start - Fix item duplication and teleport issues
+        if (!this.isAlive() || !this.valid) {
+            LOGGER.warn("Illegal Entity Teleport " + this + " to " + teleportTarget.newLevel() + ":" + teleportTarget.pos(), new Throwable());
+            return null;
+        }
+        // Paper end - Fix item duplication and teleport issues
         if (world instanceof ServerLevel worldserver) {
             if (!this.isRemoved()) {
                 // CraftBukkit start
@@ -3377,6 +3384,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
                 if (entity2 != null) {
                     if (this != entity2) {
+                        // Paper start - Fix item duplication and teleport issues
+                        if (this instanceof Leashable leashable) {
+                            leashable.dropLeash(true, true); // Paper drop lead
+                        }
+                        // Paper end - Fix item duplication and teleport issues
                         entity2.restoreFrom(this);
                         this.removeAfterChangingDimensions();
                         // CraftBukkit start - Forward the CraftEntity to the new entity
@@ -3452,7 +3464,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public boolean canChangeDimensions(Level from, Level to) {
-        return true;
+        return this.isAlive() && this.valid; // Paper - Fix item duplication and teleport issues
     }
 
     public float getBlockExplosionResistance(Explosion explosion, BlockGetter world, BlockPos pos, BlockState blockState, FluidState fluidState, float max) {

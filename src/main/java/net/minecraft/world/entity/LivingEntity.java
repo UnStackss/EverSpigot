@@ -1728,9 +1728,9 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 // Paper start
                 org.bukkit.event.entity.EntityDeathEvent deathEvent = this.dropAllDeathLoot(worldserver, damageSource);
                 if (deathEvent == null || !deathEvent.isCancelled()) {
-                    if (this.deathScore >= 0 && entityliving != null) {
-                        entityliving.awardKillScore(this, this.deathScore, damageSource);
-                    }
+                    // if (this.deathScore >= 0 && entityliving != null) { // Paper - Fix item duplication and teleport issues; moved to be run earlier in #dropAllDeathLoot before destroying the drop items in CraftEventFactory#callEntityDeathEvent
+                    //     entityliving.awardKillScore(this, this.deathScore, damageSource);
+                    // }
                     // Paper start - clear equipment if event is not cancelled
                     if (this instanceof Mob) {
                         for (EquipmentSlot slot : this.clearedEquipmentSlots) {
@@ -1822,8 +1822,13 @@ public abstract class LivingEntity extends Entity implements Attackable {
             this.dropCustomDeathLoot(world, damageSource, flag);
             this.clearEquipmentSlots = prev; // Paper
         }
-        // CraftBukkit start - Call death event
-        org.bukkit.event.entity.EntityDeathEvent deathEvent = CraftEventFactory.callEntityDeathEvent(this, damageSource, this.drops); // Paper
+        // CraftBukkit start - Call death event // Paper start - call advancement triggers with correct entity equipment
+        org.bukkit.event.entity.EntityDeathEvent deathEvent = CraftEventFactory.callEntityDeathEvent(this, damageSource, this.drops, () -> {
+            final LivingEntity entityliving = this.getKillCredit();
+            if (this.deathScore >= 0 && entityliving != null) {
+                entityliving.awardKillScore(this, this.deathScore, damageSource);
+            }
+        }); // Paper end
         this.postDeathDropItems(deathEvent); // Paper
         this.drops = new ArrayList<>();
         // CraftBukkit end
