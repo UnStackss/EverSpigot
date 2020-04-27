@@ -1519,10 +1519,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
         public void updatePlayer(ServerPlayer player) {
             org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
             if (player != this.entity) {
-                Vec3 vec3d = player.position().subtract(this.entity.position());
+                // Paper start - remove allocation of Vec3D here
+                // Vec3 vec3d = player.position().subtract(this.entity.position());
+                double vec3d_dx = player.getX() - this.entity.getX();
+                double vec3d_dz = player.getZ() - this.entity.getZ();
+                // Paper end - remove allocation of Vec3D here
                 int i = ChunkMap.this.getPlayerViewDistance(player);
                 double d0 = (double) Math.min(this.getEffectiveRange(), i * 16);
-                double d1 = vec3d.x * vec3d.x + vec3d.z * vec3d.z;
+                double d1 = vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz; // Paper
                 double d2 = d0 * d0;
                 // Paper start - Configurable entity tracking range by Y
                 boolean flag = d1 <= d2;

@@ -5,7 +5,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 public class VecDeltaCodec {
     private static final double TRUNCATION_STEPS = 4096.0;
-    private Vec3 base = Vec3.ZERO;
+    public Vec3 base = Vec3.ZERO; // Paper
 
     @VisibleForTesting
     static long encode(double value) {
