@@ -83,4 +83,11 @@ public class ClientboundLevelChunkWithLightPacket implements Packet<ClientGamePa
     public ClientboundLightUpdatePacketData getLightData() {
         return this.lightData;
     }
+
+    // Paper start - Handle oversized block entities in chunks
+    @Override
+    public java.util.List<Packet<?>> getExtraPackets() {
+        return this.chunkData.getExtraPackets();
+    }
+    // Paper end - Handle oversized block entities in chunks
 }
