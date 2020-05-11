@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
@@ -129,6 +130,22 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         return this.getHandle().sleepCounter;
     }
 
+    // Paper start - Potential bed api
+    @Override
+    public Location getPotentialBedLocation() {
+        ServerPlayer handle = (ServerPlayer) getHandle();
+        BlockPos bed = handle.getRespawnPosition();
+        if (bed == null) {
+            return null;
+        }
+
+        ServerLevel worldServer = handle.server.getLevel(handle.getRespawnDimension());
+        if (worldServer == null) {
+            return null;
+        }
+        return new Location(worldServer.getWorld(), bed.getX(), bed.getY(), bed.getZ());
+    }
+    // Paper end
     @Override
     public boolean sleep(Location location, boolean force) {
         Preconditions.checkArgument(location != null, "Location cannot be null");
