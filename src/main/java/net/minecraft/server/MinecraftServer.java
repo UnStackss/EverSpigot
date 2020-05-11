@@ -943,6 +943,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         // CraftBukkit start
         if (this.server != null) {
             this.server.disablePlugins();
+            this.server.waitForAsyncTasksShutdown(); // Paper - Wait for Async Tasks during shutdown
         }
         // CraftBukkit end
         if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.shutdown(); // Paper - Plugin remapping
