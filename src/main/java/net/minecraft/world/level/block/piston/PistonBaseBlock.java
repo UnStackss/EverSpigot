@@ -213,6 +213,12 @@ public class PistonBaseBlock extends DirectionalBlock {
     @Override
     protected boolean triggerEvent(BlockState state, Level world, BlockPos pos, int type, int data) {
         Direction enumdirection = (Direction) state.getValue(PistonBaseBlock.FACING);
+        // Paper start - Protect Bedrock and End Portal/Frames from being destroyed; prevent retracting when we're facing the wrong way (we were replaced before retraction could occur)
+        Direction directionQueuedAs = Direction.from3DDataValue(data & 7); // Paper - copied from below
+        if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits && enumdirection != directionQueuedAs) {
+            return false;
+        }
+        // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
         BlockState iblockdata1 = (BlockState) state.setValue(PistonBaseBlock.EXTENDED, true);
 
         if (!world.isClientSide) {
@@ -253,7 +259,7 @@ public class PistonBaseBlock extends DirectionalBlock {
             }
             // Paper end - Fix sticky pistons and BlockPistonRetractEvent
             world.setBlock(pos, iblockdata2, 20);
-            world.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(pos, iblockdata2, (BlockState) this.defaultBlockState().setValue(PistonBaseBlock.FACING, Direction.from3DDataValue(data & 7)), enumdirection, false, true));
+            world.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(pos, iblockdata2, (BlockState) this.defaultBlockState().setValue(PistonBaseBlock.FACING, Direction.from3DDataValue(data & 7)), enumdirection, false, true)); // Paper - Protect Bedrock and End Portal/Frames from being destroyed; diff on change
             world.blockUpdated(pos, iblockdata2.getBlock());
             iblockdata2.updateNeighbourShapes(world, pos, 2);
             if (this.isSticky) {
@@ -289,7 +295,14 @@ public class PistonBaseBlock extends DirectionalBlock {
                     }
                 }
             } else {
-                world.removeBlock(pos.relative(enumdirection), false);
+                // Paper start - Protect Bedrock and End Portal/Frames from being destroyed; fix headless pistons breaking blocks
+                BlockPos headPos = pos.relative(enumdirection);
+                if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits || world.getBlockState(headPos) == Blocks.PISTON_HEAD.defaultBlockState().setValue(FACING, enumdirection)) { // double check to make sure we're not a headless piston.
+                    world.removeBlock(headPos, false);
+                } else {
+                    ((ServerLevel) world).getChunkSource().blockChanged(headPos); // ... fix client desync
+                }
+                // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
             }
 
             world.playSound((Player) null, pos, SoundEvents.PISTON_CONTRACT, SoundSource.BLOCKS, 0.5F, world.random.nextFloat() * 0.15F + 0.6F);

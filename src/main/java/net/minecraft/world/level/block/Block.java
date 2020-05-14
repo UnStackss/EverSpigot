@@ -89,6 +89,19 @@ public class Block extends BlockBehaviour implements ItemLike {
     protected final StateDefinition<Block, BlockState> stateDefinition;
     private BlockState defaultBlockState;
     // Paper start
+    public final boolean isDestroyable() {
+        return io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits ||
+            this != Blocks.BARRIER &&
+            this != Blocks.BEDROCK &&
+            this != Blocks.END_PORTAL_FRAME &&
+            this != Blocks.END_PORTAL &&
+            this != Blocks.END_GATEWAY &&
+            this != Blocks.COMMAND_BLOCK &&
+            this != Blocks.REPEATING_COMMAND_BLOCK &&
+            this != Blocks.CHAIN_COMMAND_BLOCK &&
+            this != Blocks.STRUCTURE_BLOCK &&
+            this != Blocks.JIGSAW;
+    }
     public co.aikar.timings.Timing timing;
     public co.aikar.timings.Timing getTiming() {
         if (timing == null) {
