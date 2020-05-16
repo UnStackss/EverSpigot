@@ -141,7 +141,7 @@ public class CommandBlock extends BaseEntityBlock implements GameMasterBlock {
     protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
         BlockEntity tileentity = world.getBlockEntity(pos);
 
-        if (tileentity instanceof CommandBlockEntity && player.canUseGameMasterBlocks()) {
+        if (tileentity instanceof CommandBlockEntity && (player.canUseGameMasterBlocks() || (player.isCreative() && player.getBukkitEntity().hasPermission("minecraft.commandblock")))) { // Paper - command block permission
             player.openCommandBlock((CommandBlockEntity) tileentity);
             return InteractionResult.sidedSuccess(world.isClientSide);
         } else {

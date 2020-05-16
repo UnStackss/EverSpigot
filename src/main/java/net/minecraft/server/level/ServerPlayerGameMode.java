@@ -405,7 +405,7 @@ public class ServerPlayerGameMode {
             BlockEntity tileentity = this.level.getBlockEntity(pos);
             Block block = iblockdata.getBlock();
 
-            if (block instanceof GameMasterBlock && !this.player.canUseGameMasterBlocks()) {
+            if (block instanceof GameMasterBlock && !this.player.canUseGameMasterBlocks() && !(block instanceof net.minecraft.world.level.block.CommandBlock && (this.player.isCreative() && this.player.getBukkitEntity().hasPermission("minecraft.commandblock")))) { // Paper - command block permission
                 this.level.sendBlockUpdated(pos, iblockdata, iblockdata, 3);
                 return false;
             } else if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {

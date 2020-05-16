@@ -204,7 +204,7 @@ public abstract class BaseCommandBlock implements CommandSource {
     }
 
     public InteractionResult usedBy(Player player) {
-        if (!player.canUseGameMasterBlocks()) {
+        if (!player.canUseGameMasterBlocks() && (!player.isCreative() || !player.getBukkitEntity().hasPermission("minecraft.commandblock"))) { // Paper - command block permission
             return InteractionResult.PASS;
         } else {
             if (player.getCommandSenderWorld().isClientSide) {
