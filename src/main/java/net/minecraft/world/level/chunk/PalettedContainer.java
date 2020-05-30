@@ -30,14 +30,14 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
     public final IdMap<T> registry;
     private volatile PalettedContainer.Data<T> data;
     private final PalettedContainer.Strategy strategy;
-    private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer");
+    // private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer"); // Paper - unused
 
     public void acquire() {
-        this.threadingDetector.checkAndLock();
+        // this.threadingDetector.checkAndLock(); // Paper - disable this - use proper synchronization
     }
 
     public void release() {
-        this.threadingDetector.checkAndUnlock();
+        // this.threadingDetector.checkAndUnlock(); // Paper - disable this
     }
 
     public static <T> Codec<PalettedContainer<T>> codecRW(IdMap<T> idList, Codec<T> entryCodec, PalettedContainer.Strategy paletteProvider, T defaultValue) {
@@ -104,7 +104,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
     }
 
     @Override
-    public int onResize(int newBits, T object) {
+    public synchronized int onResize(int newBits, T object) { // Paper - synchronize
         PalettedContainer.Data<T> data = this.data;
         PalettedContainer.Data<T> data2 = this.createOrReuseData(data, newBits);
         data2.copyFrom(data.palette, data.storage);
@@ -129,7 +129,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
         return this.getAndSet(this.strategy.getIndex(x, y, z), value);
     }
 
-    private T getAndSet(int index, T value) {
+    private synchronized T getAndSet(int index, T value) { // Paper - synchronize
         int i = this.data.palette.idFor(value);
         int j = this.data.storage.getAndSet(index, i);
         return this.data.palette.valueFor(j);
@@ -145,7 +145,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
         }
     }
 
-    private void set(int index, T value) {
+    private synchronized void set(int index, T value) { // Paper - synchronize
         int i = this.data.palette.idFor(value);
         this.data.storage.set(index, i);
     }
@@ -168,7 +168,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
         intSet.forEach(id -> action.accept(palette.valueFor(id)));
     }
 
-    public void read(FriendlyByteBuf buf) {
+    public synchronized void read(FriendlyByteBuf buf) { // Paper - synchronize
         this.acquire();
 
         try {
@@ -183,7 +183,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
     }
 
     @Override
-    public void write(FriendlyByteBuf buf) {
+    public synchronized void write(FriendlyByteBuf buf) { // Paper - synchronize
         this.acquire();
 
         try {
@@ -231,7 +231,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
     }
 
     @Override
-    public PalettedContainerRO.PackedData<T> pack(IdMap<T> idList, PalettedContainer.Strategy paletteProvider) {
+    public synchronized PalettedContainerRO.PackedData<T> pack(IdMap<T> idList, PalettedContainer.Strategy paletteProvider) { // Paper - synchronize
         this.acquire();
 
         PalettedContainerRO.PackedData var12;
