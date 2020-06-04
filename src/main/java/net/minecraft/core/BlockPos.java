@@ -50,15 +50,16 @@ public class BlockPos extends Vec3i {
     };
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final BlockPos ZERO = new BlockPos(0, 0, 0);
-    private static final int PACKED_X_LENGTH = 1 + Mth.log2(Mth.smallestEncompassingPowerOfTwo(30000000));
-    private static final int PACKED_Z_LENGTH = PACKED_X_LENGTH;
-    public static final int PACKED_Y_LENGTH = 64 - PACKED_X_LENGTH - PACKED_Z_LENGTH;
-    private static final long PACKED_X_MASK = (1L << PACKED_X_LENGTH) - 1L;
-    private static final long PACKED_Y_MASK = (1L << PACKED_Y_LENGTH) - 1L;
-    private static final long PACKED_Z_MASK = (1L << PACKED_Z_LENGTH) - 1L;
-    private static final int Y_OFFSET = 0;
-    private static final int Z_OFFSET = PACKED_Y_LENGTH;
-    private static final int X_OFFSET = PACKED_Y_LENGTH + PACKED_Z_LENGTH;
+    // Paper start - Optimize Bit Operations by inlining
+    private static final int PACKED_X_LENGTH = 26;
+    private static final int PACKED_Z_LENGTH = 26;
+    public static final int PACKED_Y_LENGTH = 12;
+    private static final long PACKED_X_MASK = 67108863;
+    private static final long PACKED_Y_MASK = 4095;
+    private static final long PACKED_Z_MASK = 67108863;
+    private static final int Z_OFFSET = 12;
+    private static final int X_OFFSET = 38;
+    // Paper end - Optimize Bit Operations by inlining
 
     public BlockPos(int x, int y, int z) {
         super(x, y, z);
@@ -68,28 +69,29 @@ public class BlockPos extends Vec3i {
         this(pos.getX(), pos.getY(), pos.getZ());
     }
 
+    public static long getAdjacent(int baseX, int baseY, int baseZ, Direction enumdirection) { return asLong(baseX + enumdirection.getStepX(), baseY + enumdirection.getStepY(), baseZ + enumdirection.getStepZ()); } // Paper
     public static long offset(long value, Direction direction) {
         return offset(value, direction.getStepX(), direction.getStepY(), direction.getStepZ());
     }
 
     public static long offset(long value, int x, int y, int z) {
-        return asLong(getX(value) + x, getY(value) + y, getZ(value) + z);
+        return asLong((int) (value >> 38) + x, (int) ((value << 52) >> 52) + y, (int) ((value << 26) >> 38) + z); // Paper - simplify/inline
     }
 
     public static int getX(long packedPos) {
-        return (int)(packedPos << 64 - X_OFFSET - PACKED_X_LENGTH >> 64 - PACKED_X_LENGTH);
+        return (int) (packedPos >> 38); // Paper - simplify/inline
     }
 
     public static int getY(long packedPos) {
-        return (int)(packedPos << 64 - PACKED_Y_LENGTH >> 64 - PACKED_Y_LENGTH);
+        return (int) ((packedPos << 52) >> 52); // Paper - simplify/inline
     }
 
     public static int getZ(long packedPos) {
-        return (int)(packedPos << 64 - Z_OFFSET - PACKED_Z_LENGTH >> 64 - PACKED_Z_LENGTH);
+        return (int) ((packedPos << 26) >> 38);  // Paper - simplify/inline
     }
 
     public static BlockPos of(long packedPos) {
-        return new BlockPos(getX(packedPos), getY(packedPos), getZ(packedPos));
+        return new BlockPos((int) (packedPos >> 38), (int) ((packedPos << 52) >> 52), (int) ((packedPos << 26) >> 38)); // Paper - simplify/inline
     }
 
     public static BlockPos containing(double x, double y, double z) {
@@ -113,10 +115,7 @@ public class BlockPos extends Vec3i {
     }
 
     public static long asLong(int x, int y, int z) {
-        long l = 0L;
-        l |= ((long)x & PACKED_X_MASK) << X_OFFSET;
-        l |= ((long)y & PACKED_Y_MASK) << 0;
-        return l | ((long)z & PACKED_Z_MASK) << Z_OFFSET;
+        return (((long) x & (long) 67108863) << 38) | (((long) y & (long) 4095)) | (((long) z & (long) 67108863) << 12); // Paper - inline constants and simplify
     }
 
     public static long getFlatIndex(long y) {
