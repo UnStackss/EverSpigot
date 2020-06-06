@@ -124,7 +124,7 @@ public class MerchantOffer {
     }
 
     public void updateDemand() {
-        this.demand = this.demand + this.uses - (this.maxUses - this.uses);
+        this.demand = Math.max(0, this.demand + this.uses - (this.maxUses - this.uses)); // Paper - Fix MC-163962
     }
 
     public ItemStack assemble() {
