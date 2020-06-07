@@ -206,7 +206,7 @@ public class MapItem extends ComplexItem {
 
                 for (int n = 0; n < 128; n++) {
                     for (int o = 0; o < 128; o++) {
-                        Holder<Biome> holder = world.getBiome(mutableBlockPos.set((l + o) * i, 0, (m + n) * i));
+                        Holder<Biome> holder = world.getUncachedNoiseBiome((l + o) * i, 0, (m + n) * i); // Paper - Perf: Use seed based lookup for treasure maps
                         bls[n * 128 + o] = holder.is(BiomeTags.WATER_ON_MAP_OUTLINES);
                     }
                 }
