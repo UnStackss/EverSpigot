@@ -414,14 +414,26 @@ public class PistonBaseBlock extends DirectionalBlock {
             }
 
             for (j = list.size() - 1; j >= 0; --j) {
-                blockposition3 = (BlockPos) list.get(j);
-                iblockdata1 = world.getBlockState(blockposition3);
+                // Paper start - fix a variety of piston desync dupes
+                boolean allowDesync = io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPistonDuplication;
+                BlockPos oldPos = blockposition3 = (BlockPos) list.get(j);
+                iblockdata1 = allowDesync ? world.getBlockState(oldPos) : null;
+                // Paper end - fix a variety of piston desync dupes
                 blockposition3 = blockposition3.relative(enumdirection1);
                 map.remove(blockposition3);
                 BlockState iblockdata2 = (BlockState) Blocks.MOVING_PISTON.defaultBlockState().setValue(PistonBaseBlock.FACING, dir);
 
                 world.setBlock(blockposition3, iblockdata2, 68);
-                world.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockposition3, iblockdata2, (BlockState) list1.get(j), dir, retract, false));
+                // Paper start - fix a variety of piston desync dupes
+                if (!allowDesync) {
+                    iblockdata1 = world.getBlockState(oldPos);
+                    map.replace(oldPos, iblockdata1);
+                }
+                world.setBlockEntity(MovingPistonBlock.newMovingBlockEntity(blockposition3, iblockdata2, allowDesync ? list1.get(j) : iblockdata1, dir, retract, false));
+                if (!allowDesync) {
+                    world.setBlock(oldPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_MOVE_BY_PISTON | 1024); // set air to prevent later physics updates from seeing this block
+                }
+                // Paper end - fix a variety of piston desync dupes
                 aiblockdata[i++] = iblockdata1;
             }
 

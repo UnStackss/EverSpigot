@@ -297,7 +297,7 @@ public class PistonMovingBlockEntity extends BlockEntity {
                 if (world.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
                     BlockState blockState = Block.updateFromNeighbourShapes(blockEntity.movedState, world, pos);
                     if (blockState.isAir()) {
-                        world.setBlock(pos, blockEntity.movedState, 84);
+                        world.setBlock(pos, blockEntity.movedState, io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPistonDuplication ? 84 : (84 | Block.UPDATE_CLIENTS)); // Paper - fix a variety of piston desync dupes; force notify (flag 2), it's possible the set type by the piston block (which doesn't notify) set this block to air
                         Block.updateOrDestroy(blockEntity.movedState, blockState, world, pos, 3);
                     } else {
                         if (blockState.hasProperty(BlockStateProperties.WATERLOGGED) && blockState.getValue(BlockStateProperties.WATERLOGGED)) {
