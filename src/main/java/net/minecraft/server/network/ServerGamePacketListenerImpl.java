@@ -1770,7 +1770,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                                 MutableComponent ichatmutablecomponent = Component.translatable("build.tooHigh", i - 1).withStyle(ChatFormatting.RED);
 
                                 this.player.sendSystemMessage(ichatmutablecomponent, true);
-                            } else if (enuminteractionresult.shouldSwing()) {
+                            } else if (enuminteractionresult.shouldSwing() && !this.player.gameMode.interactResult) { // Paper - Call interact event
                                 this.player.swing(enumhand, true);
                             }
                         }
@@ -2391,13 +2391,20 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         double d3 = Math.max(this.player.blockInteractionRange(), this.player.entityInteractionRange());
         // SPIGOT-5607: Only call interact event if no block or entity is being clicked. Use bukkit ray trace method, because it handles blocks and entities at the same time
         // SPIGOT-7429: Make sure to call PlayerInteractEvent for spectators and non-pickable entities
-        org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), d3, org.bukkit.FluidCollisionMode.NEVER, false, 0.1, entity -> {
+        org.bukkit.util.RayTraceResult result = this.player.level().getWorld().rayTrace(origin, origin.getDirection(), d3, org.bukkit.FluidCollisionMode.NEVER, false, 0.0, entity -> { // Paper - Call interact event; change raySize from 0.1 to 0.0
             Entity handle = ((CraftEntity) entity).getHandle();
             return entity != this.player.getBukkitEntity() && this.player.getBukkitEntity().canSee(entity) && !handle.isSpectator() && handle.isPickable() && !handle.isPassengerOfSameVehicle(this.player);
         });
         if (result == null) {
             CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_AIR, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
-        }
+        } else { // Paper start - Call interact event
+            GameType gameType = this.player.gameMode.getGameModeForPlayer();
+            if (gameType == GameType.ADVENTURE && result.getHitBlock() != null) {
+                CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, ((org.bukkit.craftbukkit.block.CraftBlock) result.getHitBlock()).getPosition(), org.bukkit.craftbukkit.block.CraftBlock.blockFaceToNotch(result.getHitBlockFace()), this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
+            } else if (gameType != GameType.CREATIVE && result.getHitEntity() != null && origin.toVector().distanceSquared(result.getHitPosition()) > this.player.entityInteractionRange() * this.player.entityInteractionRange()) {
+                CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_AIR, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
+            }
+        } // Paper end - Call interact event
 
         // Arm swing animation
         PlayerAnimationEvent event = new PlayerAnimationEvent(this.getCraftPlayer(), (packet.getHand() == InteractionHand.MAIN_HAND) ? PlayerAnimationType.ARM_SWING : PlayerAnimationType.OFF_ARM_SWING);
