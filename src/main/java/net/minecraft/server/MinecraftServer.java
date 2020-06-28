@@ -837,7 +837,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         worldloadlistener.stop();
         // CraftBukkit start
         // this.updateMobSpawningFlags();
-        worldserver.setSpawnSettings(this.isSpawningMonsters(), this.isSpawningAnimals());
+        worldserver.setSpawnSettings(worldserver.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && ((DedicatedServer) this).settings.getProperties().spawnMonsters, this.isSpawningAnimals()); // Paper - per level difficulty (from setDifficulty(ServerLevel, Difficulty, boolean))
 
         this.forceTicks = false;
         // CraftBukkit end
@@ -1848,11 +1848,14 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         }
     }
 
-    public void setDifficulty(Difficulty difficulty, boolean forceUpdate) {
-        if (forceUpdate || !this.worldData.isDifficultyLocked()) {
-            this.worldData.setDifficulty(this.worldData.isHardcore() ? Difficulty.HARD : difficulty);
-            this.updateMobSpawningFlags();
-            this.getPlayerList().getPlayers().forEach(this::sendDifficultyUpdate);
+    // Paper start - per level difficulty
+    public void setDifficulty(ServerLevel level, Difficulty difficulty, boolean forceUpdate) {
+        PrimaryLevelData worldData = level.serverLevelData;
+        if (forceUpdate || !worldData.isDifficultyLocked()) {
+            worldData.setDifficulty(worldData.isHardcore() ? Difficulty.HARD : difficulty);
+            level.setSpawnSettings(worldData.getDifficulty() != Difficulty.PEACEFUL && ((DedicatedServer) this).settings.getProperties().spawnMonsters, this.isSpawningAnimals());
+            // this.getPlayerList().getPlayers().forEach(this::sendDifficultyUpdate);
+            // Paper end - per level difficulty
         }
     }
 
@@ -1866,7 +1869,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         while (iterator.hasNext()) {
             ServerLevel worldserver = (ServerLevel) iterator.next();
 
-            worldserver.setSpawnSettings(this.isSpawningMonsters(), this.isSpawningAnimals());
+            worldserver.setSpawnSettings(worldserver.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && ((DedicatedServer) this).settings.getProperties().spawnMonsters, this.isSpawningAnimals()); // Paper - per level difficulty (from setDifficulty(ServerLevel, Difficulty, boolean))
         }
 
     }

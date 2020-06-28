@@ -3259,7 +3259,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     public void handleChangeDifficulty(ServerboundChangeDifficultyPacket packet) {
         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
         if (this.player.hasPermissions(2) || this.isSingleplayerOwner()) {
-            this.server.setDifficulty(packet.getDifficulty(), false);
+            // this.server.setDifficulty(packet.getDifficulty(), false); // Paper - per level difficulty; don't allow clients to change this
         }
     }
 
