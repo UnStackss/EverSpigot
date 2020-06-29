@@ -232,6 +232,12 @@ public class CompoundTag implements Tag {
     }
 
     public void putUUID(String key, UUID value) {
+        // Paper start - Support old UUID format
+        if (this.contains(key + "Most", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC) && this.contains(key + "Least", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC)) {
+            this.tags.remove(key + "Most");
+            this.tags.remove(key + "Least");
+        }
+        // Paper end - Support old UUID format
         this.tags.put(key, NbtUtils.createUUID(value));
     }
 
@@ -240,10 +246,20 @@ public class CompoundTag implements Tag {
      * You must use {@link #hasUUID(String)} before or else it <b>will</b> throw an NPE.
      */
     public UUID getUUID(String key) {
+        // Paper start - Support old UUID format
+        if (!contains(key, 11) && this.contains(key + "Most", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC) && this.contains(key + "Least", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC)) {
+            return new UUID(this.getLong(key + "Most"), this.getLong(key + "Least"));
+        }
+        // Paper end - Support old UUID format
         return NbtUtils.loadUUID(this.get(key));
     }
 
     public boolean hasUUID(String key) {
+        // Paper start - Support old UUID format
+        if (this.contains(key + "Most", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC) && this.contains(key + "Least", net.minecraft.nbt.Tag.TAG_ANY_NUMERIC)) {
+            return true;
+        }
+        // Paper end - Support old UUID format
         Tag tag = this.get(key);
         return tag != null && tag.getType() == IntArrayTag.TYPE && ((IntArrayTag)tag).getAsIntArray().length == 4;
     }

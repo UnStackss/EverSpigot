@@ -20,9 +20,10 @@ public record ResolvableProfile(Optional<String> name, Optional<UUID> id, Proper
         instance -> instance.group(
                     ExtraCodecs.PLAYER_NAME.optionalFieldOf("name").forGetter(ResolvableProfile::name),
                     UUIDUtil.CODEC.optionalFieldOf("id").forGetter(ResolvableProfile::id),
+                    UUIDUtil.STRING_CODEC.lenientOptionalFieldOf("Id").forGetter($ -> Optional.empty()), // Paper
                     ExtraCodecs.PROPERTY_MAP.optionalFieldOf("properties", new PropertyMap()).forGetter(ResolvableProfile::properties)
                 )
-                .apply(instance, ResolvableProfile::new)
+                .apply(instance, (s, uuid, uuid2, propertyMap) -> new ResolvableProfile(s, uuid2.or(() -> uuid), propertyMap)) // Paper
     );
     public static final Codec<ResolvableProfile> CODEC = Codec.withAlternative(
         FULL_CODEC, ExtraCodecs.PLAYER_NAME, name -> new ResolvableProfile(Optional.of(name), Optional.empty(), new PropertyMap())
