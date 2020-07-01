@@ -57,7 +57,7 @@ public class GateBehavior<E extends LivingEntity> implements BehaviorControl<E> 
         if (this.hasRequiredMemories(entity)) {
             this.status = Behavior.Status.RUNNING;
             this.orderPolicy.apply(this.behaviors);
-            this.runningPolicy.apply(this.behaviors.stream(), world, entity, time);
+            this.runningPolicy.apply(this.behaviors, world, entity, time); // Paper - Perf: Remove streams from hot code
             return true;
         } else {
             return false;
@@ -66,7 +66,13 @@ public class GateBehavior<E extends LivingEntity> implements BehaviorControl<E> 
 
     @Override
     public final void tickOrStop(ServerLevel world, E entity, long time) {
-        this.behaviors.stream().filter(task -> task.getStatus() == Behavior.Status.RUNNING).forEach(task -> task.tickOrStop(world, entity, time));
+        // Paper start - Perf: Remove streams from hot code
+        for (final BehaviorControl<? super E> task : this.behaviors) {
+            if (task.getStatus() == Behavior.Status.RUNNING) {
+                task.tickOrStop(world, entity, time);
+            }
+        }
+        // Paper end - Perf: Remove streams from hot code
         if (this.behaviors.stream().noneMatch(task -> task.getStatus() == Behavior.Status.RUNNING)) {
             this.doStop(world, entity, time);
         }
@@ -75,8 +81,16 @@ public class GateBehavior<E extends LivingEntity> implements BehaviorControl<E> 
     @Override
     public final void doStop(ServerLevel world, E entity, long time) {
         this.status = Behavior.Status.STOPPED;
-        this.behaviors.stream().filter(task -> task.getStatus() == Behavior.Status.RUNNING).forEach(task -> task.doStop(world, entity, time));
-        this.exitErasedMemories.forEach(entity.getBrain()::eraseMemory);
+        // Paper start - Perf: Remove streams from hot code
+        for (final BehaviorControl<? super E> task : this.behaviors) {
+            if (task.getStatus() == Behavior.Status.RUNNING) {
+                task.doStop(world, entity, time);
+            }
+        }
+        for (final MemoryModuleType<?> exitErasedMemory : this.exitErasedMemories) {
+            entity.getBrain().eraseMemory(exitErasedMemory);
+        }
+        // Paper end - Perf: Remove streams from hot code
     }
 
     @Override
@@ -111,18 +125,30 @@ public class GateBehavior<E extends LivingEntity> implements BehaviorControl<E> 
 
     public static enum RunningPolicy {
         RUN_ONE {
+            // Paper start - Perf: Remove streams from hot code
             @Override
-            public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> tasks, ServerLevel world, E entity, long time) {
-                tasks.filter(task -> task.getStatus() == Behavior.Status.STOPPED).filter(task -> task.tryStart(world, entity, time)).findFirst();
+            public <E extends LivingEntity> void apply(ShufflingList<BehaviorControl<? super E>> tasks, ServerLevel world, E entity, long time) {
+                for (final BehaviorControl<? super E> task : tasks) {
+                    if (task.getStatus() == Behavior.Status.STOPPED && task.tryStart(world, entity, time)) {
+                        break;
+                    }
+                }
+                // Paper end - Perf: Remove streams from hot code
             }
         },
         TRY_ALL {
+            // Paper start - Perf: Remove streams from hot code
             @Override
-            public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> tasks, ServerLevel world, E entity, long time) {
-                tasks.filter(task -> task.getStatus() == Behavior.Status.STOPPED).forEach(task -> task.tryStart(world, entity, time));
+            public <E extends LivingEntity> void apply(ShufflingList<BehaviorControl<? super E>> tasks, ServerLevel world, E entity, long time) {
+                for (final BehaviorControl<? super E> task : tasks) {
+                    if (task.getStatus() == Behavior.Status.STOPPED) {
+                        task.tryStart(world, entity, time);
+                    }
+                }
+                // Paper end - Perf: Remove streams from hot code
             }
         };
 
-        public abstract <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> tasks, ServerLevel world, E entity, long time);
+        public abstract <E extends LivingEntity> void apply(ShufflingList<BehaviorControl<? super E>> tasks, ServerLevel world, E entity, long time); // Paper - Perf: Remove streams from hot code
     }
 }
