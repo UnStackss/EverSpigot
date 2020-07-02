@@ -768,6 +768,14 @@ public abstract class AbstractContainerMenu {
     public abstract boolean stillValid(Player player);
 
     protected boolean moveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean fromLast) {
+        // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
+        return this.moveItemStackTo(stack, startIndex, endIndex, fromLast, false);
+    }
+    protected boolean moveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean fromLast, boolean isCheck) {
+        if (isCheck) {
+            stack = stack.copy();
+        }
+        // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
         boolean flag1 = false;
         int k = startIndex;
 
@@ -791,6 +799,11 @@ public abstract class AbstractContainerMenu {
 
                 slot = (Slot) this.slots.get(k);
                 itemstack1 = slot.getItem();
+                // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent; clone if only a check
+                if (isCheck) {
+                    itemstack1 = itemstack1.copy();
+                }
+                // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
                 if (!itemstack1.isEmpty() && ItemStack.isSameItemSameComponents(stack, itemstack1)) {
                     l = itemstack1.getCount() + stack.getCount();
                     int i1 = slot.getMaxStackSize(itemstack1);
@@ -798,12 +811,16 @@ public abstract class AbstractContainerMenu {
                     if (l <= i1) {
                         stack.setCount(0);
                         itemstack1.setCount(l);
+                        if (!isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                         slot.setChanged();
+                        } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                         flag1 = true;
                     } else if (itemstack1.getCount() < i1) {
                         stack.shrink(i1 - itemstack1.getCount());
                         itemstack1.setCount(i1);
+                        if (!isCheck) { // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                         slot.setChanged();
+                        } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                         flag1 = true;
                     }
                 }
@@ -834,10 +851,21 @@ public abstract class AbstractContainerMenu {
 
                 slot = (Slot) this.slots.get(k);
                 itemstack1 = slot.getItem();
+                // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
+                if (isCheck) {
+                    itemstack1 = itemstack1.copy();
+                }
+                // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
                 if (itemstack1.isEmpty() && slot.mayPlace(stack)) {
                     l = slot.getMaxStackSize(stack);
+                    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
+                    if (isCheck) {
+                        stack.shrink(Math.min(stack.getCount(), l));
+                    } else {
+                    // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
                     slot.setByPlayer(stack.split(Math.min(stack.getCount(), l)));
                     slot.setChanged();
+                    } // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
                     flag1 = true;
                     break;
                 }

@@ -143,11 +143,24 @@ public abstract class AbstractVillager extends AgeableMob implements InventoryCa
     @Override
     public void overrideXp(int experience) {}
 
+    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
+    @Override
+    public void processTrade(MerchantOffer recipe, @Nullable io.papermc.paper.event.player.PlayerPurchaseEvent event) { // The MerchantRecipe passed in here is the one set by the PlayerPurchaseEvent
+        if (event == null || event.willIncreaseTradeUses()) {
+            recipe.increaseUses();
+        }
+        if (event == null || event.isRewardingExp()) {
+            this.rewardTradeXp(recipe);
+        }
+        this.notifyTrade(recipe);
+    }
+    // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
+
     @Override
     public void notifyTrade(MerchantOffer offer) {
-        offer.increaseUses();
+        // offer.increaseUses(); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
         this.ambientSoundTime = -this.getAmbientSoundInterval();
-        this.rewardTradeXp(offer);
+        // this.rewardTradeXp(offer); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
         if (this.tradingPlayer instanceof ServerPlayer) {
             CriteriaTriggers.TRADE.trigger((ServerPlayer) this.tradingPlayer, this, offer.getResult());
         }
