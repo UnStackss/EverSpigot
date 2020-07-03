@@ -110,6 +110,7 @@ public abstract class ItemCombinerMenu extends AbstractContainerMenu {
         super.slotsChanged(inventory);
         if (inventory == this.inputSlots) {
             this.createResult();
+            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, this instanceof SmithingMenu ? 3 : 2); // Paper - Add PrepareResultEvent
         }
 
     }

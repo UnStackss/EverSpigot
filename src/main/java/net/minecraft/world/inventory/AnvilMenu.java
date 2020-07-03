@@ -327,6 +327,7 @@ public class AnvilMenu extends ItemCombinerMenu {
             }
 
             this.createResult();
+            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
             return true;
         } else {
             return false;

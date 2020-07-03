@@ -249,7 +249,8 @@ public class LoomMenu extends AbstractContainerMenu {
                 this.resultSlot.set(ItemStack.EMPTY);
             }
 
-            this.broadcastChanges();
+            // this.broadcastChanges(); // Paper - Add PrepareResultEvent; done below
+            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, 3); // Paper - Add PrepareResultEvent
         } else {
             this.resultSlot.set(ItemStack.EMPTY);
             this.selectablePatterns = List.of();

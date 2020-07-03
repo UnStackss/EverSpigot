@@ -152,6 +152,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
             this.setupResultSlot(itemstack, itemstack1, itemstack2);
         }
 
+        org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
     }
 
     private void setupResultSlot(ItemStack map, ItemStack item, ItemStack oldResult) {
