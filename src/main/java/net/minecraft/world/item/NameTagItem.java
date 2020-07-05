@@ -18,8 +18,13 @@ public class NameTagItem extends Item {
         Component component = stack.get(DataComponents.CUSTOM_NAME);
         if (component != null && !(entity instanceof Player)) {
             if (!user.level().isClientSide && entity.isAlive()) {
-                entity.setCustomName(component);
-                if (entity instanceof Mob mob) {
+                // Paper start - Add PlayerNameEntityEvent
+                io.papermc.paper.event.player.PlayerNameEntityEvent event = new io.papermc.paper.event.player.PlayerNameEntityEvent(((net.minecraft.server.level.ServerPlayer) user).getBukkitEntity(), entity.getBukkitLivingEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(stack.getHoverName()), true);
+                if (!event.callEvent()) return InteractionResult.PASS;
+                LivingEntity newEntity = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getEntity()).getHandle();
+                newEntity.setCustomName(event.getName() != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(event.getName()) : null);
+                if (event.isPersistent() && newEntity instanceof Mob mob) {
+                // Paper end - Add PlayerNameEntityEvent
                     mob.setPersistenceRequired();
                 }
 
