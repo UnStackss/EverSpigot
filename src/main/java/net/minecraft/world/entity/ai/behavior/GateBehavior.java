@@ -18,7 +18,7 @@ public class GateBehavior<E extends LivingEntity> implements BehaviorControl<E> 
     private final Set<MemoryModuleType<?>> exitErasedMemories;
     private final GateBehavior.OrderPolicy orderPolicy;
     private final GateBehavior.RunningPolicy runningPolicy;
-    private final ShufflingList<BehaviorControl<? super E>> behaviors = new ShufflingList<>();
+    private final ShufflingList<BehaviorControl<? super E>> behaviors = new ShufflingList<>(false); // Paper - Fix Concurrency issue in ShufflingList during worldgen
     private Behavior.Status status = Behavior.Status.STOPPED;
 
     public GateBehavior(
