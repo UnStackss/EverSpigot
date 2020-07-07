@@ -570,9 +570,9 @@ public class BlockPos extends Vec3i {
         }
 
         public BlockPos.MutableBlockPos set(int x, int y, int z) {
-            this.setX(x);
-            this.setY(y);
-            this.setZ(z);
+            this.x = x; // Paper - Perf: Manually inline methods in BlockPosition
+            this.y = y; // Paper - Perf: Manually inline methods in BlockPosition
+            this.z = z; // Paper - Perf: Manually inline methods in BlockPosition
             return this;
         }
 
@@ -637,19 +637,19 @@ public class BlockPos extends Vec3i {
 
         @Override
         public BlockPos.MutableBlockPos setX(int i) {
-            super.setX(i);
+            this.x = i; // Paper - Perf: Manually inline methods in BlockPosition
             return this;
         }
 
         @Override
         public BlockPos.MutableBlockPos setY(int i) {
-            super.setY(i);
+            this.y = i; // Paper - Perf: Manually inline methods in BlockPosition
             return this;
         }
 
         @Override
         public BlockPos.MutableBlockPos setZ(int i) {
-            super.setZ(i);
+            this.z = i; // Paper - Perf: Manually inline methods in BlockPosition
             return this;
         }
 

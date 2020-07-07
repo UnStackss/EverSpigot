@@ -16,9 +16,9 @@ public class Vec3i implements Comparable<Vec3i> {
             vec -> IntStream.of(vec.getX(), vec.getY(), vec.getZ())
         );
     public static final Vec3i ZERO = new Vec3i(0, 0, 0);
-    private int x;
-    private int y;
-    private int z;
+    protected int x; // Paper - Perf: Manually inline methods in BlockPosition; protected
+    protected int y; // Paper - Perf: Manually inline methods in BlockPosition; protected
+    protected int z; // Paper - Perf: Manually inline methods in BlockPosition; protected
 
     public static Codec<Vec3i> offsetCodec(int maxAbsValue) {
         return CODEC.validate(
