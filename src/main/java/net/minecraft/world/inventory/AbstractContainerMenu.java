@@ -89,7 +89,12 @@ public abstract class AbstractContainerMenu {
     }
     private Component title;
     public final Component getTitle() {
-        Preconditions.checkState(this.title != null, "Title not set");
+        // Paper start - return chat component with empty text instead of throwing error
+        // Preconditions.checkState(this.title != null, "Title not set");
+        if (this.title == null){
+            return Component.literal("");
+        }
+        // Paper end - return chat component with empty text instead of throwing error
         return this.title;
     }
     public final void setTitle(Component title) {
