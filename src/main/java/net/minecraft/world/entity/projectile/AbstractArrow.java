@@ -238,6 +238,7 @@ public abstract class AbstractArrow extends Projectile {
 
             ++this.inGroundTime;
         } else {
+            if (tickCount > 200) this.tickDespawn(); // Paper - tick despawnCounter regardless after 10 seconds
             this.inGroundTime = 0;
             Vec3 vec3d2 = this.position();
 
