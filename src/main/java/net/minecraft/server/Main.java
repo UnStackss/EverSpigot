@@ -167,8 +167,17 @@ public class Main {
                 return;
             }
 
-            File file = (File) optionset.valueOf("universe"); // CraftBukkit
-            Services services = Services.create(new com.destroystokyo.paper.profile.PaperAuthenticationService(Proxy.NO_PROXY), file, optionset); // Paper - pass OptionSet to load paper config files; override authentication service
+            // Paper start - fix SPIGOT-5824
+            File file;
+            File userCacheFile = new File(Services.USERID_CACHE_FILE);
+            if (optionset.has("universe")) {
+                file = (File) optionset.valueOf("universe"); // CraftBukkit
+                userCacheFile = new File(file, Services.USERID_CACHE_FILE);
+            } else {
+                file = new File(bukkitConfiguration.getString("settings.world-container", "."));
+            }
+            // Paper end - fix SPIGOT-5824
+            Services services = Services.create(new com.destroystokyo.paper.profile.PaperAuthenticationService(Proxy.NO_PROXY), file, userCacheFile, optionset); // Paper - pass OptionSet to load paper config files; override authentication service; fix world-container
             // CraftBukkit start
             String s = (String) Optional.ofNullable((String) optionset.valueOf("world")).orElse(dedicatedserversettings.getProperties().levelName);
             LevelStorageSource convertable = LevelStorageSource.createDefault(file.toPath());

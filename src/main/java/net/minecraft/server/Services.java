@@ -24,12 +24,12 @@ public record Services(
         return java.util.Objects.requireNonNull(this.paperConfigurations);
     }
     // Paper end - add paper configuration files
-    private static final String USERID_CACHE_FILE = "usercache.json";
+    public static final String USERID_CACHE_FILE = "usercache.json"; // Paper - private -> public
 
-    public static Services create(YggdrasilAuthenticationService authenticationService, File rootDirectory, joptsimple.OptionSet optionSet) throws Exception { // Paper - add optionset to load paper config files
+    public static Services create(YggdrasilAuthenticationService authenticationService, File rootDirectory, File userCacheFile, joptsimple.OptionSet optionSet) throws Exception { // Paper - add optionset to load paper config files; add userCacheFile parameter
         MinecraftSessionService minecraftSessionService = authenticationService.createMinecraftSessionService();
         GameProfileRepository gameProfileRepository = authenticationService.createProfileRepository();
-        GameProfileCache gameProfileCache = new GameProfileCache(gameProfileRepository, new File(rootDirectory, "usercache.json"));
+        GameProfileCache gameProfileCache = new GameProfileCache(gameProfileRepository, userCacheFile); // Paper - use specified user cache file
         // Paper start - load paper config files from cli options
         final java.nio.file.Path legacyConfigPath = ((File) optionSet.valueOf("paper-settings")).toPath();
         final java.nio.file.Path configDirPath = ((File) optionSet.valueOf("paper-settings-directory")).toPath();
