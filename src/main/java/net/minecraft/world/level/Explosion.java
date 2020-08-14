@@ -207,6 +207,15 @@ public class Explosion {
 
                             if (f > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, blockposition, iblockdata, f)) {
                                 set.add(blockposition);
+                                // Paper start - prevent headless pistons from forming
+                                if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && iblockdata.getBlock() == Blocks.MOVING_PISTON) {
+                                    net.minecraft.world.level.block.entity.BlockEntity extension = this.level.getBlockEntity(blockposition);
+                                    if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
+                                       net.minecraft.core.Direction direction = iblockdata.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
+                                       set.add(blockposition.relative(direction.getOpposite()));
+                                    }
+                                }
+                                // Paper end - prevent headless pistons from forming
                             }
 
                             d4 += d0 * 0.30000001192092896D;
