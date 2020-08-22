@@ -1666,7 +1666,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
         float f1 = this.levelData.getSpawnAngle();
 
         if (!blockposition1.equals(pos) || f1 != angle) {
+            org.bukkit.Location prevSpawnLoc = this.getWorld().getSpawnLocation(); // Paper - Call SpawnChangeEvent
             this.levelData.setSpawn(pos, angle);
+            new org.bukkit.event.world.SpawnChangeEvent(this.getWorld(), prevSpawnLoc).callEvent(); // Paper - Call SpawnChangeEvent
             this.getServer().getPlayerList().broadcastAll(new ClientboundSetDefaultSpawnPositionPacket(pos, angle));
         }
 
