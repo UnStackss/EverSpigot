@@ -14,6 +14,7 @@ import org.bukkit.event.block.BlockDispenseEvent;
 // CraftBukkit end
 
 public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
+    private Direction enumdirection; // Paper - cache facing direction
 
     private static final int DEFAULT_ACCURACY = 6;
 
@@ -29,15 +30,16 @@ public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
 
     @Override
     public final ItemStack dispense(BlockSource pointer, ItemStack stack) {
+        enumdirection = pointer.state().getValue(DispenserBlock.FACING); // Paper - cache facing direction
         ItemStack itemstack1 = this.execute(pointer, stack);
 
         this.playSound(pointer);
-        this.playAnimation(pointer, (Direction) pointer.state().getValue(DispenserBlock.FACING));
+        this.playAnimation(pointer, enumdirection); // Paper - cache facing direction
         return itemstack1;
     }
 
     protected ItemStack execute(BlockSource pointer, ItemStack stack) {
-        Direction enumdirection = (Direction) pointer.state().getValue(DispenserBlock.FACING);
+        // Paper - cached enum direction
         Position iposition = DispenserBlock.getDispensePosition(pointer);
         ItemStack itemstack1 = stack.split(1);
 
