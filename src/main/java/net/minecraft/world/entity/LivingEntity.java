@@ -3573,7 +3573,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 return;
             }
             // Paper end - don't run getEntities if we're not going to use its result
-            List<Entity> list = this.level().getEntities((Entity) this, this.getBoundingBox(), EntitySelector.pushableBy(this));
+            List<Entity> list = this.level().getEntities((Entity) this, this.getBoundingBox(), EntitySelector.pushable(this, this.level().paperConfig().collisions.fixClimbingBypassingCrammingRule)); // Paper - Climbing should not bypass cramming gamerule
 
             if (!list.isEmpty()) {
                 // Paper - don't run getEntities if we're not going to use its result; moved up
@@ -3765,9 +3765,16 @@ public abstract class LivingEntity extends Entity implements Attackable {
         return !this.isRemoved() && this.collides; // CraftBukkit
     }
 
+    // Paper start - Climbing should not bypass cramming gamerule
     @Override
     public boolean isPushable() {
-        return this.isAlive() && !this.isSpectator() && !this.onClimbable() && this.collides; // CraftBukkit
+        return this.isCollidable(this.level().paperConfig().collisions.fixClimbingBypassingCrammingRule);
+    }
+
+    @Override
+    public boolean isCollidable(boolean ignoreClimbing) {
+        return this.isAlive() && !this.isSpectator() && (ignoreClimbing || !this.onClimbable()) && this.collides; // CraftBukkit
+        // Paper end - Climbing should not bypass cramming gamerule
     }
 
     // CraftBukkit start - collidable API

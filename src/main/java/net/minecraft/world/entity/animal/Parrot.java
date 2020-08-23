@@ -362,8 +362,8 @@ public class Parrot extends ShoulderRidingEntity implements VariantHolder<Parrot
     }
 
     @Override
-    public boolean isPushable() {
-        return super.isPushable(); // CraftBukkit - collidable API
+    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
+        return super.isCollidable(ignoreClimbing); // CraftBukkit - collidable API // Paper - Climbing should not bypass cramming gamerule
     }
 
     @Override

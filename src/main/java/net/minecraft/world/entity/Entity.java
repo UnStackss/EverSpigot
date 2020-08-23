@@ -2079,6 +2079,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public boolean isPushable() {
+        // Paper start - Climbing should not bypass cramming gamerule
+        return isCollidable(false);
+    }
+
+    public boolean isCollidable(boolean ignoreClimbing) {
+        // Paper end - Climbing should not bypass cramming gamerule
         return false;
     }
 

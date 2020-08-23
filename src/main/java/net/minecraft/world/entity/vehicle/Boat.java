@@ -154,7 +154,7 @@ public class Boat extends VehicleEntity implements Leashable, VariantHolder<Boat
     }
 
     @Override
-    public boolean isPushable() {
+    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
         return true;
     }
 
