@@ -78,6 +78,7 @@ public class DragonStrafePlayerPhase extends AbstractDragonPhaseInstance {
                         }
 
                         DragonFireball dragonFireball = new DragonFireball(this.dragon.level(), this.dragon, vec34.normalize());
+                        dragonFireball.preserveMotion = true; // Paper - Fix Entity Teleportation and cancel velocity if teleported
                         dragonFireball.moveTo(o, p, q, 0.0F, 0.0F);
                         if (new com.destroystokyo.paper.event.entity.EnderDragonShootFireballEvent((org.bukkit.entity.EnderDragon) dragon.getBukkitEntity(), (org.bukkit.entity.DragonFireball) dragonFireball.getBukkitEntity()).callEvent()) // Paper - EnderDragon Events
                         this.dragon.level().addFreshEntity(dragonFireball);

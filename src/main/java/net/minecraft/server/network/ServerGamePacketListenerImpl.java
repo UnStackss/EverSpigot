@@ -679,7 +679,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                 return;
             }
 
-            this.player.absMoveTo(this.awaitingPositionFromClient.x, this.awaitingPositionFromClient.y, this.awaitingPositionFromClient.z, this.player.getYRot(), this.player.getXRot());
+            this.player.moveTo(this.awaitingPositionFromClient.x, this.awaitingPositionFromClient.y, this.awaitingPositionFromClient.z, this.player.getYRot(), this.player.getXRot()); // Paper - Fix Entity Teleportation and cancel velocity if teleported
             this.lastGoodX = this.awaitingPositionFromClient.x;
             this.lastGoodY = this.awaitingPositionFromClient.y;
             this.lastGoodZ = this.awaitingPositionFromClient.z;
@@ -1594,7 +1594,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         // CraftBukkit end
 
         this.awaitingTeleportTime = this.tickCount;
-        this.player.absMoveTo(d0, d1, d2, f, f1);
+        this.player.moveTo(d0, d1, d2, f, f1); // Paper - Fix Entity Teleportation and cancel velocity if teleported
         this.player.connection.send(new ClientboundPlayerPositionPacket(d0 - d3, d1 - d4, d2 - d5, f - f2, f1 - f3, set, this.awaitingTeleport));
     }
 

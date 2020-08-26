@@ -171,6 +171,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     // CraftBukkit start
     private static final int CURRENT_LEVEL = 2;
+    public boolean preserveMotion = true; // Paper - Fix Entity Teleportation and cancel velocity if teleported; keep initial motion on first setPositionRotation
     static boolean isLevelAtLeast(CompoundTag tag, int level) {
         return tag.contains("Bukkit.updateLevel") && tag.getInt("Bukkit.updateLevel") >= level;
     }
@@ -1873,6 +1874,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public void moveTo(double x, double y, double z, float yaw, float pitch) {
+        // Paper start - Fix Entity Teleportation and cancel velocity if teleported
+        if (!preserveMotion) {
+            this.deltaMovement = Vec3.ZERO;
+        } else {
+            this.preserveMotion = false;
+        }
+        // Paper end - Fix Entity Teleportation and cancel velocity if teleported
         this.setPosRaw(x, y, z);
         this.setYRot(yaw);
         this.setXRot(pitch);
