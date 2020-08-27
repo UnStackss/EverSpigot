@@ -127,7 +127,7 @@ public class BeehiveBlock extends BaseEntityBlock {
     }
 
     public static void dropHoneycomb(Level world, BlockPos pos) {
-        popResource(world, pos, new ItemStack(Items.HONEYCOMB, 3));
+        popResource(world, pos, new ItemStack(Items.HONEYCOMB, 3)); // Paper - Add PlayerShearBlockEvent; conflict on change, item needs to be set below
     }
 
     @Override
@@ -139,8 +139,19 @@ public class BeehiveBlock extends BaseEntityBlock {
             Item item = stack.getItem();
 
             if (stack.is(Items.SHEARS)) {
+                // Paper start - Add PlayerShearBlockEvent
+                io.papermc.paper.event.block.PlayerShearBlockEvent event = new io.papermc.paper.event.block.PlayerShearBlockEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(stack), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand), new java.util.ArrayList<>());
+                event.getDrops().add(org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(new ItemStack(Items.HONEYCOMB, 3)));
+                if (!event.callEvent()) {
+                    return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+                }
+                // Paper end
                 world.playSound(player, player.getX(), player.getY(), player.getZ(), SoundEvents.BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
-                BeehiveBlock.dropHoneycomb(world, pos);
+                // Paper start - Add PlayerShearBlockEvent
+                for (org.bukkit.inventory.ItemStack itemDrop : event.getDrops()) {
+                    popResource(world, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(itemDrop));
+                }
+                // Paper end - Add PlayerShearBlockEvent
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
                 flag = true;
                 world.gameEvent((Entity) player, (Holder) GameEvent.SHEAR, pos);
