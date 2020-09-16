@@ -1228,6 +1228,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
             // WorldServer.LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityTypes.getKey(entity.getType())); // CraftBukkit
             return false;
         } else {
+            // Paper start - capture all item additions to the world
+            if (captureDrops != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) {
+                captureDrops.add((net.minecraft.world.entity.item.ItemEntity) entity);
+                return true;
+            }
+            // Paper end - capture all item additions to the world
             // SPIGOT-6415: Don't call spawn event when reason is null. For example when an entity teleports to a new world.
             if (spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, entity, spawnReason)) {
                 return false;
