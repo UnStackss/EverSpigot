@@ -352,7 +352,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
 
     @Override
     public final LevelChunk getChunk(int chunkX, int chunkZ) { // Paper - final to help inline
-        return (LevelChunk) this.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true); // Paper - avoid a method jump
+        // Paper start - Perf: make sure loaded chunks get the inlined variant of this function
+        net.minecraft.server.level.ServerChunkCache cps = ((ServerLevel)this).getChunkSource();
+        LevelChunk ifLoaded = cps.getChunkAtIfLoadedImmediately(chunkX, chunkZ);
+        if (ifLoaded != null) {
+            return ifLoaded;
+        }
+        return (LevelChunk) cps.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true); // Paper - avoid a method jump
+        // Paper end - Perf: make sure loaded chunks get the inlined variant of this function
     }
 
     // Paper start - if loaded
