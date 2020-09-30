@@ -211,7 +211,7 @@ public class EndDragonFight {
             this.dragonUUID = entityenderdragon.getUUID();
             EndDragonFight.LOGGER.info("Found that there's a dragon still alive ({})", entityenderdragon);
             this.dragonKilled = false;
-            if (!flag) {
+            if (!flag && this.level.paperConfig().entities.behavior.shouldRemoveDragon) { // Paper - Toggle for removing existing dragon
                 EndDragonFight.LOGGER.info("But we didn't have a portal, let's remove it.");
                 entityenderdragon.discard(null); // CraftBukkit - add Bukkit remove cause
                 this.dragonUUID = null;
