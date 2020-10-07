@@ -89,7 +89,14 @@ public class CrossbowItem extends ProjectileWeaponItem {
     public void releaseUsing(ItemStack stack, Level world, LivingEntity user, int remainingUseTicks) {
         int i = this.getUseDuration(stack, user) - remainingUseTicks;
         float f = getPowerForTime(i, stack, user);
-        if (f >= 1.0F && !isCharged(stack) && tryLoadProjectiles(user, stack)) {
+        // Paper start - Add EntityLoadCrossbowEvent
+        if (f >= 1.0F && !isCharged(stack)) {
+            final io.papermc.paper.event.entity.EntityLoadCrossbowEvent event = new io.papermc.paper.event.entity.EntityLoadCrossbowEvent(user.getBukkitLivingEntity(), stack.asBukkitMirror(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(user.getUsedItemHand()));
+            if (!event.callEvent() || !tryLoadProjectiles(user, stack, event.shouldConsumeItem()) || !event.shouldConsumeItem()) {
+                if (user instanceof ServerPlayer player) player.containerMenu.sendAllDataToRemote();
+                return;
+            }
+            // Paper end - Add EntityLoadCrossbowEvent
             CrossbowItem.ChargingSounds chargingSounds = this.getChargingSounds(stack);
             chargingSounds.end()
                 .ifPresent(
@@ -107,8 +114,14 @@ public class CrossbowItem extends ProjectileWeaponItem {
         }
     }
 
-    private static boolean tryLoadProjectiles(LivingEntity shooter, ItemStack crossbow) {
-        List<ItemStack> list = draw(crossbow, shooter.getProjectile(crossbow), shooter);
+    @io.papermc.paper.annotation.DoNotUse // Paper - Add EntityLoadCrossbowEvent
+    private static boolean tryLoadProjectiles(LivingEntity shooter, ItemStack crossbow)  {
+        // Paper start - Add EntityLoadCrossbowEvent
+        return CrossbowItem.tryLoadProjectiles(shooter, crossbow, true);
+    }
+    private static boolean tryLoadProjectiles(LivingEntity shooter, ItemStack crossbow, boolean consume) {
+        List<ItemStack> list = draw(crossbow, shooter.getProjectile(crossbow), shooter, consume);
+        // Paper end - Add EntityLoadCrossbowEvent
         if (!list.isEmpty()) {
             crossbow.set(DataComponents.CHARGED_PROJECTILES, ChargedProjectiles.of(list));
             return true;

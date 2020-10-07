@@ -114,6 +114,11 @@ public abstract class ProjectileWeaponItem extends Item {
     }
 
     protected static List<ItemStack> draw(ItemStack stack, ItemStack projectileStack, LivingEntity shooter) {
+        // Paper start
+        return draw(stack, projectileStack, shooter, true);
+    }
+    protected static List<ItemStack> draw(ItemStack stack, ItemStack projectileStack, LivingEntity shooter, boolean consume) {
+        // Paper end
         if (projectileStack.isEmpty()) {
             return List.of();
         } else {
@@ -133,7 +138,7 @@ public abstract class ProjectileWeaponItem extends Item {
             ItemStack itemstack2 = projectileStack.copy();
 
             for (int k = 0; k < j; ++k) {
-                ItemStack itemstack3 = ProjectileWeaponItem.useAmmo(stack, k == 0 ? projectileStack : itemstack2, shooter, k > 0);
+                ItemStack itemstack3 = ProjectileWeaponItem.useAmmo(stack, k == 0 ? projectileStack : itemstack2, shooter, k > 0 || !consume); // Paper
 
                 if (!itemstack3.isEmpty()) {
                     list.add(itemstack3);
