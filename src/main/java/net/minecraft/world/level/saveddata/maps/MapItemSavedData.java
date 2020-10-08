@@ -21,6 +21,8 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NumericTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -121,7 +123,26 @@ public class MapItemSavedData extends SavedData {
     }
 
     public static MapItemSavedData load(CompoundTag nbt, HolderLookup.Provider registryLookup) {
-        DataResult<ResourceKey<Level>> dataresult = DimensionType.parseLegacy(new Dynamic(NbtOps.INSTANCE, nbt.get("dimension"))); // CraftBukkit - decompile error
+        // Paper start - fix "Not a string" spam
+        Tag dimension = nbt.get("dimension");
+        if (dimension instanceof NumericTag && ((NumericTag) dimension).getAsInt() >= CraftWorld.CUSTOM_DIMENSION_OFFSET) {
+            long least = nbt.getLong("UUIDLeast");
+            long most = nbt.getLong("UUIDMost");
+
+            if (least != 0L && most != 0L) {
+                UUID uuid = new UUID(most, least);
+                CraftWorld world = (CraftWorld) Bukkit.getWorld(uuid);
+                if (world != null) {
+                    dimension = StringTag.valueOf("minecraft:" + world.getName().toLowerCase(java.util.Locale.ENGLISH));
+                } else {
+                    dimension = StringTag.valueOf("bukkit:_invalidworld_");
+                }
+            } else {
+                dimension = StringTag.valueOf("bukkit:_invalidworld_");
+            }
+        }
+        DataResult<ResourceKey<Level>> dataresult = DimensionType.parseLegacy(new Dynamic(NbtOps.INSTANCE, dimension)); // CraftBukkit - decompile error
+        // Paper end - fix "Not a string" spam
         Logger logger = MapItemSavedData.LOGGER;
 
         Objects.requireNonNull(logger);
