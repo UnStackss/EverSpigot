@@ -63,6 +63,11 @@ public class BellBlockEntity extends BlockEntity {
 
         if (blockEntity.ticks >= 50) {
             blockEntity.shaking = false;
+            // Paper start - Fix bell block entity memory leak
+            if (!blockEntity.resonating) {
+                blockEntity.nearbyEntities.clear();
+            }
+            // Paper end - Fix bell block entity memory leak
             blockEntity.ticks = 0;
         }
 
@@ -76,6 +81,7 @@ public class BellBlockEntity extends BlockEntity {
                 ++blockEntity.resonationTicks;
             } else {
                 bellEffect.run(world, pos, blockEntity.nearbyEntities);
+                blockEntity.nearbyEntities.clear(); // Paper - Fix bell block entity memory leak
                 blockEntity.resonating = false;
             }
         }
@@ -125,6 +131,7 @@ public class BellBlockEntity extends BlockEntity {
             }
         }
 
+        this.nearbyEntities.removeIf(e -> !e.isAlive()); // Paper - Fix bell block entity memory leak
     }
 
     private static boolean areRaidersNearby(BlockPos pos, List<LivingEntity> hearingEntities) {
