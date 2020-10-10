@@ -69,6 +69,8 @@ public class SpawnEggItem extends Item {
             EntityType entitytypes;
 
             if (tileentity instanceof Spawner) {
+                if (world.paperConfig().entities.spawning.disableMobSpawnerSpawnEggTransformation) return InteractionResult.FAIL; // Paper - Allow disabling mob spawner spawn egg transformation
+
                 Spawner spawner = (Spawner) tileentity;
 
                 entitytypes = this.getType(itemstack);
