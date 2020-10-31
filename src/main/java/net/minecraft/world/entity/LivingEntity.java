@@ -3774,7 +3774,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
             Vec3 vec3d1 = new Vec3(entity.getX(), entity.getEyeY(), entity.getZ());
 
             // Paper - diff on change - used in CraftLivingEntity#hasLineOfSight(Location) and CraftWorld#lineOfSightExists
-            return vec3d1.distanceToSqr(vec3d) > 128.0D * 128.0D ? false : this.level().clip(new ClipContext(vec3d, vec3d1, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)).getType() == HitResult.Type.MISS; // Paper - Perf: Use distance squared
+            return vec3d1.distanceToSqr(vec3d) > 128.0D * 128.0D ? false : this.level().clipDirect(vec3d, vec3d1, net.minecraft.world.phys.shapes.CollisionContext.of(this)) == HitResult.Type.MISS; // Paper - Perf: Use distance squared & strip raytracing
         }
     }
 

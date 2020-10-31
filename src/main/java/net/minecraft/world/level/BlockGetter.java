@@ -68,6 +68,18 @@ public interface BlockGetter extends LevelHeightAccessor {
         });
     }
 
+    // Paper start - Broken down variant of the method below, used by Level#clipDirect
+    @Nullable
+    default BlockHitResult.Type clipDirect(Vec3 start, Vec3 end, BlockPos pos, BlockState state, net.minecraft.world.phys.shapes.CollisionContext collisionContext) {
+        if (state.isAir()) {
+            return null;
+        }
+
+        final VoxelShape voxelshape = ClipContext.Block.COLLIDER.get(state, this, pos, collisionContext);
+        final BlockHitResult hitResult = this.clipWithInteractionOverride(start, end, pos, voxelshape, state);
+        return hitResult == null ? null : hitResult.getType();
+    }
+    // Paper end
     // CraftBukkit start - moved block handling into separate method for use by Block#rayTrace
     default BlockHitResult clip(ClipContext raytrace1, BlockPos blockposition) {
         // Paper start - Add predicate for blocks when raytracing
