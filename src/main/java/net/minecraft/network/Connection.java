@@ -167,8 +167,10 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
 
             this.handlingFault = true;
             if (this.channel.isOpen()) {
+                net.minecraft.server.level.ServerPlayer player = this.getPlayer(); // Paper - Add API for quit reason
                 if (throwable instanceof TimeoutException) {
                     Connection.LOGGER.debug("Timeout", throwable);
+                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.TIMED_OUT; // Paper - Add API for quit reason
                     this.disconnect((Component) Component.translatable("disconnect.timeout"));
                 } else {
                     MutableComponent ichatmutablecomponent = Component.translatable("disconnect.genericReason", "Internal Exception: " + String.valueOf(throwable));
@@ -181,6 +183,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
                         disconnectiondetails = new DisconnectionDetails(ichatmutablecomponent);
                     }
 
+                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.ERRONEOUS_STATE; // Paper - Add API for quit reason
                     if (flag) {
                         Connection.LOGGER.debug("Failed to sent packet", throwable);
                         if (this.getSending() == PacketFlow.CLIENTBOUND) {

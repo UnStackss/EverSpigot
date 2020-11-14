@@ -371,6 +371,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
     private void disconnect0(DisconnectionDetails disconnectiondetails) {
         // CraftBukkit end
+        this.player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.KICKED; // Paper - Add API for quit reason
         this.connection.send(new ClientboundDisconnectPacket(disconnectiondetails.reason()), PacketSendListener.thenRun(() -> {
             this.connection.disconnect(disconnectiondetails);
         }));
