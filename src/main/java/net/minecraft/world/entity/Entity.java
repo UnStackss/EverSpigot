@@ -1936,6 +1936,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     public void push(Entity entity) {
         if (!this.isPassengerOfSameVehicle(entity)) {
             if (!entity.noPhysics && !this.noPhysics) {
+                if (this.level.paperConfig().collisions.onlyPlayersCollide && !(entity instanceof ServerPlayer || this instanceof ServerPlayer)) return; // Paper - Collision option for requiring a player participant
                 double d0 = entity.getX() - this.getX();
                 double d1 = entity.getZ() - this.getZ();
                 double d2 = Mth.absMax(d0, d1);

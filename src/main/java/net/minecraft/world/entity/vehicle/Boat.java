@@ -204,6 +204,7 @@ public class Boat extends VehicleEntity implements Leashable, VariantHolder<Boat
 
     @Override
     public void push(Entity entity) {
+        if (!this.level().paperConfig().collisions.allowVehicleCollisions && this.level().paperConfig().collisions.onlyPlayersCollide && !(entity instanceof Player)) return; // Paper - Collision option for requiring a player participant
         if (entity instanceof Boat) {
             if (entity.getBoundingBox().minY < this.getBoundingBox().maxY) {
                 // CraftBukkit start
