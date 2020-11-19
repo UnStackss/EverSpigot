@@ -649,9 +649,20 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
         final Spliterator<? extends Tag> spliterator = entityNbtList.spliterator();
 
         return StreamSupport.stream(new Spliterator<Entity>() {
+            final java.util.Map<EntityType<?>, Integer> loadedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
             public boolean tryAdvance(Consumer<? super Entity> consumer) {
                 return spliterator.tryAdvance((nbtbase) -> {
                     EntityType.loadEntityRecursive((CompoundTag) nbtbase, world, (entity) -> {
+                        // Paper start - Entity load/save limit per chunk
+                        final EntityType<?> entityType = entity.getType();
+                        final int saveLimit = world.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
+                        if (saveLimit > -1) {
+                            if (this.loadedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
+                                return null;
+                            }
+                            this.loadedEntityCounts.merge(entityType, 1, Integer::sum);
+                        }
+                        // Paper end - Entity load/save limit per chunk
                         consumer.accept(entity);
                         return entity;
                     });
