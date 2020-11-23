@@ -64,6 +64,7 @@ public class LecternMenu extends AbstractContainerMenu {
     @Override
     public boolean clickMenuButton(net.minecraft.world.entity.player.Player player, int id) {
         int j;
+        io.papermc.paper.event.player.PlayerLecternPageChangeEvent playerLecternPageChangeEvent; CraftInventoryLectern bukkitView; // Paper - Add PlayerLecternPageChangeEvent
 
         if (id >= 100) {
             j = id - 100;
@@ -73,11 +74,25 @@ public class LecternMenu extends AbstractContainerMenu {
             switch (id) {
                 case 1:
                     j = this.lecternData.get(0);
-                    this.setData(0, j - 1);
+                    // Paper start - Add PlayerLecternPageChangeEvent
+                    bukkitView = (CraftInventoryLectern) getBukkitView().getTopInventory();
+                    playerLecternPageChangeEvent = new io.papermc.paper.event.player.PlayerLecternPageChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), bukkitView.getHolder(), bukkitView.getBook(), io.papermc.paper.event.player.PlayerLecternPageChangeEvent.PageChangeDirection.LEFT, j, j - 1);
+                    if (!playerLecternPageChangeEvent.callEvent()) {
+                        return false;
+                    }
+                    this.setData(0, playerLecternPageChangeEvent.getNewPage());
+                    // Paper end - Add PlayerLecternPageChangeEvent
                     return true;
                 case 2:
                     j = this.lecternData.get(0);
-                    this.setData(0, j + 1);
+                    // Paper start - Add PlayerLecternPageChangeEvent
+                    bukkitView = (CraftInventoryLectern) getBukkitView().getTopInventory();
+                    playerLecternPageChangeEvent = new io.papermc.paper.event.player.PlayerLecternPageChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), bukkitView.getHolder(), bukkitView.getBook(), io.papermc.paper.event.player.PlayerLecternPageChangeEvent.PageChangeDirection.RIGHT, j, j + 1);
+                    if (!playerLecternPageChangeEvent.callEvent()) {
+                        return false;
+                    }
+                    this.setData(0, playerLecternPageChangeEvent.getNewPage());
+                    // Paper end - Add PlayerLecternPageChangeEvent
                     return true;
                 case 3:
                     if (!player.mayBuild()) {
