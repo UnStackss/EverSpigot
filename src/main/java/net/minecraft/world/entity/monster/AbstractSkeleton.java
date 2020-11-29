@@ -148,7 +148,7 @@ public abstract class AbstractSkeleton extends Monster implements RangedAttackMo
         this.populateDefaultEquipmentSlots(randomsource, difficulty);
         this.populateDefaultEquipmentEnchantments(world, randomsource, difficulty);
         this.reassessWeaponGoal();
-        this.setCanPickUpLoot(randomsource.nextFloat() < 0.55F * difficulty.getSpecialMultiplier());
+        this.setCanPickUpLoot(this.level().paperConfig().entities.behavior.mobsCanAlwaysPickUpLoot.skeletons || randomsource.nextFloat() < 0.55F * difficulty.getSpecialMultiplier()); // Paper - Add world settings for mobs picking up loot
         if (this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
             LocalDate localdate = LocalDate.now();
             int i = localdate.get(ChronoField.DAY_OF_MONTH);
