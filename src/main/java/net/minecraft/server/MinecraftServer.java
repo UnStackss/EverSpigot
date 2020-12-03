@@ -2116,7 +2116,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         return this.functionManager;
     }
 
+    // Paper start - Add ServerResourcesReloadedEvent
+    @Deprecated @io.papermc.paper.annotation.DoNotUse
     public CompletableFuture<Void> reloadResources(Collection<String> dataPacks) {
+        return this.reloadResources(dataPacks, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN);
+    }
+    public CompletableFuture<Void> reloadResources(Collection<String> dataPacks, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause cause) {
+        // Paper end - Add ServerResourcesReloadedEvent
         CompletableFuture<Void> completablefuture = CompletableFuture.supplyAsync(() -> {
             Stream<String> stream = dataPacks.stream(); // CraftBukkit - decompile error
             PackRepository resourcepackrepository = this.packRepository;
@@ -2148,6 +2154,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
             this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
             org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
+            new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
         }, this);
 
         if (this.isSameThread()) {

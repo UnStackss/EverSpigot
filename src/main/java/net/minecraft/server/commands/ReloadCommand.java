@@ -20,7 +20,7 @@ public class ReloadCommand {
     public ReloadCommand() {}
 
     public static void reloadPacks(Collection<String> dataPacks, CommandSourceStack source) {
-        source.getServer().reloadResources(dataPacks).exceptionally((throwable) -> {
+        source.getServer().reloadResources(dataPacks, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.COMMAND).exceptionally((throwable) -> { // Paper - Add ServerResourcesReloadedEvent
             ReloadCommand.LOGGER.warn("Failed to execute reload", throwable);
             source.sendFailure(Component.translatable("commands.reload.failure"));
             return null;
@@ -50,7 +50,7 @@ public class ReloadCommand {
         WorldData savedata = minecraftserver.getWorldData();
         Collection<String> collection = resourcepackrepository.getSelectedIds();
         Collection<String> collection1 = ReloadCommand.discoverNewPacks(resourcepackrepository, savedata, collection);
-        minecraftserver.reloadResources(collection1);
+        minecraftserver.reloadResources(collection1, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN); // Paper - Add ServerResourcesReloadedEvent
     }
     // CraftBukkit end
 
