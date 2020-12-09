@@ -9,12 +9,12 @@ public class VecDeltaCodec {
 
     @VisibleForTesting
     static long encode(double value) {
-        return Math.round(value * 4096.0);
+        return Math.round(value * 4096.0); // Paper - Fix MC-4; diff on change
     }
 
     @VisibleForTesting
     static double decode(long value) {
-        return (double)value / 4096.0;
+        return value / 4096.0; // Paper - Fix MC-4; diff on change
     }
 
     public Vec3 decode(long x, long y, long z) {

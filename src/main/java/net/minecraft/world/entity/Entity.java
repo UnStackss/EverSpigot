@@ -4260,6 +4260,16 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             return;
         }
         // Paper end - Block invalid positions and bounding box
+        // Paper start - Fix MC-4
+        if (this instanceof ItemEntity) {
+            if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.fixEntityPositionDesync) {
+                // encode/decode from ClientboundMoveEntityPacket
+                x = Mth.lfloor(x * 4096.0) * (1 / 4096.0);
+                y = Mth.lfloor(y * 4096.0) * (1 / 4096.0);
+                z = Mth.lfloor(z * 4096.0) * (1 / 4096.0);
+            }
+        }
+        // Paper end - Fix MC-4
         if (this.position.x != x || this.position.y != y || this.position.z != z) {
             this.position = new Vec3(x, y, z);
             int i = Mth.floor(x);
