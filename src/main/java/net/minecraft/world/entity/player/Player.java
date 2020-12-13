@@ -188,7 +188,7 @@ public abstract class Player extends LivingEntity {
     private Optional<GlobalPos> lastDeathLocation;
     @Nullable
     public FishingHook fishing;
-    protected float hurtDir;
+    public float hurtDir; // Paper - protected -> public
     @Nullable
     public Vec3 currentImpulseImpactPos;
     @Nullable
