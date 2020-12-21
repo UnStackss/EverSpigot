@@ -293,10 +293,10 @@ public class GameRules {
             this.type = type;
         }
 
-        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> context, String name);
+        protected abstract void updateFromArgument(CommandContext<CommandSourceStack> context, String name, GameRules.Key<T> gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
 
-        public void setFromArgument(CommandContext<CommandSourceStack> context, String name) {
-            this.updateFromArgument(context, name);
+        public void setFromArgument(CommandContext<CommandSourceStack> context, String name, GameRules.Key<T> gameRuleKey) { // Paper - Add WorldGameRuleChangeEvent
+            this.updateFromArgument(context, name, gameRuleKey); // Paper - Add WorldGameRuleChangeEvent
             this.onChanged(((CommandSourceStack) context.getSource()).getLevel()); // CraftBukkit - per-world
         }
 
@@ -354,8 +354,11 @@ public class GameRules {
         }
 
         @Override
-        protected void updateFromArgument(CommandContext<CommandSourceStack> context, String name) {
-            this.value = BoolArgumentType.getBool(context, name);
+        protected void updateFromArgument(CommandContext<CommandSourceStack> context, String name, GameRules.Key<BooleanValue> gameRuleKey) { // Paper start - Add WorldGameRuleChangeEvent
+            io.papermc.paper.event.world.WorldGameRuleChangeEvent event = new io.papermc.paper.event.world.WorldGameRuleChangeEvent(context.getSource().getBukkitWorld(), context.getSource().getBukkitSender(), (org.bukkit.GameRule<Boolean>) org.bukkit.GameRule.getByName(gameRuleKey.toString()), String.valueOf(BoolArgumentType.getBool(context, name)));
+            if (!event.callEvent()) return;
+            this.value = Boolean.parseBoolean(event.getValue());
+            // Paper end - Add WorldGameRuleChangeEvent
         }
 
         public boolean get() {
@@ -427,8 +430,11 @@ public class GameRules {
         }
 
         @Override
-        protected void updateFromArgument(CommandContext<CommandSourceStack> context, String name) {
-            this.value = IntegerArgumentType.getInteger(context, name);
+        protected void updateFromArgument(CommandContext<CommandSourceStack> context, String name, GameRules.Key<IntegerValue> gameRuleKey) { // Paper start - Add WorldGameRuleChangeEvent
+            io.papermc.paper.event.world.WorldGameRuleChangeEvent event = new io.papermc.paper.event.world.WorldGameRuleChangeEvent(context.getSource().getBukkitWorld(), context.getSource().getBukkitSender(), (org.bukkit.GameRule<Integer>) org.bukkit.GameRule.getByName(gameRuleKey.toString()), String.valueOf(IntegerArgumentType.getInteger(context, name)));
+            if (!event.callEvent()) return;
+            this.value = Integer.parseInt(event.getValue());
+            // Paper end - Add WorldGameRuleChangeEvent
         }
 
         public int get() {

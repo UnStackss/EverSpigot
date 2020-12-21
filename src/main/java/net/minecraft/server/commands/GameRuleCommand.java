@@ -33,7 +33,7 @@ public class GameRuleCommand {
         CommandSourceStack commandlistenerwrapper = (CommandSourceStack) context.getSource();
         T t0 = commandlistenerwrapper.getLevel().getGameRules().getRule(key); // CraftBukkit
 
-        t0.setFromArgument(context, "value");
+        t0.setFromArgument(context, "value", key); // Paper - Add WorldGameRuleChangeEvent
         commandlistenerwrapper.sendSuccess(() -> {
             return Component.translatable("commands.gamerule.set", key.getId(), t0.toString());
         }, true);
