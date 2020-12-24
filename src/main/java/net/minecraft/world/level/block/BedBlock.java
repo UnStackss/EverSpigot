@@ -118,14 +118,23 @@ public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock 
                 BlockPos finalblockposition = pos;
                 // CraftBukkit end
                 player.startSleepInBed(pos).ifLeft((entityhuman_enumbedresult) -> {
+                    // Paper start - PlayerBedFailEnterEvent
+                    if (entityhuman_enumbedresult != null) {
+                        io.papermc.paper.event.player.PlayerBedFailEnterEvent event = new io.papermc.paper.event.player.PlayerBedFailEnterEvent((org.bukkit.entity.Player) player.getBukkitEntity(), io.papermc.paper.event.player.PlayerBedFailEnterEvent.FailReason.values()[entityhuman_enumbedresult.ordinal()], org.bukkit.craftbukkit.block.CraftBlock.at(world, finalblockposition), !world.dimensionType().bedWorks(), io.papermc.paper.adventure.PaperAdventure.asAdventure(entityhuman_enumbedresult.getMessage()));
+                        if (!event.callEvent()) {
+                            return;
+                        }
+                        // Paper end - PlayerBedFailEnterEvent
                     // CraftBukkit start - handling bed explosion from below here
-                    if (!world.dimensionType().bedWorks()) {
+                    if (event.getWillExplode()) { // Paper - PlayerBedFailEnterEvent
                         this.explodeBed(finaliblockdata, world, finalblockposition);
                     } else
                     // CraftBukkit end
                     if (entityhuman_enumbedresult.getMessage() != null) {
-                        player.displayClientMessage(entityhuman_enumbedresult.getMessage(), true);
+                        final net.kyori.adventure.text.Component message = event.getMessage(); // Paper - PlayerBedFailEnterEvent
+                        if (message != null) player.displayClientMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message), true); // Paper - PlayerBedFailEnterEvent
                     }
+                    } // Paper - PlayerBedFailEnterEvent
 
                 });
                 return InteractionResult.SUCCESS;
