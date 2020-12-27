@@ -275,7 +275,11 @@ public abstract class AbstractVillager extends AgeableMob implements InventoryCa
                     Bukkit.getPluginManager().callEvent(event);
                 }
                 if (!event.isCancelled()) {
-                    recipeList.add(CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
+                    // Paper start - Fix crash from invalid ingredient list
+                    final CraftMerchantRecipe craftMerchantRecipe = CraftMerchantRecipe.fromBukkit(event.getRecipe());
+                    if (craftMerchantRecipe.getIngredients().isEmpty()) return;
+                    recipeList.add(craftMerchantRecipe.toMinecraft());
+                    // Paper end - Fix crash from invalid ingredient list
                 }
                 // CraftBukkit end
                 ++j;
