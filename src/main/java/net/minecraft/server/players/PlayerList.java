@@ -1065,6 +1065,11 @@ public abstract class PlayerList {
     }
 
     private void sendPlayerPermissionLevel(ServerPlayer player, int permissionLevel) {
+        // Paper start - Add sendOpLevel API
+        this.sendPlayerPermissionLevel(player, permissionLevel, true);
+    }
+    public void sendPlayerPermissionLevel(ServerPlayer player, int permissionLevel, boolean recalculatePermissions) {
+        // Paper end - Add sendOpLevel API
         if (player.connection != null) {
             byte b0;
 
@@ -1079,8 +1084,10 @@ public abstract class PlayerList {
             player.connection.send(new ClientboundEntityEventPacket(player, b0));
         }
 
+        if (recalculatePermissions) { // Paper - Add sendOpLevel API
         player.getBukkitEntity().recalculatePermissions(); // CraftBukkit
         this.server.getCommands().sendCommands(player);
+        } // Paper - Add sendOpLevel API
     }
 
     public boolean isWhiteListed(GameProfile profile) {
