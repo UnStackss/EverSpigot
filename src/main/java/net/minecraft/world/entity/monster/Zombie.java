@@ -101,7 +101,7 @@ public class Zombie extends Monster {
 
     public Zombie(EntityType<? extends Zombie> type, Level world) {
         super(type, world);
-        this.breakDoorGoal = new BreakDoorGoal(this, Zombie.DOOR_BREAKING_PREDICATE);
+        this.breakDoorGoal = new BreakDoorGoal(this, com.google.common.base.Predicates.in(world.paperConfig().entities.behavior.doorBreakingDifficulty.getOrDefault(type, world.paperConfig().entities.behavior.doorBreakingDifficulty.get(EntityType.ZOMBIE)))); // Paper - Configurable door breaking difficulty
     }
 
     public Zombie(Level world) {
