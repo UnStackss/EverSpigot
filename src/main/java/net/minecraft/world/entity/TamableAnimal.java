@@ -97,7 +97,7 @@ public abstract class TamableAnimal extends Animal implements OwnableEntity {
     @Override
     public boolean handleLeashAtDistance(Entity leashHolder, float distance) {
         if (this.isInSittingPose()) {
-            if (distance > 10.0F) {
+            if (distance > (float) this.level().paperConfig().misc.maxLeashDistance.or(Leashable.LEASH_TOO_FAR_DIST)) { // Paper - Configurable max leash distance
                 this.dropLeash(true, true);
             }
 

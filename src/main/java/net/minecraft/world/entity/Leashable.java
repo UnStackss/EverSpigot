@@ -179,7 +179,7 @@ public interface Leashable {
                     return;
                 }
 
-                if ((double) f > 10.0D) {
+                if ((double) f > entity.level().paperConfig().misc.maxLeashDistance.or(LEASH_TOO_FAR_DIST)) { // Paper - Configurable max leash distance
                     ((Leashable) entity).leashTooFarBehaviour();
                 } else if ((double) f > 6.0D) {
                     ((Leashable) entity).elasticRangeLeashBehaviour(entity1, f);
