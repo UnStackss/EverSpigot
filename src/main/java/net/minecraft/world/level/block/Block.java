@@ -305,6 +305,24 @@ public class Block extends BlockBehaviour implements ItemLike {
 
     }
 
+    // Paper start - Add BlockBreakBlockEvent
+    public static boolean dropResources(BlockState state, LevelAccessor levelAccessor, BlockPos pos, @Nullable BlockEntity blockEntity, BlockPos source) {
+        if (levelAccessor instanceof ServerLevel serverLevel) {
+            List<org.bukkit.inventory.ItemStack> items = new java.util.ArrayList<>();
+            for (ItemStack drop : Block.getDrops(state, serverLevel, pos, blockEntity)) {
+                items.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(drop));
+            }
+            io.papermc.paper.event.block.BlockBreakBlockEvent event = new io.papermc.paper.event.block.BlockBreakBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, pos), org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, source), items);
+            event.callEvent();
+            for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
+                popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
+            }
+            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, true);
+        }
+        return true;
+    }
+    // Paper end - Add BlockBreakBlockEvent
+
     public static void dropResources(BlockState state, Level world, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity entity, ItemStack tool) {
         if (world instanceof ServerLevel) {
             Block.getDrops(state, (ServerLevel) world, pos, blockEntity, entity, tool).forEach((itemstack1) -> {

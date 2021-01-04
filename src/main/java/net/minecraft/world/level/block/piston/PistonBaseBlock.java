@@ -403,7 +403,7 @@ public class PistonBaseBlock extends DirectionalBlock {
                 iblockdata1 = world.getBlockState(blockposition3);
                 BlockEntity tileentity = iblockdata1.hasBlockEntity() ? world.getBlockEntity(blockposition3) : null;
 
-                dropResources(iblockdata1, world, blockposition3, tileentity);
+                dropResources(iblockdata1, world, blockposition3, tileentity, pos); // Paper - Add BlockBreakBlockEvent
                 world.setBlock(blockposition3, Blocks.AIR.defaultBlockState(), 18);
                 world.gameEvent((Holder) GameEvent.BLOCK_DESTROY, blockposition3, GameEvent.Context.of(iblockdata1));
                 if (!iblockdata1.is(BlockTags.FIRE)) {
