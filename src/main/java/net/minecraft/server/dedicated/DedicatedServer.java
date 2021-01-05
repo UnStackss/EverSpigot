@@ -216,6 +216,12 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
         // Paper end - initialize global and world-defaults configuration
+        // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
+        if (this.convertOldUsers()) {
+            this.getProfileCache().save(false); // Paper
+        }
+        this.getPlayerList().loadAndSaveFiles(); // Must be after convertNames
+        // Paper end - fix converting txt to json file
         org.spigotmc.WatchdogThread.doStart(org.spigotmc.SpigotConfig.timeoutTime, org.spigotmc.SpigotConfig.restartOnCrash); // Paper - start watchdog thread
         io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
         com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
@@ -270,9 +276,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
             DedicatedServer.LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");
         }
 
-        if (this.convertOldUsers()) {
-            this.getProfileCache().save(false); // Paper - Perf: Async GameProfileCache saving
-        }
 
         if (!OldUsersConverter.serverReadyAfterUserconversion(this)) {
             return false;
