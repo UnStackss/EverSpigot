@@ -30,7 +30,7 @@ public class ScheduleCommand {
         return Component.translatableEscape("commands.schedule.cleared.failure", object);
     });
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_SCHEDULE = (commandcontext, suggestionsbuilder) -> {
-        return SharedSuggestionProvider.suggest((Iterable) ((CommandSourceStack) commandcontext.getSource()).getServer().getWorldData().overworldData().getScheduledEvents().getEventsIds(), suggestionsbuilder);
+        return SharedSuggestionProvider.suggest((Iterable) ((net.minecraft.commands.CommandSourceStack) commandcontext.getSource()).getLevel().serverLevelData.getScheduledEvents().getEventsIds(), suggestionsbuilder); // Paper - Make schedule command per-world
     };
 
     public ScheduleCommand() {}
@@ -85,7 +85,7 @@ public class ScheduleCommand {
     }
 
     private static int remove(CommandSourceStack source, String eventName) throws CommandSyntaxException {
-        int i = source.getServer().getWorldData().overworldData().getScheduledEvents().remove(eventName);
+        int i = source.getLevel().serverLevelData.getScheduledEvents().remove(eventName); // Paper - Make schedule command per-world
 
         if (i == 0) {
             throw ScheduleCommand.ERROR_CANT_REMOVE.create(eventName);
