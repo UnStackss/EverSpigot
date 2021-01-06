@@ -67,7 +67,10 @@ public class CampfireBlockEntity extends BlockEntity implements Clearable {
 
                 if (campfire.cookingProgress[i] >= campfire.cookingTime[i]) {
                     SingleRecipeInput singlerecipeinput = new SingleRecipeInput(itemstack);
-                    ItemStack itemstack1 = (ItemStack) campfire.quickCheck.getRecipeFor(singlerecipeinput, world).map((recipeholder) -> {
+                    // Paper start - add recipe to cook events
+                    Optional<RecipeHolder<CampfireCookingRecipe>> recipeHolderOptional = campfire.quickCheck.getRecipeFor(singlerecipeinput, world);
+                    ItemStack itemstack1 = recipeHolderOptional.map((recipeholder) -> {
+                        // Paper end - Add recipe to cook events
                         return ((CampfireCookingRecipe) recipeholder.value()).assemble(singlerecipeinput, world.registryAccess());
                     }).orElse(itemstack);
 
@@ -76,7 +79,7 @@ public class CampfireBlockEntity extends BlockEntity implements Clearable {
                         CraftItemStack source = CraftItemStack.asCraftMirror(itemstack);
                         org.bukkit.inventory.ItemStack result = CraftItemStack.asBukkitCopy(itemstack1);
 
-                        BlockCookEvent blockCookEvent = new BlockCookEvent(CraftBlock.at(world, pos), source, result);
+                        BlockCookEvent blockCookEvent = new BlockCookEvent(CraftBlock.at(world, pos), source, result, (org.bukkit.inventory.CookingRecipe<?>) recipeHolderOptional.map(RecipeHolder::toBukkitRecipe).orElse(null)); // Paper - Add recipe to cook events
                         world.getCraftServer().getPluginManager().callEvent(blockCookEvent);
 
                         if (blockCookEvent.isCancelled()) {
