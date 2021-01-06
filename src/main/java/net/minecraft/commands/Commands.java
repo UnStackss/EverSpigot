@@ -286,6 +286,7 @@ public class Commands {
         command = event.getCommand();
 
         String[] args = command.split(" ");
+        if (args.length == 0) return; // Paper - empty commands shall not be dispatched
 
         String cmd = args[0];
         if (cmd.startsWith("minecraft:")) cmd = cmd.substring("minecraft:".length());
