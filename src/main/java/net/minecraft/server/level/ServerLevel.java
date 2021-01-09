@@ -1741,6 +1741,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
             });
             optional1.ifPresent((holder) -> {
                 this.getServer().execute(() -> {
+                    // Paper start - Remove stale POIs
+                    if (optional.isEmpty() && this.getPoiManager().exists(blockposition1, poiType -> true)) {
+                        this.getPoiManager().remove(blockposition1);
+                    }
+                    // Paper end - Remove stale POIs
                     this.getPoiManager().add(blockposition1, holder);
                     DebugPackets.sendPoiAddedPacket(this, blockposition1);
                 });
