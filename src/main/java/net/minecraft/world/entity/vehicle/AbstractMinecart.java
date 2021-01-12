@@ -165,7 +165,15 @@ public abstract class AbstractMinecart extends VehicleEntity {
 
     @Override
     public boolean canCollideWith(Entity other) {
-        return Boat.canVehicleCollide(this, other);
+        // Paper start - fix VehicleEntityCollisionEvent not called when colliding with player
+        boolean collides = Boat.canVehicleCollide(this, other);
+        if (!collides) {
+            return false;
+        }
+        org.bukkit.event.vehicle.VehicleEntityCollisionEvent collisionEvent = new org.bukkit.event.vehicle.VehicleEntityCollisionEvent((org.bukkit.entity.Vehicle) getBukkitEntity(), other.getBukkitEntity());
+
+        return collisionEvent.callEvent();
+        // Paper end - fix VehicleEntityCollisionEvent not called when colliding with player
     }
 
     @Override
