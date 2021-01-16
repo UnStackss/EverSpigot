@@ -91,7 +91,7 @@ public abstract class AbstractHurtingProjectile extends Projectile {
 
                 // CraftBukkit start - Fire ProjectileHitEvent
                 if (this.isRemoved()) {
-                    CraftEventFactory.callProjectileHitEvent(this, movingobjectposition);
+                    // CraftEventFactory.callProjectileHitEvent(this, movingobjectposition); // Paper - this is an undesired duplicate event
                 }
                 // CraftBukkit end
             }
