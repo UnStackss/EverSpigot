@@ -71,6 +71,7 @@ public class DropperBlock extends DispenserBlock {
                     ItemStack itemstack1;
 
                     if (iinventory == null) {
+                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockPreDispenseEvent(world, pos, itemstack, i)) return; // Paper - Add BlockPreDispenseEvent
                         itemstack1 = DropperBlock.DISPENSE_BEHAVIOUR.dispense(sourceblock, itemstack);
                     } else {
                         // CraftBukkit start - Fire event when pushing items into other inventories
