@@ -1349,6 +1349,11 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
                 PlayerChangedWorldEvent changeEvent = new PlayerChangedWorldEvent(this.getBukkitEntity(), worldserver1.getWorld());
                 this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
                 // CraftBukkit end
+                // Paper start - Reset shield blocking on dimension change
+                if (this.isBlocking()) {
+                    this.stopUsingItem();
+                }
+                // Paper end - Reset shield blocking on dimension change
                 return this;
             }
         }
