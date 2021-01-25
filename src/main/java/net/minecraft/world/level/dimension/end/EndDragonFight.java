@@ -409,8 +409,22 @@ public class EndDragonFight {
             this.dragonEvent.setVisible(false);
             this.spawnExitPortal(true);
             this.spawnNewGateway();
+            // Paper start - Add DragonEggFormEvent
+            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin));
+            org.bukkit.craftbukkit.block.CraftBlockState eggState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(this.level, eggPosition);
+            eggState.setData(Blocks.DRAGON_EGG.defaultBlockState());
+            io.papermc.paper.event.block.DragonEggFormEvent eggEvent = new io.papermc.paper.event.block.DragonEggFormEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this.level, eggPosition), eggState,
+                new org.bukkit.craftbukkit.boss.CraftDragonBattle(this));
+            // Paper end - Add DragonEggFormEvent
             if (this.level.paperConfig().entities.behavior.enderDragonsDeathAlwaysPlacesDragonEgg || !this.previouslyKilled) { // Paper - Add toggle for always placing the dragon egg
-                this.level.setBlockAndUpdate(this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)), Blocks.DRAGON_EGG.defaultBlockState());
+                // Paper start - Add DragonEggFormEvent
+                // this.level.setBlockAndUpdate(this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)), Blocks.DRAGON_EGG.defaultBlockState());
+            } else {
+                eggEvent.setCancelled(true);
+            }
+            if (eggEvent.callEvent()) {
+                eggEvent.getNewState().update(true);
+                // Paper end - Add DragonEggFormEvent
             }
 
             this.previouslyKilled = true;
