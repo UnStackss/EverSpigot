@@ -333,7 +333,7 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
         if (PlayerPreLoginEvent.getHandlerList().getRegisteredListeners().length != 0) {
             final PlayerPreLoginEvent event = new PlayerPreLoginEvent(playerName, address, uniqueId);
             if (asyncEvent.getResult() != PlayerPreLoginEvent.Result.ALLOWED) {
-                event.disallow(asyncEvent.getResult(), asyncEvent.getKickMessage());
+                event.disallow(asyncEvent.getResult(), asyncEvent.kickMessage()); // Paper - Adventure
             }
             Waitable<PlayerPreLoginEvent.Result> waitable = new Waitable<PlayerPreLoginEvent.Result>() {
                 @Override
@@ -345,12 +345,12 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
 
             ServerLoginPacketListenerImpl.this.server.processQueue.add(waitable);
             if (waitable.get() != PlayerPreLoginEvent.Result.ALLOWED) {
-                this.disconnect(event.getKickMessage());
+                this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.kickMessage())); // Paper - Adventure
                 return;
             }
         } else {
             if (asyncEvent.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
-                this.disconnect(asyncEvent.getKickMessage());
+                this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(asyncEvent.kickMessage())); // Paper - Adventure
                 return;
             }
         }

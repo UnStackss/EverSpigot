@@ -45,6 +45,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.TickablePacketListener;
+import net.minecraft.network.chat.ChatDecorator;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.LastSeenMessages;
@@ -195,6 +196,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.slf4j.Logger;
 
 // CraftBukkit start
+import io.papermc.paper.adventure.ChatProcessor; // Paper
+import io.papermc.paper.adventure.PaperAdventure; // Paper
 import com.mojang.datafixers.util.Pair;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -1728,9 +1731,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         */
 
         this.player.disconnect();
-        String quitMessage = this.server.getPlayerList().remove(this.player);
-        if ((quitMessage != null) && (quitMessage.length() > 0)) {
-            this.server.getPlayerList().broadcastMessage(CraftChatMessage.fromString(quitMessage));
+        // Paper start - Adventure
+        net.kyori.adventure.text.Component quitMessage = this.server.getPlayerList().remove(this.player);
+        if ((quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
+            this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(quitMessage), false);
+            // Paper end
         }
         // CraftBukkit end
         this.player.getTextFilter().leave();
@@ -1791,10 +1796,10 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                 }
 
                 CompletableFuture<FilteredText> completablefuture = this.filterTextPacket(playerchatmessage.signedContent()).thenApplyAsync(Function.identity(), this.server.chatExecutor); // CraftBukkit - async chat
-                Component ichatbasecomponent = this.server.getChatDecorator().decorate(this.player, playerchatmessage.decoratedContent());
+                CompletableFuture<Component> componentFuture = this.server.getChatDecorator().decorate(this.player, null, playerchatmessage.decoratedContent()); // Paper - Adventure
 
-                this.chatMessageChain.append(completablefuture, (filteredtext) -> {
-                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(ichatbasecomponent).filter(filteredtext.mask());
+                this.chatMessageChain.append(CompletableFuture.allOf(completablefuture, componentFuture), (filteredtext) -> { // Paper - Adventure
+                    PlayerChatMessage playerchatmessage1 = playerchatmessage.withUnsignedContent(componentFuture.join()).filter(completablefuture.join().mask()); // Paper - Adventure
 
                     this.broadcastChatMessage(playerchatmessage1);
                 });
@@ -2014,7 +2019,15 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             this.handleCommand(s);
         } else if (this.player.getChatVisibility() == ChatVisiblity.SYSTEM) {
             // Do nothing, this is coming from a plugin
-        } else {
+        // Paper start
+        } else if (true) {
+            if (!async && !org.bukkit.Bukkit.isPrimaryThread()) {
+                org.spigotmc.AsyncCatcher.catchOp("Asynchronous player chat is not allowed here");
+            }
+            final ChatProcessor cp = new ChatProcessor(this.server, this.player, original, async);
+            cp.process();
+            // Paper end
+        } else if (false) { // Paper
             Player player = this.getCraftPlayer();
             AsyncPlayerChatEvent event = new AsyncPlayerChatEvent(async, player, s, new LazyPlayerSet(this.server));
             String originalFormat = event.getFormat(), originalMessage = event.getMessage();
@@ -3011,6 +3024,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     public void handleClientInformation(ServerboundClientInformationPacket packet) {
         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
         this.player.updateOptions(packet.information());
+        this.connection.channel.attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).set(net.kyori.adventure.translation.Translator.parseLocale(packet.information().language())); // Paper
     }
 
     @Override

@@ -18,6 +18,11 @@ public record ClientboundSystemChatPacket(Component content, boolean overlay) im
         this(org.bukkit.craftbukkit.util.CraftChatMessage.fromJSON(net.md_5.bungee.chat.ComponentSerializer.toString(content)), overlay);
     }
     // Spigot end
+    // Paper start
+    public ClientboundSystemChatPacket(net.kyori.adventure.text.Component content, boolean overlay) {
+        this(io.papermc.paper.adventure.PaperAdventure.asVanilla(content), overlay);
+    }
+    // Paper end
 
     @Override
     public PacketType<ClientboundSystemChatPacket> type() {

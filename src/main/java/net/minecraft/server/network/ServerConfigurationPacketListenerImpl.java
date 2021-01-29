@@ -120,6 +120,7 @@ public class ServerConfigurationPacketListenerImpl extends ServerCommonPacketLis
     @Override
     public void handleClientInformation(ServerboundClientInformationPacket packet) {
         this.clientInformation = packet.information();
+        this.connection.channel.attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).set(net.kyori.adventure.translation.Translator.parseLocale(packet.information().language())); // Paper
     }
 
     @Override

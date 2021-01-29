@@ -17,10 +17,12 @@ public class PacketEncoder<T extends PacketListener> extends MessageToByteEncode
         this.protocolInfo = state;
     }
 
+    static final ThreadLocal<java.util.Locale> ADVENTURE_LOCALE = ThreadLocal.withInitial(() -> null); // Paper - adventure; set player's locale
     protected void encode(ChannelHandlerContext channelHandlerContext, Packet<T> packet, ByteBuf byteBuf) throws Exception {
         PacketType<? extends Packet<? super T>> packetType = packet.type();
 
         try {
+            ADVENTURE_LOCALE.set(channelHandlerContext.channel().attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).get()); // Paper - adventure; set player's locale
             this.protocolInfo.codec().encode(byteBuf, packet);
             int i = byteBuf.readableBytes();
             if (LOGGER.isDebugEnabled()) {

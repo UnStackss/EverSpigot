@@ -65,6 +65,7 @@ public class CommandSourceStack implements ExecutionCommandSource<CommandSourceS
     private final CommandSigningContext signingContext;
     private final TaskChainer chatMessageChainer;
     public volatile CommandNode currentCommand; // CraftBukkit
+    public boolean bypassSelectorPermissions = false; // Paper - add bypass for selector permissions
 
     public CommandSourceStack(CommandSource output, Vec3 pos, Vec2 rot, ServerLevel world, int level, String name, Component displayName, MinecraftServer server, @Nullable Entity entity) {
         this(output, pos, rot, world, level, name, displayName, server, entity, false, CommandResultCallback.EMPTY, EntityAnchorArgument.Anchor.FEET, CommandSigningContext.ANONYMOUS, TaskChainer.immediate(server));

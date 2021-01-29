@@ -183,7 +183,15 @@ public final class ItemStack implements DataComponentHolder {
                 CraftItemStack.setItemMeta(itemstack, CraftItemStack.getItemMeta(itemstack));
                 // Spigot end
                 ITEM_STREAM_CODEC.encode(registryfriendlybytebuf, itemstack.getItemHolder()); // CraftBukkit - decompile error
+                // Paper start - adventure; conditionally render translatable components
+                boolean prev = net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.get();
+                try {
+                    net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(true);
                 DataComponentPatch.STREAM_CODEC.encode(registryfriendlybytebuf, itemstack.components.asPatch());
+                } finally {
+                    net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(prev);
+                }
+                // Paper end - adventure; conditionally render translatable components
             }
         }
     };

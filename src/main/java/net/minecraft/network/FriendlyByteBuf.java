@@ -72,6 +72,7 @@ public class FriendlyByteBuf extends ByteBuf {
 
     public static final int DEFAULT_NBT_QUOTA = 2097152;
     private final ByteBuf source;
+    @Nullable public final java.util.Locale adventure$locale; // Paper - track player's locale for server-side translations
     public static final short MAX_STRING_LENGTH = Short.MAX_VALUE;
     public static final int MAX_COMPONENT_STRING_LENGTH = 262144;
     private static final int PUBLIC_KEY_SIZE = 256;
@@ -80,6 +81,7 @@ public class FriendlyByteBuf extends ByteBuf {
     private static final Gson GSON = new Gson();
 
     public FriendlyByteBuf(ByteBuf parent) {
+        this.adventure$locale = PacketEncoder.ADVENTURE_LOCALE.get(); // Paper - track player's locale for server-side translations
         this.source = parent;
     }
 
@@ -120,11 +122,16 @@ public class FriendlyByteBuf extends ByteBuf {
     }
 
     public <T> void writeJsonWithCodec(Codec<T> codec, T value) {
+        // Paper start - Adventure; add max length parameter
+        this.writeJsonWithCodec(codec, value, MAX_STRING_LENGTH);
+    }
+    public <T> void writeJsonWithCodec(Codec<T> codec, T value, int maxLength) {
+        // Paper end - Adventure; add max length parameter
         DataResult<JsonElement> dataresult = codec.encodeStart(JsonOps.INSTANCE, value);
 
         this.writeUtf(FriendlyByteBuf.GSON.toJson((JsonElement) dataresult.getOrThrow((s) -> {
             return new EncoderException("Failed to encode: " + s + " " + String.valueOf(value));
-        })));
+        })), maxLength); // Paper - Adventure; add max length parameter
     }
 
     public static <T> IntFunction<T> limitValue(IntFunction<T> applier, int max) {

@@ -201,6 +201,7 @@ import org.bukkit.craftbukkit.SpigotTimings; // Spigot
 public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, ChunkIOErrorReporter, CommandSource, AutoCloseable {
 
     public static final Logger LOGGER = LogUtils.getLogger();
+    public static final net.kyori.adventure.text.logger.slf4j.ComponentLogger COMPONENT_LOGGER = net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger(LOGGER.getName()); // Paper
     public static final String VANILLA_BRAND = "vanilla";
     private static final float AVERAGE_TICK_TIME_SMOOTHING = 0.8F;
     private static final int TICK_STATS_SPAN = 100;
@@ -251,8 +252,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     private boolean preventProxyConnections;
     private boolean pvp;
     private boolean allowFlight;
-    @Nullable
-    private String motd;
+    private net.kyori.adventure.text.Component motd; // Paper - Adventure
     private int playerIdleTimeout;
     private final long[] tickTimesNanos;
     private long aggregatedTickTimesNanos;
@@ -1396,7 +1396,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     private ServerStatus buildServerStatus() {
         ServerStatus.Players serverping_serverpingplayersample = this.buildPlayerStatus();
 
-        return new ServerStatus(Component.nullToEmpty(this.motd), Optional.of(serverping_serverpingplayersample), Optional.of(ServerStatus.Version.current()), Optional.ofNullable(this.statusIcon), this.enforceSecureProfile());
+        return new ServerStatus(io.papermc.paper.adventure.PaperAdventure.asVanilla(this.motd), Optional.of(serverping_serverpingplayersample), Optional.of(ServerStatus.Version.current()), Optional.ofNullable(this.statusIcon), this.enforceSecureProfile()); // Paper - Adventure
     }
 
     private ServerStatus.Players buildPlayerStatus() {
@@ -1428,6 +1428,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         SpigotTimings.schedulerTimer.startTiming(); // Spigot
         this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
         SpigotTimings.schedulerTimer.stopTiming(); // Spigot
+        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
         this.profiler.push("commandFunctions");
         SpigotTimings.commandFunctionsTimer.startTiming(); // Spigot
         this.getFunctions().tick();
@@ -1799,10 +1800,20 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
 
     @Override
     public String getMotd() {
-        return this.motd;
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(this.motd); // Paper - Adventure
     }
 
     public void setMotd(String motd) {
+        // Paper start - Adventure
+        this.motd = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOr(motd, net.kyori.adventure.text.Component.empty());
+    }
+
+    public net.kyori.adventure.text.Component motd() {
+        return this.motd;
+    }
+
+    public void motd(net.kyori.adventure.text.Component motd) {
+        // Paper end - Adventure
         this.motd = motd;
     }
 
@@ -2564,23 +2575,24 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     }
 
     public void logChatMessage(Component message, ChatType.Bound params, @Nullable String prefix) {
-        String s1 = params.decorate(message).getString();
+        // Paper start
+        net.kyori.adventure.text.Component s1 = io.papermc.paper.adventure.PaperAdventure.asAdventure(params.decorate(message));
 
         if (prefix != null) {
-            MinecraftServer.LOGGER.info("[{}] {}", prefix, s1);
+            MinecraftServer.COMPONENT_LOGGER.info("[{}] {}", prefix, s1);
         } else {
-            MinecraftServer.LOGGER.info("{}", s1);
+            MinecraftServer.COMPONENT_LOGGER.info("{}", s1);
+            // Paper end
         }
 
     }
 
-    // CraftBukkit start
     public final java.util.concurrent.ExecutorService chatExecutor = java.util.concurrent.Executors.newCachedThreadPool(
-            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").build());
-    // CraftBukkit end
+            new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Async Chat Thread - #%d").setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build()); // Paper
 
+    public final ChatDecorator improvedChatDecorator = new io.papermc.paper.adventure.ImprovedChatDecorator(this); // Paper - adventure
     public ChatDecorator getChatDecorator() {
-        return ChatDecorator.PLAIN;
+        return this.improvedChatDecorator; // Paper - support async chat decoration events
     }
 
     public boolean logIPs() {

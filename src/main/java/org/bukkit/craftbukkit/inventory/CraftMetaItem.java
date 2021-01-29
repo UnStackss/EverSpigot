@@ -959,6 +959,18 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         return !(this.hasDisplayName() || this.hasItemName() || this.hasLocalizedName() || this.hasEnchants() || (this.lore != null) || this.hasCustomModelData() || this.hasBlockData() || this.hasRepairCost() || !this.unhandledTags.build().isEmpty() || !this.removedTags.isEmpty() || !this.persistentDataContainer.isEmpty() || this.hideFlag != 0 || this.isHideTooltip() || this.isUnbreakable() || this.hasEnchantmentGlintOverride() || this.isFireResistant() || this.hasMaxStackSize() || this.hasRarity() || this.hasFood() || this.hasTool() || this.hasDamage() || this.hasMaxDamage() || this.hasAttributeModifiers() || this.customTag != null);
     }
 
+    // Paper start
+    @Override
+    public net.kyori.adventure.text.Component displayName() {
+        return displayName == null ? null : io.papermc.paper.adventure.PaperAdventure.asAdventure(displayName);
+    }
+
+    @Override
+    public void displayName(final net.kyori.adventure.text.Component displayName) {
+        this.displayName = displayName == null ? null : io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName);
+    }
+    // Paper end
+
     @Override
     public String getDisplayName() {
         return CraftChatMessage.fromComponent(this.displayName);
@@ -989,6 +1001,18 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
         return this.itemName != null;
     }
 
+    // Paper start - Adventure
+    @Override
+    public net.kyori.adventure.text.Component itemName() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.itemName);
+    }
+
+    @Override
+    public void itemName(final net.kyori.adventure.text.Component name) {
+        this.itemName = io.papermc.paper.adventure.PaperAdventure.asVanilla(name);
+    }
+    // Paper end - Adventure
+
     @Override
     public String getLocalizedName() {
         return this.getDisplayName();
@@ -1007,6 +1031,18 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
     public boolean hasLore() {
         return this.lore != null && !this.lore.isEmpty();
     }
+
+    // Paper start
+    @Override
+    public List<net.kyori.adventure.text.Component> lore() {
+        return this.lore != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(this.lore) : null;
+    }
+
+    @Override
+    public void lore(final List<? extends net.kyori.adventure.text.Component> lore) {
+        this.lore = lore != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(lore) : null;
+    }
+    // Paper end
 
     @Override
     public boolean hasRepairCost() {
