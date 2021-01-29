@@ -118,13 +118,18 @@ public class LeashFenceKnotEntity extends BlockAttachedEntity {
 
                         if (leashable1.isLeashed() && leashable1.getLeashHolder() == this) {
                             // CraftBukkit start
+                            boolean dropLeash = !player.hasInfiniteMaterials();
                             if (leashable1 instanceof Entity leashed) {
-                                if (CraftEventFactory.callPlayerUnleashEntityEvent(leashed, player, hand).isCancelled()) {
+                                // Paper start - Expand EntityUnleashEvent
+                                org.bukkit.event.player.PlayerUnleashEntityEvent event = CraftEventFactory.callPlayerUnleashEntityEvent(leashed, player, hand, dropLeash);
+                                dropLeash = event.isDropLeash();
+                                if (event.isCancelled()) {
+                                    // Paper end - Expand EntityUnleashEvent
                                     die = false;
                                     continue;
                                 }
                             }
-                            leashable1.dropLeash(true, !player.getAbilities().instabuild); // false -> survival mode boolean
+                            leashable1.dropLeash(true, dropLeash); // false -> survival mode boolean // Paper - Expand EntityUnleashEvent
                             // CraftBukkit end
                             flag1 = true;
                         }

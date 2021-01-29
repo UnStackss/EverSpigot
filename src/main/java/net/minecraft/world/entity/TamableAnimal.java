@@ -98,7 +98,11 @@ public abstract class TamableAnimal extends Animal implements OwnableEntity {
     public boolean handleLeashAtDistance(Entity leashHolder, float distance) {
         if (this.isInSittingPose()) {
             if (distance > (float) this.level().paperConfig().misc.maxLeashDistance.or(Leashable.LEASH_TOO_FAR_DIST)) { // Paper - Configurable max leash distance
-                this.dropLeash(true, true);
+                // Paper start - Expand EntityUnleashEvent
+                org.bukkit.event.entity.EntityUnleashEvent event = new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.DISTANCE, true);
+                if (!event.callEvent()) return false;
+                this.dropLeash(true, event.isDropLeash());
+                // Paper end - Expand EntityUnleashEvent
             }
 
             return false;

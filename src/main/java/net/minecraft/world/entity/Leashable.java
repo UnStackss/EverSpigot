@@ -166,8 +166,11 @@ public interface Leashable {
 
         if (leashable_a != null && leashable_a.leashHolder != null) {
             if (!entity.isAlive() || !leashable_a.leashHolder.isAlive()) {
-                entity.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(entity.getBukkitEntity(), (!entity.isAlive()) ? UnleashReason.PLAYER_UNLEASH : UnleashReason.HOLDER_GONE)); // CraftBukkit
-                Leashable.dropLeash(entity, true, !entity.pluginRemoved); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
+                // Paper start - Expand EntityUnleashEvent
+                final EntityUnleashEvent event = new EntityUnleashEvent(entity.getBukkitEntity(), (!entity.isAlive()) ? UnleashReason.PLAYER_UNLEASH : UnleashReason.HOLDER_GONE, !entity.pluginRemoved);
+                event.callEvent();
+                Leashable.dropLeash(entity, true, event.isDropLeash()); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
+                // Paper end - Expand EntityUnleashEvent
             }
 
             Entity entity1 = ((Leashable) entity).getLeashHolder();
@@ -198,11 +201,16 @@ public interface Leashable {
 
     default void leashTooFarBehaviour() {
         // CraftBukkit start
+        boolean dropLeash = true; // Paper
         if (this instanceof Entity entity) {
-            entity.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(entity.getBukkitEntity(), EntityUnleashEvent.UnleashReason.DISTANCE));
+            // Paper start - Expand EntityUnleashEvent
+            final EntityUnleashEvent event = new EntityUnleashEvent(entity.getBukkitEntity(), EntityUnleashEvent.UnleashReason.DISTANCE, true);
+            if (!event.callEvent()) return;
+            dropLeash = event.isDropLeash();
+            // Paper end - Expand EntityUnleashEvent
         }
         // CraftBukkit end
-        this.dropLeash(true, true);
+        this.dropLeash(true, dropLeash); // Paper
     }
 
     default void closeRangeLeashBehaviour(Entity entity) {}

@@ -2574,12 +2574,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             if (leashable.getLeashHolder() == player) {
                 if (!this.level().isClientSide()) {
                     // CraftBukkit start - fire PlayerUnleashEntityEvent
-                    if (CraftEventFactory.callPlayerUnleashEntityEvent(this, player, hand).isCancelled()) {
+                    // Paper start - Expand EntityUnleashEvent
+                    org.bukkit.event.player.PlayerUnleashEntityEvent event = CraftEventFactory.callPlayerUnleashEntityEvent(this, player, hand, !player.hasInfiniteMaterials());
+                    if (event.isCancelled()) {
+                        // Paper end - Expand EntityUnleashEvent
                         ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
                         return InteractionResult.PASS;
                     }
                     // CraftBukkit end
-                    leashable.dropLeash(true, !player.hasInfiniteMaterials());
+                    leashable.dropLeash(true, event.isDropLeash()); // Paper - Expand EntityUnleashEvent
                     this.gameEvent(GameEvent.ENTITY_INTERACT, player);
                 }
 
@@ -3449,9 +3452,12 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     protected void removeAfterChangingDimensions() {
         this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION, null); // CraftBukkit - add Bukkit remove cause
-        if (this instanceof Leashable leashable) {
-            this.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(this.getBukkitEntity(), UnleashReason.UNKNOWN)); // CraftBukkit
-            leashable.dropLeash(true, false);
+        if (this instanceof Leashable leashable && leashable.isLeashed()) { // Paper - only call if it is leashed
+            // Paper start - Expand EntityUnleashEvent
+            final EntityUnleashEvent event = new EntityUnleashEvent(this.getBukkitEntity(), UnleashReason.UNKNOWN, false); // CraftBukkit
+            event.callEvent();
+            leashable.dropLeash(true, event.isDropLeash());
+            // Paper end - Expand EntityUnleashEvent
         }
 
     }

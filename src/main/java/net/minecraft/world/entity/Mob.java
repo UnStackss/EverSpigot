@@ -1621,8 +1621,11 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
         boolean flag1 = super.startRiding(entity, force);
 
         if (flag1 && this.isLeashed()) {
-            this.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(this.getBukkitEntity(), UnleashReason.UNKNOWN)); // CraftBukkit
-            this.dropLeash(true, true);
+            // Paper start - Expand EntityUnleashEvent
+            EntityUnleashEvent event = new EntityUnleashEvent(this.getBukkitEntity(), EntityUnleashEvent.UnleashReason.UNKNOWN, true);
+            if (!event.callEvent()) { return flag1; }
+            this.dropLeash(true, event.isDropLeash());
+            // Paper end - Expand EntityUnleashEvent
         }
 
         return flag1;
