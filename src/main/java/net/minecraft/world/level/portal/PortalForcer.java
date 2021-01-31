@@ -53,17 +53,39 @@ public class PortalForcer {
         // int i = flag ? 16 : 128;
         // CraftBukkit end
 
-        villageplace.ensureLoadedAndValid(this.level, blockposition, i);
-        Stream<BlockPos> stream = villageplace.getInSquare((holder) -> { // CraftBukkit - decompile error
-            return holder.is(PoiTypes.NETHER_PORTAL);
-        }, blockposition, i, PoiManager.Occupancy.ANY).map(PoiRecord::getPos);
+        // Paper start - optimise portals
+        Optional<PoiRecord> optional;
+        java.util.List<PoiRecord> records = new java.util.ArrayList<>();
+        io.papermc.paper.util.PoiAccess.findClosestPoiDataRecords(
+            villageplace,
+            type -> type.is(PoiTypes.NETHER_PORTAL),
+            (BlockPos pos) -> {
+                net.minecraft.world.level.chunk.ChunkAccess lowest = this.level.getChunk(pos.getX() >> 4, pos.getZ() >> 4, net.minecraft.world.level.chunk.status.ChunkStatus.EMPTY);
+                if (!lowest.getPersistedStatus().isOrAfter(net.minecraft.world.level.chunk.status.ChunkStatus.FULL)
+                    && (lowest.getBelowZeroRetrogen() == null || !lowest.getBelowZeroRetrogen().targetStatus().isOrAfter(net.minecraft.world.level.chunk.status.ChunkStatus.SPAWN))) {
+                    // why would we generate the chunk?
+                    return false;
+                }
+                if (!worldborder.isWithinBounds(pos) || (this.level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.test(v -> pos.getY() >= v))) { // Paper - Configurable nether ceiling damage
+                    return false;
+                }
+                return lowest.getBlockState(pos).hasProperty(BlockStateProperties.HORIZONTAL_AXIS);
+            },
+            blockposition, i, Double.MAX_VALUE, PoiManager.Occupancy.ANY, true, records
+        );
 
-        Objects.requireNonNull(worldborder);
-        return stream.filter(worldborder::isWithinBounds).filter(pos -> !(this.level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER && this.level.paperConfig().environment.netherCeilingVoidDamageHeight.test(v -> pos.getY() >= v))).filter((blockposition1) -> { // Paper - Configurable nether ceiling damage
-            return this.level.getBlockState(blockposition1).hasProperty(BlockStateProperties.HORIZONTAL_AXIS);
-        }).min(Comparator.comparingDouble((BlockPos blockposition1) -> { // CraftBukkit - decompile error
-            return blockposition1.distSqr(blockposition);
-        }).thenComparingInt(Vec3i::getY));
+        // this gets us most of the way there, but we bias towards lower y values.
+        BlockPos lowestPos = null;
+        for (PoiRecord record : records) {
+            if (lowestPos == null) {
+                lowestPos = record.getPos();
+            } else if (lowestPos.getY() > record.getPos().getY()) {
+                lowestPos = record.getPos();
+            }
+        }
+        // now we're done
+        return Optional.ofNullable(lowestPos);
+        // Paper end - optimise portals
     }
 
     public Optional<BlockUtil.FoundRectangle> createPortal(BlockPos pos, Direction.Axis axis) {
