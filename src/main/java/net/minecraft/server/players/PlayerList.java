@@ -588,6 +588,14 @@ public abstract class PlayerList {
         }
         // Paper end - Configurable player collision
 
+        // Paper - Drop carried item when player has disconnected
+        if (!entityplayer.containerMenu.getCarried().isEmpty()) {
+            net.minecraft.world.item.ItemStack carried = entityplayer.containerMenu.getCarried();
+            entityplayer.containerMenu.setCarried(net.minecraft.world.item.ItemStack.EMPTY);
+            entityplayer.drop(carried, false);
+        }
+        // Paper end - Drop carried item when player has disconnected
+
         this.save(entityplayer);
         if (entityplayer.isPassenger()) {
             Entity entity = entityplayer.getRootVehicle();
