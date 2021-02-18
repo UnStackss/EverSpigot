@@ -57,6 +57,7 @@ public class AcquirePoi {
                                     return false;
                                 } else {
                                     mutableLong.setValue(time + 20L + (long)world.getRandom().nextInt(20));
+                                    if (entity.getNavigation().isStuck()) mutableLong.add(200); // Paper - Perf: Wait an additional 10s to check again if they're stuck
                                     PoiManager poiManager = world.getPoiManager();
                                     long2ObjectMap.long2ObjectEntrySet().removeIf(entry -> !entry.getValue().isStillValid(time));
                                     Predicate<BlockPos> predicate2 = pos -> {
