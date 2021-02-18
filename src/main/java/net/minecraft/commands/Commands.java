@@ -340,7 +340,7 @@ public class Commands {
         } catch (Exception exception) {
             MutableComponent ichatmutablecomponent = Component.literal(exception.getMessage() == null ? exception.getClass().getName() : exception.getMessage());
 
-            if (Commands.LOGGER.isDebugEnabled()) {
+            if (commandlistenerwrapper.getServer().isDebugging() || Commands.LOGGER.isDebugEnabled()) { // Paper - Debugging
                 Commands.LOGGER.error("Command exception: /{}", s, exception);
                 StackTraceElement[] astacktraceelement = exception.getStackTrace();
 
