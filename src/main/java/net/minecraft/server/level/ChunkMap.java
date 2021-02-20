@@ -1461,7 +1461,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
         final Entity entity;
         private final int range;
         SectionPos lastSectionPos;
-        public final Set<ServerPlayerConnection> seenBy = Sets.newIdentityHashSet();
+        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
 
         public TrackedEntity(final Entity entity, final int i, final int j, final boolean flag) {
             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
