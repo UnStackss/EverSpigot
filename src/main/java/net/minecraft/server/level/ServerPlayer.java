@@ -1715,6 +1715,18 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
         this.doCloseContainer();
     }
+    // Paper start - special close for unloaded inventory
+    @Override
+    public void closeUnloadedInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
+        // copied from above
+        CraftEventFactory.handleInventoryCloseEvent(this, reason); // CraftBukkit
+        // Paper end
+        // copied from below
+        this.connection.send(new ClientboundContainerClosePacket(this.containerMenu.containerId));
+        this.containerMenu = this.inventoryMenu;
+        // do not run close logic
+    }
+    // Paper end - special close for unloaded inventory
 
     @Override
     public void doCloseContainer() {

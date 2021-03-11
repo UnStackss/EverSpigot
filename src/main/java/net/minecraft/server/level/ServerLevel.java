@@ -1274,9 +1274,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
         // Spigot Start
         for (net.minecraft.world.level.block.entity.BlockEntity tileentity : chunk.getBlockEntities().values()) {
             if (tileentity instanceof net.minecraft.world.Container) {
+                // Paper start - this area looks like it can load chunks, change the behavior
+                // chests for example can apply physics to the world
+                // so instead we just change the active container and call the event
                 for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((net.minecraft.world.Container) tileentity).getViewers())) {
-                    h.closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
+                    ((org.bukkit.craftbukkit.entity.CraftHumanEntity) h).getHandle().closeUnloadedInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
                 }
+                // Paper end - this area looks like it can load chunks, change the behavior
             }
         }
         // Spigot End
