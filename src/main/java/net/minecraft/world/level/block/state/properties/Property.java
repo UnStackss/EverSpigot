@@ -24,6 +24,17 @@ public abstract class Property<T extends Comparable<T>> {
         );
     private final Codec<Property.Value<T>> valueCodec = this.codec.xmap(this::value, Property.Value::value);
 
+    // Paper start - optimise iblockdata state lookup
+    private static final java.util.concurrent.atomic.AtomicInteger ID_GENERATOR = new java.util.concurrent.atomic.AtomicInteger();
+    private final int id = ID_GENERATOR.getAndIncrement();
+
+    public final int getId() {
+        return this.id;
+    }
+
+    public abstract int getIdFor(final T value);
+    // Paper end - optimise state lookup
+
     protected Property(String name, Class<T> type) {
         this.clazz = type;
         this.name = name;

@@ -7,6 +7,13 @@ import java.util.Optional;
 public class BooleanProperty extends Property<Boolean> {
     private final ImmutableSet<Boolean> values = ImmutableSet.of(true, false);
 
+    // Paper start - optimise iblockdata state lookup
+    @Override
+    public final int getIdFor(final Boolean value) {
+        return value.booleanValue() ? 1 : 0;
+    }
+    // Paper end - optimise iblockdata state lookup
+
     protected BooleanProperty(String name) {
         super(name, Boolean.class);
     }

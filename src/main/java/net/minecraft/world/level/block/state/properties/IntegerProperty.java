@@ -11,6 +11,16 @@ public class IntegerProperty extends Property<Integer> {
     public final int min;
     public final int max;
 
+    // Paper start - optimise iblockdata state lookup
+    @Override
+    public final int getIdFor(final Integer value) {
+        final int val = value.intValue();
+        final int ret = val - this.min;
+
+        return ret | ((this.max - ret) >> 31);
+    }
+    // Paper end - optimise iblockdata state lookup
+
     protected IntegerProperty(String name, int min, int max) {
         super(name, Integer.class);
         if (min < 0) {

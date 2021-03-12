@@ -15,6 +15,15 @@ public class EnumProperty<T extends Enum<T> & StringRepresentable> extends Prope
     private final ImmutableSet<T> values;
     private final Map<String, T> names = Maps.newHashMap();
 
+    // Paper start - optimise iblockdata state lookup
+    private int[] idLookupTable;
+
+    @Override
+    public final int getIdFor(final T value) {
+        return this.idLookupTable[value.ordinal()];
+    }
+    // Paper end - optimise iblockdata state lookup
+
     protected EnumProperty(String name, Class<T> type, Collection<T> values) {
         super(name, type);
         this.values = ImmutableSet.copyOf(values);
@@ -27,6 +36,14 @@ public class EnumProperty<T extends Enum<T> & StringRepresentable> extends Prope
 
             this.names.put(string, enum_);
         }
+        // Paper start - optimise BlockState lookup
+        int id = 0;
+        this.idLookupTable = new int[type.getEnumConstants().length];
+        java.util.Arrays.fill(this.idLookupTable, -1);
+        for (final T value : this.getPossibleValues()) {
+            this.idLookupTable[value.ordinal()] = id++;
+        }
+        // Paper end - optimise BlockState lookup
     }
 
     @Override
