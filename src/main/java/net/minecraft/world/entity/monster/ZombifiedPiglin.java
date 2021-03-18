@@ -56,6 +56,7 @@ public class ZombifiedPiglin extends Zombie implements NeutralMob {
     private static final int ALERT_RANGE_Y = 10;
     private static final UniformInt ALERT_INTERVAL = TimeUtil.rangeOfSeconds(4, 6);
     private int ticksUntilNextAlert;
+    private HurtByTargetGoal pathfinderGoalHurtByTarget; // Paper - fix PigZombieAngerEvent cancellation
 
     public ZombifiedPiglin(EntityType<? extends ZombifiedPiglin> type, Level world) {
         super(type, world);
@@ -71,7 +72,7 @@ public class ZombifiedPiglin extends Zombie implements NeutralMob {
     protected void addBehaviourGoals() {
         this.goalSelector.addGoal(2, new ZombieAttackGoal(this, 1.0D, false));
         this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0D));
-        this.targetSelector.addGoal(1, (new HurtByTargetGoal(this, new Class[0])).setAlertOthers());
+        this.targetSelector.addGoal(1, pathfinderGoalHurtByTarget = (new HurtByTargetGoal(this, new Class[0])).setAlertOthers()); // Paper - fix PigZombieAngerEvent cancellation
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
         this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, true));
     }
@@ -179,6 +180,7 @@ public class ZombifiedPiglin extends Zombie implements NeutralMob {
         this.level().getCraftServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) {
             this.setPersistentAngerTarget(null);
+            pathfinderGoalHurtByTarget.stop(); // Paper - fix PigZombieAngerEvent cancellation
             return;
         }
         this.setRemainingPersistentAngerTime(event.getNewAnger());
