@@ -4011,6 +4011,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                         this.level().getCraftServer().getPluginManager().callEvent(event);
 
                         if (event.isCancelled()) {
+                            this.stopUsingItem(); // Paper - event is using an item, clear active item to reset its use
                             // Update client
                             ((ServerPlayer) this).getBukkitEntity().updateInventory();
                             ((ServerPlayer) this).getBukkitEntity().updateScaledHealth();
