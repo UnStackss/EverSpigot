@@ -55,10 +55,23 @@ public final class MobEffectUtil {
     }
 
     public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel worldserver, @Nullable Entity entity, Vec3 vec3d, double d0, MobEffectInstance mobeffect, int i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
+        // Paper start - Add ElderGuardianAppearanceEvent
+        return addEffectToPlayersAround(worldserver, entity, vec3d, d0, mobeffect, i, cause, null);
+    }
+
+    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel worldserver, @Nullable Entity entity, Vec3 vec3d, double d0, MobEffectInstance mobeffect, int i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause, @Nullable java.util.function.Predicate<ServerPlayer> playerPredicate) {
+        // Paper end - Add ElderGuardianAppearanceEvent
         // CraftBukkit end
         Holder<MobEffect> holder = mobeffect.getEffect();
         List<ServerPlayer> list = worldserver.getPlayers((entityplayer) -> {
-            return entityplayer.gameMode.isSurvival() && (entity == null || !entity.isAlliedTo((Entity) entityplayer)) && vec3d.closerThan(entityplayer.position(), d0) && (!entityplayer.hasEffect(holder) || entityplayer.getEffect(holder).getAmplifier() < mobeffect.getAmplifier() || entityplayer.getEffect(holder).endsWithin(i - 1));
+            // Paper start - Add ElderGuardianAppearanceEvent
+            boolean condition = entityplayer.gameMode.isSurvival() && (entity == null || !entity.isAlliedTo((Entity) entityplayer)) && vec3d.closerThan(entityplayer.position(), d0) && (!entityplayer.hasEffect(holder) || entityplayer.getEffect(holder).getAmplifier() < mobeffect.getAmplifier() || entityplayer.getEffect(holder).endsWithin(i - 1));
+            if (condition) {
+                return playerPredicate == null || playerPredicate.test(entityplayer); // Only test the player AFTER it is true
+            } else {
+                return false;
+            }
+            // Paper ned - Add ElderGuardianAppearanceEvent
         });
 
         list.forEach((entityplayer) -> {
