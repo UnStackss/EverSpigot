@@ -2288,7 +2288,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                 ServerPlayer entityplayer = (ServerPlayer) iterator.next();
 
                 if (!whitelist.isWhiteListed(entityplayer.getGameProfile()) && !this.getPlayerList().isOp(entityplayer.getGameProfile())) { // Paper - Fix kicking ops when whitelist is reloaded (MC-171420)
-                    entityplayer.connection.disconnect((Component) Component.translatable("multiplayer.disconnect.not_whitelisted"));
+                    entityplayer.connection.disconnect(net.kyori.adventure.text.Component.text(org.spigotmc.SpigotConfig.whitelistMessage));
                 }
             }
 
