@@ -456,7 +456,17 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
                 if ((this.spawnFriendlies || this.spawnEnemies) && this.level.paperConfig().entities.spawning.perPlayerMobSpawns) { // don't count mobs when animals and monsters are disabled
                     // re-set mob counts
                     for (ServerPlayer player : this.level.players) {
-                        Arrays.fill(player.mobCounts, 0);
+                        // Paper start - per player mob spawning backoff
+                        for (int ii = 0; ii < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; ii++) {
+                            player.mobCounts[ii] = 0;
+
+                            int newBackoff = player.mobBackoffCounts[ii] - 1; // TODO make configurable bleed // TODO use nonlinear algorithm?
+                            if (newBackoff < 0) {
+                                newBackoff = 0;
+                            }
+                            player.mobBackoffCounts[ii] = newBackoff;
+                        }
+                        // Paper end - per player mob spawning backoff
                     }
                     spawnercreature_d = NaturalSpawner.createState(naturalSpawnChunkCount, this.level.getAllEntities(), this::getFullChunk, null, true);
                 } else {

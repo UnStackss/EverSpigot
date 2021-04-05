@@ -272,6 +272,11 @@ public final class NaturalSpawner {
 
                                     // Paper start - PreCreatureSpawnEvent
                                     PreSpawnStatus doSpawning = isValidSpawnPostitionForType(world, group, structuremanager, chunkgenerator, biomesettingsmobs_c, blockposition_mutableblockposition, d2);
+                                    // Paper start - per player mob count backoff
+                                    if (doSpawning == PreSpawnStatus.ABORT || doSpawning == PreSpawnStatus.CANCELLED) {
+                                        world.getChunkSource().chunkMap.updateFailurePlayerMobTypeMap(blockposition_mutableblockposition.getX() >> 4, blockposition_mutableblockposition.getZ() >> 4, group);
+                                    }
+                                    // Paper end - per player mob count backoff
                                     if (doSpawning == PreSpawnStatus.ABORT) {
                                         return j; // Paper - Optional per player mob spawns
                                     }

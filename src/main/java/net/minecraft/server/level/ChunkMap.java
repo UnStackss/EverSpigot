@@ -240,8 +240,25 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
             ++(backingSet[i].mobCounts[index]);
         }
     }
+    // Paper start - per player mob count backoff
+    public void updateFailurePlayerMobTypeMap(int chunkX, int chunkZ, net.minecraft.world.entity.MobCategory mobCategory) {
+        if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
+            return;
+        }
+        int idx = mobCategory.ordinal();
+        final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> inRange =
+            this.level.moonrise$getNearbyPlayers().getPlayersByChunk(chunkX, chunkZ, ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
+        if (inRange == null) {
+            return;
+        }
+        final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
+        for (int i = 0, len = inRange.size(); i < len; i++) {
+            ++(backingSet[i].mobBackoffCounts[idx]);
+        }
+    }
+    // Paper end - per player mob count backoff
     public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
-        return player.mobCounts[mobCategory.ordinal()];
+        return player.mobCounts[mobCategory.ordinal()] + player.mobBackoffCounts[mobCategory.ordinal()]; // Paper - per player mob count backoff
         // Paper end - Optional per player mob spawns
     }
     // Paper end
