@@ -47,6 +47,7 @@ public class ChunkStorage implements AutoCloseable {
 
     // CraftBukkit start
     private boolean check(ServerChunkCache cps, int x, int z) {
+        if (true) return true; // Paper - Perf: this isn't even needed anymore, light is purged updating to 1.14+, why are we holding up the conversion process reading chunk data off disk - return true, we need to set light populated to true so the converter recognizes the chunk as being "full"
         ChunkPos pos = new ChunkPos(x, z);
         if (cps != null) {
             com.google.common.base.Preconditions.checkState(org.bukkit.Bukkit.isPrimaryThread(), "primary thread");
