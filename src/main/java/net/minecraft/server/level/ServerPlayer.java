@@ -1195,7 +1195,13 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         Player respawnPlayer = this.getBukkitEntity();
         Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
 
-        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason);
+        // Paper start - respawn flags
+        com.google.common.collect.ImmutableSet.Builder<org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag> builder = com.google.common.collect.ImmutableSet.builder();
+        if (reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
+            builder.add(org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag.END_PORTAL);
+        }
+        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason, builder);
+        // Paper end - respawn flags
         this.level().getCraftServer().getPluginManager().callEvent(respawnEvent);
         // Spigot Start
         if (this.connection.isDisconnected()) {
