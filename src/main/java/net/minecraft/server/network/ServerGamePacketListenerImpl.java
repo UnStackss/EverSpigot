@@ -1933,6 +1933,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
         if (this.player.isImmobile()) return; // CraftBukkit
         if (packet.getSlot() >= 0 && packet.getSlot() < Inventory.getSelectionSize()) {
+            if (packet.getSlot() == this.player.getInventory().selected) { return; } // Paper - don't fire itemheldevent when there wasn't a slot change
             PlayerItemHeldEvent event = new PlayerItemHeldEvent(this.getCraftPlayer(), this.player.getInventory().selected, packet.getSlot());
             this.cserver.getPluginManager().callEvent(event);
             if (event.isCancelled()) {
