@@ -115,6 +115,7 @@ public class ServerConnectionListener {
                     pending.add(object); // Paper - prevent blocking on adding a new connection while the server is ticking
                     ((Connection) object).configurePacketHandler(channelpipeline);
                     ((Connection) object).setListenerForServerboundHandshake(new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, (Connection) object));
+                    io.papermc.paper.network.ChannelInitializeListenerHolder.callListeners(channel); // Paper - Add Channel initialization listeners
                 }
             }).group(eventloopgroup).localAddress(address, port)).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit
         }
