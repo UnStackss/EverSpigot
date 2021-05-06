@@ -61,6 +61,10 @@ public class WanderingTrader extends net.minecraft.world.entity.npc.AbstractVill
     @Nullable
     private BlockPos wanderTarget;
     private int despawnDelay;
+    // Paper start - Add more WanderingTrader API
+    public boolean canDrinkPotion = true;
+    public boolean canDrinkMilk = true;
+    // Paper end - Add more WanderingTrader API
 
     public WanderingTrader(EntityType<? extends WanderingTrader> type, Level world) {
         super(type, world);
@@ -71,10 +75,10 @@ public class WanderingTrader extends net.minecraft.world.entity.npc.AbstractVill
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(0, new UseItemGoal<>(this, PotionContents.createItemStack(Items.POTION, Potions.INVISIBILITY), SoundEvents.WANDERING_TRADER_DISAPPEARED, (entityvillagertrader) -> {
-            return this.level().isNight() && !entityvillagertrader.isInvisible();
+            return this.canDrinkPotion && this.level().isNight() && !entityvillagertrader.isInvisible(); // Paper - Add more WanderingTrader API
         }));
         this.goalSelector.addGoal(0, new UseItemGoal<>(this, new ItemStack(Items.MILK_BUCKET), SoundEvents.WANDERING_TRADER_REAPPEARED, (entityvillagertrader) -> {
-            return this.level().isDay() && entityvillagertrader.isInvisible();
+            return this.canDrinkMilk && this.level().isDay() && entityvillagertrader.isInvisible(); // Paper - Add more WanderingTrader API
         }));
         this.goalSelector.addGoal(1, new TradeWithPlayerGoal(this));
         this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Zombie.class, 8.0F, 0.5D, 0.5D));
