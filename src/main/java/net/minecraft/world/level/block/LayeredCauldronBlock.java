@@ -66,6 +66,7 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (!world.isClientSide && entity.isOnFire() && this.isEntityInsideContent(state, pos, entity)) {
             // CraftBukkit start
             if (entity.mayInteract(world, pos)) {

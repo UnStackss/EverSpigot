@@ -178,6 +178,7 @@ public class BigDripleafBlock extends HorizontalDirectionalBlock implements Bone
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (!world.isClientSide) {
             if (state.getValue(BigDripleafBlock.TILT) == Tilt.NONE && BigDripleafBlock.canEntityTilt(pos, entity) && !world.hasNeighborSignal(pos)) {
                 // CraftBukkit start - tilt dripleaf

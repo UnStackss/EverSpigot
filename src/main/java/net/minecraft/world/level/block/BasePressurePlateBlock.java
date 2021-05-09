@@ -77,6 +77,7 @@ public abstract class BasePressurePlateBlock extends Block {
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (!world.isClientSide) {
             int i = this.getSignalForState(state);
 

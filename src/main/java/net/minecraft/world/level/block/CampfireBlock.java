@@ -104,6 +104,7 @@ public class CampfireBlock extends BaseEntityBlock implements SimpleWaterloggedB
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if ((Boolean) state.getValue(CampfireBlock.LIT) && entity instanceof LivingEntity) {
             entity.hurt(world.damageSources().campfire().directBlock(world, pos), (float) this.fireDamage); // CraftBukkit
         }

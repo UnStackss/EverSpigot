@@ -24,6 +24,7 @@ public class WebBlock extends Block {
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         Vec3 vec3 = new Vec3(0.25, 0.05F, 0.25);
         if (entity instanceof LivingEntity livingEntity && livingEntity.hasEffect(MobEffects.WEAVING)) {
             vec3 = new Vec3(0.5, 0.25, 0.5);

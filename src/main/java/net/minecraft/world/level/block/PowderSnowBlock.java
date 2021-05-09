@@ -63,6 +63,7 @@ public class PowderSnowBlock extends Block implements BucketPickup {
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (!(entity instanceof LivingEntity) || entity.getInBlockState().is((Block) this)) {
             entity.makeStuckInBlock(state, new Vec3(0.8999999761581421D, 1.5D, 0.8999999761581421D));
             if (world.isClientSide) {

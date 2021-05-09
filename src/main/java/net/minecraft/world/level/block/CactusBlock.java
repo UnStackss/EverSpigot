@@ -121,6 +121,7 @@ public class CactusBlock extends Block {
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         entity.hurt(world.damageSources().cactus().directBlock(world, pos), 1.0F); // CraftBukkit
     }
 
