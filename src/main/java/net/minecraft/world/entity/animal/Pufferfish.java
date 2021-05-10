@@ -101,25 +101,39 @@ public class Pufferfish extends AbstractFish {
     public void tick() {
         if (!this.level().isClientSide && this.isAlive() && this.isEffectiveAi()) {
             if (this.inflateCounter > 0) {
+                boolean increase = true; // Paper - Add PufferFishStateChangeEvent
                 if (this.getPuffState() == 0) {
+                    if (new io.papermc.paper.event.entity.PufferFishStateChangeEvent((org.bukkit.entity.PufferFish) getBukkitEntity(), 1).callEvent()) { // Paper - Add PufferFishStateChangeEvent
                     this.makeSound(SoundEvents.PUFFER_FISH_BLOW_UP);
                     this.setPuffState(1);
+                    } else { increase = false; } // Paper - Add PufferFishStateChangeEvent
                 } else if (this.inflateCounter > 40 && this.getPuffState() == 1) {
+                    if (new io.papermc.paper.event.entity.PufferFishStateChangeEvent((org.bukkit.entity.PufferFish) getBukkitEntity(), 2).callEvent()) { // Paper - Add PufferFishStateChangeEvent
                     this.makeSound(SoundEvents.PUFFER_FISH_BLOW_UP);
                     this.setPuffState(2);
+                    } else { increase = false; } // Paper - Add PufferFishStateChangeEvent
                 }
 
+                if (increase) { // Paper - Add PufferFishStateChangeEvent
                 ++this.inflateCounter;
+                } // Paper - Add PufferFishStateChangeEvent
             } else if (this.getPuffState() != 0) {
+                boolean increase = true; // Paper - Add PufferFishStateChangeEvent
                 if (this.deflateTimer > 60 && this.getPuffState() == 2) {
+                    if (new io.papermc.paper.event.entity.PufferFishStateChangeEvent((org.bukkit.entity.PufferFish) getBukkitEntity(), 1).callEvent()) { // Paper - Add PufferFishStateChangeEvent
                     this.makeSound(SoundEvents.PUFFER_FISH_BLOW_OUT);
                     this.setPuffState(1);
+                    } else { increase = false; } // Paper - Add PufferFishStateChangeEvent
                 } else if (this.deflateTimer > 100 && this.getPuffState() == 1) {
+                    if (new io.papermc.paper.event.entity.PufferFishStateChangeEvent((org.bukkit.entity.PufferFish) getBukkitEntity(), 0).callEvent()) { // Paper - Add PufferFishStateChangeEvent
                     this.makeSound(SoundEvents.PUFFER_FISH_BLOW_OUT);
                     this.setPuffState(0);
+                    } else { increase = false; } // Paper - Add PufferFishStateChangeEvent
                 }
 
+                if (increase) { // Paper - Add PufferFishStateChangeEvent
                 ++this.deflateTimer;
+                } // Paper - Add PufferFishStateChangeEvent
             }
         }
 
