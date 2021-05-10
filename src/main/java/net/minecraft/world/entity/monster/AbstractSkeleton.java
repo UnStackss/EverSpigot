@@ -93,9 +93,15 @@ public abstract class AbstractSkeleton extends Monster implements RangedAttackMo
 
     abstract SoundEvent getStepSound();
 
+    // Paper start - shouldBurnInDay API
+    private boolean shouldBurnInDay = true;
+    public boolean shouldBurnInDay() { return shouldBurnInDay; }
+    public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; }
+    // Paper end - shouldBurnInDay API
+
     @Override
     public void aiStep() {
-        boolean flag = this.isSunBurnTick();
+        boolean flag = shouldBurnInDay && this.isSunBurnTick(); // Paper - shouldBurnInDay API
 
         if (flag) {
             ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);
@@ -232,7 +238,20 @@ public abstract class AbstractSkeleton extends Monster implements RangedAttackMo
     public void readAdditionalSaveData(CompoundTag nbt) {
         super.readAdditionalSaveData(nbt);
         this.reassessWeaponGoal();
+        // Paper start - shouldBurnInDay API
+        if (nbt.contains("Paper.ShouldBurnInDay")) {
+            this.shouldBurnInDay = nbt.getBoolean("Paper.ShouldBurnInDay");
+        }
+        // Paper end - shouldBurnInDay API
     }
+
+    // Paper start - shouldBurnInDay API
+    @Override
+    public void addAdditionalSaveData(CompoundTag nbt) {
+        super.addAdditionalSaveData(nbt);
+        nbt.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay);
+    }
+    // Paper end - shouldBurnInDay API
 
     @Override
     public void setItemSlot(EquipmentSlot slot, ItemStack stack) {
