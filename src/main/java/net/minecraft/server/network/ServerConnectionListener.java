@@ -76,7 +76,12 @@ public class ServerConnectionListener {
         this.running = true;
     }
 
+    // Paper start - Unix domain socket support
     public void startTcpServerListener(@Nullable InetAddress address, int port) throws IOException {
+        bind(new java.net.InetSocketAddress(address, port));
+    }
+    public void bind(java.net.SocketAddress address) throws IOException {
+    // Paper end - Unix domain socket support
         List list = this.channels;
 
         synchronized (this.channels) {
@@ -84,7 +89,13 @@ public class ServerConnectionListener {
             EventLoopGroup eventloopgroup;
 
             if (Epoll.isAvailable() && this.server.isEpollEnabled()) {
+                // Paper start - Unix domain socket support
+                if (address instanceof io.netty.channel.unix.DomainSocketAddress) {
+                    oclass = io.netty.channel.epoll.EpollServerDomainSocketChannel.class;
+                } else {
                 oclass = EpollServerSocketChannel.class;
+                }
+                // Paper end - Unix domain socket support
                 eventloopgroup = (EventLoopGroup) ServerConnectionListener.SERVER_EPOLL_EVENT_GROUP.get();
                 ServerConnectionListener.LOGGER.info("Using epoll channel type");
             } else {
@@ -117,7 +128,7 @@ public class ServerConnectionListener {
                     ((Connection) object).setListenerForServerboundHandshake(new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, (Connection) object));
                     io.papermc.paper.network.ChannelInitializeListenerHolder.callListeners(channel); // Paper - Add Channel initialization listeners
                 }
-            }).group(eventloopgroup).localAddress(address, port)).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit
+            }).group(eventloopgroup).localAddress(address)).option(ChannelOption.AUTO_READ, false).bind().syncUninterruptibly()); // CraftBukkit // Paper - Unix domain socket support
         }
     }
 

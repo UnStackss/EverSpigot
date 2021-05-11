@@ -236,6 +236,20 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         this.setEnforceWhitelist(dedicatedserverproperties.enforceWhitelist);
         // this.worldData.setGameType(dedicatedserverproperties.gamemode); // CraftBukkit - moved to world loading
         DedicatedServer.LOGGER.info("Default game type: {}", dedicatedserverproperties.gamemode);
+        // Paper start - Unix domain socket support
+        java.net.SocketAddress bindAddress;
+        if (this.getLocalIp().startsWith("unix:")) {
+            if (!io.netty.channel.epoll.Epoll.isAvailable()) {
+                DedicatedServer.LOGGER.error("**** INVALID CONFIGURATION!");
+                DedicatedServer.LOGGER.error("You are trying to use a Unix domain socket but you're not on a supported OS.");
+                return false;
+            } else if (!io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled && !org.spigotmc.SpigotConfig.bungee) {
+                DedicatedServer.LOGGER.error("**** INVALID CONFIGURATION!");
+                DedicatedServer.LOGGER.error("Unix domain sockets require IPs to be forwarded from a proxy.");
+                return false;
+            }
+            bindAddress = new io.netty.channel.unix.DomainSocketAddress(this.getLocalIp().substring("unix:".length()));
+        } else {
         InetAddress inetaddress = null;
 
         if (!this.getLocalIp().isEmpty()) {
@@ -245,12 +259,15 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         if (this.getPort() < 0) {
             this.setPort(dedicatedserverproperties.serverPort);
         }
+        bindAddress = new java.net.InetSocketAddress(inetaddress, this.getPort());
+        }
+        // Paper end - Unix domain socket support
 
         this.initializeKeyPair();
         DedicatedServer.LOGGER.info("Starting Minecraft server on {}:{}", this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort());
 
         try {
-            this.getConnection().startTcpServerListener(inetaddress, this.getPort());
+            this.getConnection().bind(bindAddress); // Paper - Unix domain socket support
         } catch (IOException ioexception) {
             DedicatedServer.LOGGER.warn("**** FAILED TO BIND TO PORT!");
             DedicatedServer.LOGGER.warn("The exception was: {}", ioexception.toString());
