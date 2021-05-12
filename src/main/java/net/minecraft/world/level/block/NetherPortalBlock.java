@@ -133,6 +133,14 @@ public class NetherPortalBlock extends Block implements Portal {
         // CraftBukkit start
         ResourceKey<Level> resourcekey = world.getTypeKey() == LevelStem.NETHER ? Level.OVERWORLD : Level.NETHER;
         ServerLevel worldserver1 = world.getServer().getLevel(resourcekey);
+        // Paper start - Add EntityPortalReadyEvent
+        io.papermc.paper.event.entity.EntityPortalReadyEvent portalReadyEvent = new io.papermc.paper.event.entity.EntityPortalReadyEvent(entity.getBukkitEntity(), worldserver1 == null ? null : worldserver1.getWorld(), org.bukkit.PortalType.NETHER);
+        if (!portalReadyEvent.callEvent()) {
+            entity.portalProcess = null;
+            return null;
+        }
+        worldserver1 = portalReadyEvent.getTargetWorld() == null ? null : ((org.bukkit.craftbukkit.CraftWorld) portalReadyEvent.getTargetWorld()).getHandle();
+        // Paper end - Add EntityPortalReadyEvent
 
         if (worldserver1 == null) {
             return new DimensionTransition(PlayerTeleportEvent.TeleportCause.NETHER_PORTAL); // always fire event in case plugins wish to change it
