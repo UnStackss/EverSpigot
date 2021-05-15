@@ -60,9 +60,14 @@ public class GameModeCommand {
         int i = 0;
 
         for (ServerPlayer serverPlayer : targets) {
-            if (serverPlayer.setGameMode(gameMode)) {
+            // Paper start - Expand PlayerGameModeChangeEvent
+            org.bukkit.event.player.PlayerGameModeChangeEvent event = serverPlayer.setGameMode(gameMode, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.COMMAND, net.kyori.adventure.text.Component.empty());
+            if (event != null && !event.isCancelled()) {
                 logGamemodeChange(context.getSource(), serverPlayer, gameMode);
                 i++;
+            } else if (event != null && event.cancelMessage() != null) {
+                context.getSource().sendSuccess(() -> io.papermc.paper.adventure.PaperAdventure.asVanilla(event.cancelMessage()), true);
+                // Paper end - Expand PlayerGameModeChangeEvent
             }
         }
 

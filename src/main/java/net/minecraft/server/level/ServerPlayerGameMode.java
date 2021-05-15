@@ -74,14 +74,21 @@ public class ServerPlayerGameMode {
     }
 
     public boolean changeGameModeForPlayer(GameType gameMode) {
+        // Paper start - Expand PlayerGameModeChangeEvent
+        PlayerGameModeChangeEvent event = this.changeGameModeForPlayer(gameMode, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
+        return event != null && event.isCancelled();
+    }
+    @Nullable
+    public PlayerGameModeChangeEvent changeGameModeForPlayer(GameType gameMode, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component cancelMessage) {
+        // Paper end - Expand PlayerGameModeChangeEvent
         if (gameMode == this.gameModeForPlayer) {
-            return false;
+            return null; // Paper - Expand PlayerGameModeChangeEvent
         } else {
             // CraftBukkit start
-            PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(this.player.getBukkitEntity(), GameMode.getByValue(gameMode.getId()));
+            PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(this.player.getBukkitEntity(), GameMode.getByValue(gameMode.getId()), cause, cancelMessage); // Paper
             this.level.getCraftServer().getPluginManager().callEvent(event);
             if (event.isCancelled()) {
-                return false;
+                return event; // Paper - Expand PlayerGameModeChangeEvent
             }
             // CraftBukkit end
             this.setGameModeForPlayer(gameMode, this.previousGameModeForPlayer);
@@ -92,7 +99,7 @@ public class ServerPlayerGameMode {
                 this.player.resetCurrentImpulseContext();
             }
 
-            return true;
+            return event; // Paper - Expand PlayerGameModeChangeEvent
         }
     }
 

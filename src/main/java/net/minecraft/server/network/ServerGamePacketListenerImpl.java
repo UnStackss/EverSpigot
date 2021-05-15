@@ -2730,7 +2730,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
                     this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, RespawnReason.DEATH); // CraftBukkit
                     if (this.server.isHardcore()) {
-                        this.player.setGameMode(GameType.SPECTATOR);
+                        this.player.setGameMode(GameType.SPECTATOR, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.HARDCORE_DEATH, null); // Paper - Expand PlayerGameModeChangeEvent
                         ((GameRules.BooleanValue) this.player.level().getGameRules().getRule(GameRules.RULE_SPECTATORSGENERATECHUNKS)).set(false, this.player.serverLevel()); // CraftBukkit - per-world
                     }
                 }
