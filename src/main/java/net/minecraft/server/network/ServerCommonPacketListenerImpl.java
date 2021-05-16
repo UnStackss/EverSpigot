@@ -128,7 +128,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
         } else if (!this.isSingleplayerOwner()) {
             // Paper start - This needs to be handled on the main thread for plugins
             server.submit(() -> {
-                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE);
+                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
             });
             // Paper end - This needs to be handled on the main thread for plugins
         }
@@ -164,7 +164,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
                 }
             } catch (Exception ex) {
                 ServerGamePacketListenerImpl.LOGGER.error("Couldn\'t register custom payload", ex);
-                this.disconnect(Component.literal("Invalid payload REGISTER!"));
+                this.disconnect(Component.literal("Invalid payload REGISTER!"), PlayerKickEvent.Cause.INVALID_PAYLOAD); // Paper - kick event cause
             }
         } else if (identifier.equals(ServerCommonPacketListenerImpl.CUSTOM_UNREGISTER)) {
             try {
@@ -174,7 +174,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
                 }
             } catch (Exception ex) {
                 ServerGamePacketListenerImpl.LOGGER.error("Couldn\'t unregister custom payload", ex);
-                this.disconnect(Component.literal("Invalid payload UNREGISTER!"));
+                this.disconnect(Component.literal("Invalid payload UNREGISTER!"), PlayerKickEvent.Cause.INVALID_PAYLOAD); // Paper - kick event cause
             }
         } else {
             try {
@@ -192,7 +192,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
                 this.cserver.getMessenger().dispatchIncomingMessage(this.player.getBukkitEntity(), identifier.toString(), data);
             } catch (Exception ex) {
                 ServerGamePacketListenerImpl.LOGGER.error("Couldn\'t dispatch custom payload", ex);
-                this.disconnect(Component.literal("Invalid custom payload!"));
+                this.disconnect(Component.literal("Invalid custom payload!"), PlayerKickEvent.Cause.INVALID_PAYLOAD); // Paper - kick event cause
             }
         }
 
@@ -208,7 +208,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
         PacketUtils.ensureRunningOnSameThread(packet, this, (BlockableEventLoop) this.server);
         if (packet.action() == ServerboundResourcePackPacket.Action.DECLINED && this.server.isResourcePackRequired()) {
             ServerCommonPacketListenerImpl.LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().getName(), packet.id());
-            this.disconnect((Component) Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
+            this.disconnect((Component) Component.translatable("multiplayer.requiredTexturePrompt.disconnect"), PlayerKickEvent.Cause.RESOURCE_PACK_REJECTION); // Paper - kick event cause
         }
         // Paper start - adventure pack callbacks
         // call the callbacks before the previously-existing event so the event has final say
@@ -238,7 +238,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
             return;
         }
         // CraftBukkit end
-        this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+        this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY, PlayerKickEvent.Cause.INVALID_COOKIE); // Paper - kick event cause
     }
 
     protected void keepConnectionAlive() {
@@ -250,7 +250,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
         if (!this.isSingleplayerOwner() && elapsedTime >= 15000L) { // Paper - use vanilla's 15000L between keep alive packets
             if (this.keepAlivePending && !this.processedDisconnect && elapsedTime >= KEEPALIVE_LIMIT) { // Paper - check keepalive limit, don't fire if already disconnected
-                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE);
+                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
             } else if (this.checkIfClosed(currentTime)) { // Paper
                 this.keepAlivePending = true;
                 this.keepAliveTime = currentTime;
@@ -266,7 +266,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
     private boolean checkIfClosed(long time) {
         if (this.closed) {
             if (time - this.closedListenerTime >= 15000L) {
-                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE);
+                this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
             }
 
             return false;
@@ -318,15 +318,25 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
     // Paper start - adventure
     public void disconnect(final net.kyori.adventure.text.Component reason) {
-        this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(reason));
+        this.disconnect(reason, PlayerKickEvent.Cause.UNKNOWN);
+    }
+    public void disconnect(final net.kyori.adventure.text.Component reason, PlayerKickEvent.Cause cause) {
+        this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(reason), cause);
+        // Paper end - kick event causes
     }
     // Paper end - adventure
 
+    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - kick event causes
     public void disconnect(Component reason) {
-        this.disconnect(new DisconnectionDetails(reason));
+        // Paper start - kick event causes
+        this.disconnect(reason, PlayerKickEvent.Cause.UNKNOWN);
+    }
+    public void disconnect(final Component reason, PlayerKickEvent.Cause cause) {
+        this.disconnect(new DisconnectionDetails(reason), cause);
+        // Paper end - kick event causes
     }
 
-    public void disconnect(DisconnectionDetails disconnectionInfo) {
+    public void disconnect(DisconnectionDetails disconnectionInfo, PlayerKickEvent.Cause cause) { // Paper - kick event cause
         // CraftBukkit start - fire PlayerKickEvent
         if (this.processedDisconnect) {
             return;
@@ -335,7 +345,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
             Waitable waitable = new Waitable() {
                 @Override
                 protected Object evaluate() {
-                    ServerCommonPacketListenerImpl.this.disconnect(disconnectionInfo);
+                    ServerCommonPacketListenerImpl.this.disconnect(disconnectionInfo, cause); // Paper - kick event causes
                     return null;
                 }
             };
@@ -354,7 +364,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
         net.kyori.adventure.text.Component leaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? this.player.getBukkitEntity().displayName() : net.kyori.adventure.text.Component.text(this.player.getScoreboardName())); // Paper - Adventure
 
-        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(disconnectionInfo.reason()), leaveMessage); // Paper - adventure
+        PlayerKickEvent event = new PlayerKickEvent(this.player.getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(disconnectionInfo.reason()), leaveMessage, cause); // Paper - adventure & kick event causes
 
         if (this.cserver.getServer().isRunning()) {
             this.cserver.getPluginManager().callEvent(event);

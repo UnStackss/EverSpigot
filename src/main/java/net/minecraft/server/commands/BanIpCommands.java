@@ -66,7 +66,7 @@ public class BanIpCommands {
             }
 
             for (ServerPlayer serverPlayer : list) {
-                serverPlayer.connection.disconnect(Component.translatable("multiplayer.disconnect.ip_banned"));
+                serverPlayer.connection.disconnect(Component.translatable("multiplayer.disconnect.ip_banned"), org.bukkit.event.player.PlayerKickEvent.Cause.IP_BANNED); // Paper - kick event cause
             }
 
             return list.size();
