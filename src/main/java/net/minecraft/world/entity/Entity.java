@@ -3363,7 +3363,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         if (world instanceof ServerLevel worldserver) {
             if (!this.isRemoved()) {
                 // CraftBukkit start
-                Location to = new Location(teleportTarget.newLevel().getWorld(), teleportTarget.pos().x, teleportTarget.pos().y, teleportTarget.pos().z, teleportTarget.yRot(), teleportTarget.xRot());
+                Location to = new Location(teleportTarget.newLevel().getWorld(), teleportTarget.pos().x, teleportTarget.pos().y, teleportTarget.pos().z, teleportTarget.yRot(), this.getXRot()); // Paper - use getXRot (doesn't respect DimensionTransition pitch)
                 // Paper start - gateway-specific teleport event
                 final EntityTeleportEvent teleEvent;
                 if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
@@ -3377,7 +3377,25 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                     return null;
                 }
                 to = teleEvent.getTo();
-                teleportTarget = new DimensionTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), teleportTarget.speed(), to.getYaw(), to.getPitch(), teleportTarget.missingRespawnBlock(), teleportTarget.postDimensionTransition(), teleportTarget.cause());
+                // Paper start - Call EntityPortalExitEvent
+                CraftEntity bukkitEntity = this.getBukkitEntity();
+                Vec3 velocity = teleportTarget.speed();
+                org.bukkit.event.entity.EntityPortalExitEvent event = new org.bukkit.event.entity.EntityPortalExitEvent(
+                    bukkitEntity,
+                    bukkitEntity.getLocation(), to.clone(),
+                    bukkitEntity.getVelocity(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(velocity)
+                );
+                event.callEvent();
+                if (this.isRemoved()) {
+                    return null;
+                }
+
+                if (!event.isCancelled() && event.getTo() != null) {
+                    to = event.getTo().clone();
+                    velocity = org.bukkit.craftbukkit.util.CraftVector.toNMS(event.getAfter());
+                }
+                teleportTarget = new DimensionTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), velocity, to.getYaw(), to.getPitch(), teleportTarget.missingRespawnBlock(), teleportTarget.postDimensionTransition(), teleportTarget.cause());
+                // Paper end - Call EntityPortalExitEvent
                 // CraftBukkit end
                 ServerLevel worldserver1 = teleportTarget.newLevel();
                 List<Entity> list = this.getPassengers();
