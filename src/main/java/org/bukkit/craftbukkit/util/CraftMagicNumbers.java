@@ -526,6 +526,14 @@ public final class CraftMagicNumbers implements UnsafeValues {
     public int getProtocolVersion() {
         return net.minecraft.SharedConstants.getCurrentVersion().getProtocolVersion();
     }
+
+    @Override
+    public boolean isValidRepairItemStack(org.bukkit.inventory.ItemStack itemToBeRepaired, org.bukkit.inventory.ItemStack repairMaterial) {
+        if (!itemToBeRepaired.getType().isItem() || !repairMaterial.getType().isItem()) {
+            return false;
+        }
+        return CraftMagicNumbers.getItem(itemToBeRepaired.getType()).isValidRepairItem(CraftItemStack.asNMSCopy(itemToBeRepaired), CraftItemStack.asNMSCopy(repairMaterial));
+    }
     // Paper end
 
     @Override
