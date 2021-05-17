@@ -318,6 +318,7 @@ public class Main {
                 */
                 boolean flag2 = !optionset.has("nogui") && !optionset.nonOptionArguments().contains("nogui");
 
+                if(!Boolean.parseBoolean(System.getenv().getOrDefault("PAPER_DISABLE_SERVER_GUI", String.valueOf(false)))) // Paper - Add environment variable to disable server gui
                 if (flag2 && !GraphicsEnvironment.isHeadless()) {
                     dedicatedserver1.showGui();
                 }
