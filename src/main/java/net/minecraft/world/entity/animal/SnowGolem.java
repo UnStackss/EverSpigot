@@ -146,11 +146,18 @@ public class SnowGolem extends AbstractGolem implements Shearable, RangedAttackM
 
         if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
             // CraftBukkit start
-            if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand)) {
-                return InteractionResult.PASS;
+            // Paper start - custom shear drops
+            java.util.List<ItemStack> drops = this.generateDefaultDrops();
+            org.bukkit.event.player.PlayerShearEntityEvent event = CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand, drops);
+            if (event != null) {
+                if (event.isCancelled()) {
+                    return InteractionResult.PASS;
+                }
+                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
             }
+            // Paper end - custom shear drops
             // CraftBukkit end
-            this.shear(SoundSource.PLAYERS);
+            this.shear(SoundSource.PLAYERS, drops); // Paper
             this.gameEvent(GameEvent.SHEAR, player);
             if (!this.level().isClientSide) {
                 itemstack.hurtAndBreak(1, player, getSlotForHand(hand));
@@ -164,12 +171,28 @@ public class SnowGolem extends AbstractGolem implements Shearable, RangedAttackM
 
     @Override
     public void shear(SoundSource shearedSoundCategory) {
+        // Paper start - custom shear drops
+        this.shear(shearedSoundCategory, this.generateDefaultDrops());
+    }
+
+    @Override
+    public java.util.List<ItemStack> generateDefaultDrops() {
+        return java.util.Collections.singletonList(new ItemStack(Items.CARVED_PUMPKIN));
+    }
+
+    @Override
+    public void shear(SoundSource shearedSoundCategory, java.util.List<ItemStack> drops) {
+        // Paper end - custom shear drops
         this.level().playSound((Player) null, (Entity) this, SoundEvents.SNOW_GOLEM_SHEAR, shearedSoundCategory, 1.0F, 1.0F);
         if (!this.level().isClientSide()) {
             this.setPumpkin(false);
-            this.forceDrops = true; // CraftBukkit
-            this.spawnAtLocation(new ItemStack(Items.CARVED_PUMPKIN), this.getEyeHeight());
-            this.forceDrops = false; // CraftBukkit
+            // Paper start - custom shear drops (moved drop generation to separate method)
+            for (final ItemStack drop : drops) {
+                this.forceDrops = true;
+                this.spawnAtLocation(drop, this.getEyeHeight());
+                this.forceDrops = false;
+            }
+            // Paper end - custom shear drops
         }
 
     }

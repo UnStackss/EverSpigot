@@ -123,11 +123,18 @@ public class MushroomCow extends Cow implements Shearable, VariantHolder<Mushroo
             return InteractionResult.sidedSuccess(this.level().isClientSide);
         } else if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
             // CraftBukkit start
-            if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand)) {
-                return InteractionResult.PASS;
+            // Paper start - custom shear drops
+            java.util.List<ItemStack> drops = this.generateDefaultDrops();
+            org.bukkit.event.player.PlayerShearEntityEvent event = CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand, drops);
+            if (event != null) {
+                if (event.isCancelled()) {
+                    return InteractionResult.PASS;
+                }
+                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
             }
+            // Paper end - custom shear drops
             // CraftBukkit end
-            this.shear(SoundSource.PLAYERS);
+            this.shear(SoundSource.PLAYERS, drops); // Paper - custom shear drops
             this.gameEvent(GameEvent.SHEAR, player);
             if (!this.level().isClientSide) {
                 itemstack.hurtAndBreak(1, player, getSlotForHand(hand));
@@ -164,6 +171,22 @@ public class MushroomCow extends Cow implements Shearable, VariantHolder<Mushroo
 
     @Override
     public void shear(SoundSource shearedSoundCategory) {
+        // Paper start - custom shear drops
+        this.shear(shearedSoundCategory, this.generateDefaultDrops());
+    }
+
+    @Override
+    public java.util.List<ItemStack> generateDefaultDrops() {
+        java.util.List<ItemStack> dropEntities = new java.util.ArrayList<>(5);
+        for (int i = 0; i < 5; ++i) {
+            dropEntities.add(new ItemStack(this.getVariant().getBlockState().getBlock()));
+        }
+        return dropEntities;
+    }
+
+    @Override
+    public void shear(SoundSource shearedSoundCategory, java.util.List<ItemStack> drops) { // If drops is null, need to generate drops
+        // Paper end - custom shear drops
         this.level().playSound((Player) null, (Entity) this, SoundEvents.MOOSHROOM_SHEAR, shearedSoundCategory, 1.0F, 1.0F);
         if (!this.level().isClientSide()) {
             Cow entitycow = (Cow) EntityType.COW.create(this.level());
@@ -193,17 +216,12 @@ public class MushroomCow extends Cow implements Shearable, VariantHolder<Mushroo
                 this.discard(EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - from above and add Bukkit remove cause
                 // CraftBukkit end
 
-                for (int i = 0; i < 5; ++i) {
-                    // CraftBukkit start
-                    ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY(1.0D), this.getZ(), new ItemStack(this.getVariant().blockState.getBlock()));
-                    EntityDropItemEvent event = new EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
-                    Bukkit.getPluginManager().callEvent(event);
-                    if (event.isCancelled()) {
-                        continue;
-                    }
-                    this.level().addFreshEntity(entityitem);
-                    // CraftBukkit end
+                // Paper start - custom shear drops; moved drop generation to separate method
+                for (final ItemStack drop : drops) {
+                    ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY(1.0D), this.getZ(), drop);
+                    this.spawnAtLocation(entityitem);
                 }
+                // Paper end - custom shear drops
             }
         }
 

@@ -103,11 +103,14 @@ public class ShearsDispenseItemBehavior extends OptionalDispenseItemBehavior {
             if (entityliving instanceof Shearable ishearable) {
                 if (ishearable.readyForShearing()) {
                     // CraftBukkit start
-                    if (CraftEventFactory.callBlockShearEntityEvent(entityliving, bukkitBlock, craftItem).isCancelled()) {
+                    // Paper start - Add drops to shear events
+                    org.bukkit.event.block.BlockShearEntityEvent event = CraftEventFactory.callBlockShearEntityEvent(entityliving, bukkitBlock, craftItem, ishearable.generateDefaultDrops());
+                    if (event.isCancelled()) {
+                        // Paper end - Add drops to shear events
                         continue;
                     }
                     // CraftBukkit end
-                    ishearable.shear(SoundSource.BLOCKS);
+                    ishearable.shear(SoundSource.BLOCKS, CraftItemStack.asNMSCopy(event.getDrops())); // Paper - Add drops to shear events
                     worldserver.gameEvent((Entity) null, (Holder) GameEvent.SHEAR, blockposition);
                     return true;
                 }

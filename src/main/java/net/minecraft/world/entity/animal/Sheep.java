@@ -256,11 +256,18 @@ public class Sheep extends Animal implements Shearable {
         if (itemstack.is(Items.SHEARS)) {
             if (!this.level().isClientSide && this.readyForShearing()) {
                 // CraftBukkit start
-                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand)) {
-                    return InteractionResult.PASS;
+                // Paper start - custom shear drops
+                java.util.List<ItemStack> drops = this.generateDefaultDrops();
+                org.bukkit.event.player.PlayerShearEntityEvent event = CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemstack, hand, drops);
+                if (event != null) {
+                    if (event.isCancelled()) {
+                        return InteractionResult.PASS;
+                    }
+                    drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
                 }
+                // Paper end - custom shear drops
                 // CraftBukkit end
-                this.shear(SoundSource.PLAYERS);
+                this.shear(SoundSource.PLAYERS, drops); // Paper
                 this.gameEvent(GameEvent.SHEAR, player);
                 itemstack.hurtAndBreak(1, player, getSlotForHand(hand));
                 return InteractionResult.SUCCESS;
@@ -274,13 +281,30 @@ public class Sheep extends Animal implements Shearable {
 
     @Override
     public void shear(SoundSource shearedSoundCategory) {
+        // Paper start - custom shear drops
+        this.shear(shearedSoundCategory, this.generateDefaultDrops());
+    }
+
+    @Override
+    public java.util.List<ItemStack> generateDefaultDrops() {
+        int count = 1 + this.random.nextInt(3);
+        java.util.List<ItemStack> dropEntities = new java.util.ArrayList<>(count);
+        for (int j = 0; j < count; ++j) {
+            dropEntities.add(new ItemStack(Sheep.ITEM_BY_DYE.get(this.getColor())));
+        }
+        return dropEntities;
+    }
+
+    @Override
+    public void shear(SoundSource shearedSoundCategory, java.util.List<ItemStack> drops) {
+        // Paper end - custom shear drops
         this.level().playSound((Player) null, (Entity) this, SoundEvents.SHEEP_SHEAR, shearedSoundCategory, 1.0F, 1.0F);
         this.setSheared(true);
         int i = 1 + this.random.nextInt(3);
 
-        for (int j = 0; j < i; ++j) {
+        for (final ItemStack drop : drops) { // Paper - custom shear drops (moved drop generation to separate method)
             this.forceDrops = true; // CraftBukkit
-            ItemEntity entityitem = this.spawnAtLocation((ItemLike) Sheep.ITEM_BY_DYE.get(this.getColor()), 1);
+            ItemEntity entityitem = this.spawnAtLocation(drop, 1); // Paper - custom shear drops
             this.forceDrops = false; // CraftBukkit
 
             if (entityitem != null) {
