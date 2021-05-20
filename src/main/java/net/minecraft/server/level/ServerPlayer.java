@@ -1422,7 +1422,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             } else if (this.bedBlocked(blockposition, enumdirection)) {
                 return Either.left(net.minecraft.world.entity.player.Player.BedSleepingProblem.OBSTRUCTED);
             } else {
-                this.setRespawnPosition(this.level().dimension(), blockposition, this.getYRot(), false, true, PlayerSpawnChangeEvent.Cause.BED); // CraftBukkit
+                this.setRespawnPosition(this.level().dimension(), blockposition, this.getYRot(), false, true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED); // Paper - Add PlayerSetSpawnEvent
                 if (this.level().isDay()) {
                     return Either.left(net.minecraft.world.entity.player.Player.BedSleepingProblem.NOT_POSSIBLE_NOW);
                 } else {
@@ -2399,44 +2399,50 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         this.setRespawnPosition(player.getRespawnDimension(), player.getRespawnPosition(), player.getRespawnAngle(), player.isRespawnForced(), false);
     }
 
+    @Deprecated // Paper - Add PlayerSetSpawnEvent
     public void setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage) {
-        // CraftBukkit start
-        this.setRespawnPosition(dimension, pos, angle, forced, sendMessage, PlayerSpawnChangeEvent.Cause.UNKNOWN);
+        // Paper start - Add PlayerSetSpawnEvent
+        this.setRespawnPosition(dimension, pos, angle, forced, sendMessage, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.UNKNOWN);
     }
-
-    public void setRespawnPosition(ResourceKey<Level> resourcekey, @Nullable BlockPos blockposition, float f, boolean flag, boolean flag1, PlayerSpawnChangeEvent.Cause cause) {
-        ServerLevel newWorld = this.server.getLevel(resourcekey);
-        Location newSpawn = (blockposition != null) ? CraftLocation.toBukkit(blockposition, newWorld.getWorld(), f, 0) : null;
-
-        PlayerSpawnChangeEvent event = new PlayerSpawnChangeEvent(this.getBukkitEntity(), newSpawn, flag, cause);
-        Bukkit.getServer().getPluginManager().callEvent(event);
-        if (event.isCancelled()) {
-            return;
+    @Deprecated
+    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, PlayerSpawnChangeEvent.Cause cause) {
+        return this.setRespawnPosition(dimension, pos, angle, forced, sendMessage, cause == PlayerSpawnChangeEvent.Cause.RESET ?
+            com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.valueOf(cause.name()));
+    }
+    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause cause) {
+        Location spawnLoc = null;
+        boolean willNotify = false;
+        if (pos != null) {
+            boolean flag2 = pos.equals(this.respawnPosition) && dimension.equals(this.respawnDimension);
+            spawnLoc = io.papermc.paper.util.MCUtil.toLocation(this.getServer().getLevel(dimension), pos);
+            spawnLoc.setYaw(angle);
+            willNotify = sendMessage && !flag2;
         }
-        newSpawn = event.getNewSpawn();
-        flag = event.isForced();
 
-        if (newSpawn != null) {
-            resourcekey = ((CraftWorld) newSpawn.getWorld()).getHandle().dimension();
-            blockposition = BlockPos.containing(newSpawn.getX(), newSpawn.getY(), newSpawn.getZ());
-            f = newSpawn.getYaw();
-        } else {
-            resourcekey = Level.OVERWORLD;
-            blockposition = null;
-            f = 0.0F;
+        PlayerSpawnChangeEvent dumbEvent = new PlayerSpawnChangeEvent(this.getBukkitEntity(), spawnLoc, forced,
+            cause == com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
+        dumbEvent.callEvent();
+
+        com.destroystokyo.paper.event.player.PlayerSetSpawnEvent event = new com.destroystokyo.paper.event.player.PlayerSetSpawnEvent(this.getBukkitEntity(), cause, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
+        event.setCancelled(dumbEvent.isCancelled());
+        if (!event.callEvent()) {
+            return false;
         }
-        // CraftBukkit end
-        if (blockposition != null) {
-            boolean flag2 = blockposition.equals(this.respawnPosition) && resourcekey.equals(this.respawnDimension);
+        if (event.getLocation() != null) {
+            dimension = event.getLocation().getWorld() != null ? ((CraftWorld) event.getLocation().getWorld()).getHandle().dimension() : dimension;
+            pos = io.papermc.paper.util.MCUtil.toBlockPosition(event.getLocation());
+            angle = event.getLocation().getYaw();
+            forced = event.isForced();
+            // Paper end - Add PlayerSetSpawnEvent
 
-            if (flag1 && !flag2) {
-                this.sendSystemMessage(Component.translatable("block.minecraft.set_spawn"));
+            if (event.willNotifyPlayer() && event.getNotification() != null) { // Paper - Add PlayerSetSpawnEvent
+                this.sendSystemMessage(PaperAdventure.asVanilla(event.getNotification())); // Paper - Add PlayerSetSpawnEvent
             }
 
-            this.respawnPosition = blockposition;
-            this.respawnDimension = resourcekey;
-            this.respawnAngle = f;
-            this.respawnForced = flag;
+            this.respawnPosition = pos;
+            this.respawnDimension = dimension;
+            this.respawnAngle = angle;
+            this.respawnForced = forced;
         } else {
             this.respawnPosition = null;
             this.respawnDimension = Level.OVERWORLD;
@@ -2444,6 +2450,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             this.respawnForced = false;
         }
 
+        return true; // Paper - Add PlayerSetSpawnEvent
     }
 
     public SectionPos getLastSectionPos() {

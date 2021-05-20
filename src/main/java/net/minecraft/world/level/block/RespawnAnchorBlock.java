@@ -89,9 +89,14 @@ public class RespawnAnchorBlock extends Block {
                 ServerPlayer entityplayer = (ServerPlayer) player;
 
                 if (entityplayer.getRespawnDimension() != world.dimension() || !pos.equals(entityplayer.getRespawnPosition())) {
-                    entityplayer.setRespawnPosition(world.dimension(), pos, 0.0F, false, true, org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.RESPAWN_ANCHOR); // CraftBukkit
+                    if (entityplayer.setRespawnPosition(world.dimension(), pos, 0.0F, false, true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.RESPAWN_ANCHOR)) { // Paper - Add PlayerSetSpawnEvent
                     world.playSound((Player) null, (double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, SoundEvents.RESPAWN_ANCHOR_SET_SPAWN, SoundSource.BLOCKS, 1.0F, 1.0F);
                     return InteractionResult.SUCCESS;
+                    // Paper start - Add PlayerSetSpawnEvent
+                    } else {
+                        return InteractionResult.FAIL;
+                    }
+                    // Paper end - Add PlayerSetSpawnEvent
                 }
             }
 
