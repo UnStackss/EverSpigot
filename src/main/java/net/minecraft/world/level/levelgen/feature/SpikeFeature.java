@@ -114,6 +114,7 @@ public class SpikeFeature extends Feature<SpikeConfiguration> {
             endCrystal.moveTo(
                 (double)spike.getCenterX() + 0.5, (double)(spike.getHeight() + 1), (double)spike.getCenterZ() + 0.5, random.nextFloat() * 360.0F, 0.0F
             );
+            endCrystal.generatedByDragonFight = true; // Paper - Fix invulnerable end crystals
             world.addFreshEntity(endCrystal);
             BlockPos blockPos2 = endCrystal.blockPosition();
             this.setBlock(world, blockPos2.below(), Blocks.BEDROCK.defaultBlockState());
