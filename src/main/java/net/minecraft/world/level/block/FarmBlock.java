@@ -152,19 +152,28 @@ public class FarmBlock extends Block {
     }
 
     private static boolean isNearWater(LevelReader world, BlockPos pos) {
-        Iterator iterator = BlockPos.betweenClosed(pos.offset(-4, 0, -4), pos.offset(4, 1, 4)).iterator();
+        // Paper start - Perf: remove abstract block iteration
+        int xOff = pos.getX();
+        int yOff = pos.getY();
+        int zOff = pos.getZ();
 
-        BlockPos blockposition1;
-
-        do {
-            if (!iterator.hasNext()) {
-                return false;
+        for (int dz = -4; dz <= 4; ++dz) {
+            int z = dz + zOff;
+            for (int dx = -4; dx <= 4; ++dx) {
+                int x = xOff + dx;
+                for (int dy = 0; dy <= 1; ++dy) {
+                    int y = dy + yOff;
+                    net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)world.getChunk(x >> 4, z >> 4);
+                    net.minecraft.world.level.material.FluidState fluid = chunk.getBlockStateFinal(x, y, z).getFluidState();
+                    if (fluid.is(FluidTags.WATER)) {
+                        return true;
+                    }
+                }
             }
+        }
 
-            blockposition1 = (BlockPos) iterator.next();
-        } while (!world.getFluidState(blockposition1).is(FluidTags.WATER));
-
-        return true;
+        return false;
+        // Paper end - Perf: remove abstract block iteration
     }
 
     @Override
