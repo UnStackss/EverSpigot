@@ -259,8 +259,8 @@ public class LootTable {
 
     public static class Builder implements FunctionUserBuilder<LootTable.Builder> {
 
-        private final Builder<LootPool> pools = ImmutableList.builder();
-        private final Builder<LootItemFunction> functions = ImmutableList.builder();
+        private final ImmutableList.Builder<LootPool> pools = ImmutableList.builder();
+        private final ImmutableList.Builder<LootItemFunction> functions = ImmutableList.builder();
         private LootContextParamSet paramSet;
         private Optional<ResourceLocation> randomSequence;
 

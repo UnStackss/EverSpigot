@@ -2,7 +2,6 @@ package org.bukkit.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import net.minecraft.world.entity.animal.Panda;
 import org.bukkit.craftbukkit.entity.CraftPanda;
 import org.junit.jupiter.api.Test;
 
@@ -10,8 +9,8 @@ public class PandaGeneTest {
 
     @Test
     public void testBukkit() {
-        for (Panda.Gene gene : Panda.Gene.values()) {
-            Panda.Gene nms = CraftPanda.toNms(gene);
+        for (Panda.Gene gene : Panda.Gene.values()) { // Paper - remap fix
+            net.minecraft.world.entity.animal.Panda.Gene nms = CraftPanda.toNms(gene); // Paper - remap fix
 
             assertNotNull(nms, "NMS gene null for " + gene);
             assertEquals(gene.isRecessive(), nms.isRecessive(), "Recessive status did not match " + gene);
@@ -21,7 +20,7 @@ public class PandaGeneTest {
 
     @Test
     public void testNMS() {
-        for (Panda.Gene gene : Panda.Gene.values()) {
+        for (net.minecraft.world.entity.animal.Panda.Gene gene : net.minecraft.world.entity.animal.Panda.Gene.values()) { // Paper - remap fix
             org.bukkit.entity.Panda.Gene bukkit = CraftPanda.fromNms(gene);
 
             assertNotNull(bukkit, "Bukkit gene null for " + gene);

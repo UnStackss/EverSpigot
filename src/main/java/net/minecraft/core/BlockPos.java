@@ -323,9 +323,11 @@ public class BlockPos extends Vec3i {
 
     public static Iterable<BlockPos> withinManhattan(BlockPos center, int rangeX, int rangeY, int rangeZ) {
         int i = rangeX + rangeY + rangeZ;
-        int j = center.getX();
-        int k = center.getY();
-        int l = center.getZ();
+        // Paper start - rename variables to fix conflict with anonymous class (remap fix)
+        int centerX = center.getX();
+        int centerY = center.getY();
+        int centerZ = center.getZ();
+        // Paper end
         return () -> new AbstractIterator<BlockPos>() {
                 private final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
                 private int currentDepth;
@@ -339,7 +341,7 @@ public class BlockPos extends Vec3i {
                 protected BlockPos computeNext() {
                     if (this.zMirror) {
                         this.zMirror = false;
-                        this.cursor.setZ(l - (this.cursor.getZ() - l));
+                        this.cursor.setZ(centerZ - (this.cursor.getZ() - centerZ)); // Paper - remap fix
                         return this.cursor;
                     } else {
                         BlockPos blockPos;
@@ -365,7 +367,7 @@ public class BlockPos extends Vec3i {
                             int k = this.currentDepth - Math.abs(i) - Math.abs(j);
                             if (k <= rangeZ) {
                                 this.zMirror = k != 0;
-                                blockPos = this.cursor.set(j + i, k + j, l + k);
+                                blockPos = this.cursor.set(centerX + i, centerY + j, centerZ + k); // Paper - remap fix
                             }
                         }
 

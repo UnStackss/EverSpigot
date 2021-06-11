@@ -24,7 +24,7 @@ public class RegistryLoadOrderTest extends AbstractTestingBase {
 
     private static boolean initInterface = false;
     private static boolean initAbstract = false;
-    private static Registry<Keyed> registry;
+    private static org.bukkit.Registry<Keyed> registry; // Paper - remap fix
 
     public static Stream<Arguments> data() {
         return Stream.of(
