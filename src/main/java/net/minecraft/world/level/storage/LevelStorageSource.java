@@ -277,12 +277,21 @@ public class LevelStorageSource {
     static Dynamic<?> readLevelDataTagFixed(Path path, DataFixer dataFixer) throws IOException {
         CompoundTag nbttagcompound = LevelStorageSource.readLevelDataTagRaw(path);
         CompoundTag nbttagcompound1 = nbttagcompound.getCompound("Data");
-        int i = NbtUtils.getDataVersion(nbttagcompound1, -1);
+        int i = NbtUtils.getDataVersion(nbttagcompound1, -1); final int version = i; // Paper - obfuscation helpers
         Dynamic<?> dynamic = DataFixTypes.LEVEL.updateToCurrentVersion(dataFixer, new Dynamic(NbtOps.INSTANCE, nbttagcompound1), i);
 
+        // Paper start - replace data conversion system
         dynamic = dynamic.update("Player", (dynamic1) -> {
-            return DataFixTypes.PLAYER.updateToCurrentVersion(dataFixer, dynamic1, i);
+            return new Dynamic<>(
+                NbtOps.INSTANCE,
+                ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.PLAYER,
+                    (net.minecraft.nbt.CompoundTag)dynamic1.getValue(),
+                    version, net.minecraft.SharedConstants.getCurrentVersion().getDataVersion().getVersion()
+                )
+            );
         });
+        // Paper end - replace data conversion system
         dynamic = dynamic.update("WorldGenSettings", (dynamic1) -> {
             return DataFixTypes.WORLD_GEN_SETTINGS.updateToCurrentVersion(dataFixer, dynamic1, i);
         });

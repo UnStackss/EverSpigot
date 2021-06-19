@@ -25,13 +25,21 @@ public final class ChunkSystemConverters {
     public static CompoundTag convertPoiCompoundTag(final CompoundTag data, final ServerLevel world) {
         final int dataVersion = getDataVersion(data, DEFAULT_POI_DATA_VERSION);
 
-        return DataFixTypes.POI_CHUNK.update(world.getServer().getFixerUpper(), data, dataVersion, getCurrentVersion());
+        // Paper start - dataconverter
+        return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+            ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.POI_CHUNK, data, dataVersion, getCurrentVersion()
+        );
+        // Paper end - dataconverter
     }
 
     public static CompoundTag convertEntityChunkCompoundTag(final CompoundTag data, final ServerLevel world) {
         final int dataVersion = getDataVersion(data, DEFAULT_ENTITY_CHUNK_DATA_VERSION);
 
-        return DataFixTypes.ENTITY_CHUNK.update(world.getServer().getFixerUpper(), data, dataVersion, getCurrentVersion());
+        // Paper start - dataconverter
+        return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+            ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY_CHUNK, data, dataVersion, getCurrentVersion()
+        );
+        // Paper end - dataconverter
     }
 
     private ChunkSystemConverters() {}

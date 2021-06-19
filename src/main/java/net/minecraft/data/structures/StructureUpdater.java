@@ -27,7 +27,7 @@ public class StructureUpdater implements SnbtToNbt.Filter {
             LOGGER.warn("SNBT Too old, do not forget to update: {} < {}: {}", i, 3937, name);
         }
 
-        CompoundTag compoundTag = DataFixTypes.STRUCTURE.updateToCurrentVersion(DataFixers.getDataFixer(), nbt, i);
+        CompoundTag compoundTag = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.STRUCTURE, nbt, i, net.minecraft.SharedConstants.getCurrentVersion().getDataVersion().getVersion()); // Paper
         structureTemplate.load(BuiltInRegistries.BLOCK.asLookup(), compoundTag);
         return structureTemplate.save(new CompoundTag());
     }

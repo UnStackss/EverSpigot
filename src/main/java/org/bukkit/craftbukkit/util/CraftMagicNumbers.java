@@ -505,7 +505,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
 
         net.minecraft.nbt.CompoundTag compound = deserializeNbtFromBytes(data);
         final int dataVersion = compound.getInt("DataVersion");
-        compound = (net.minecraft.nbt.CompoundTag) MinecraftServer.getServer().fixerUpper.update(References.ITEM_STACK, new Dynamic<>(NbtOps.INSTANCE, compound), dataVersion, this.getDataVersion()).getValue();
+        compound = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ITEM_STACK, compound, dataVersion, this.getDataVersion()); // Paper - replace data conversion system
         return CraftItemStack.asCraftMirror(net.minecraft.world.item.ItemStack.parse(MinecraftServer.getServer().registryAccess(), compound).orElseThrow());
     }
 
@@ -526,7 +526,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
 
         net.minecraft.nbt.CompoundTag compound = deserializeNbtFromBytes(data);
         int dataVersion = compound.getInt("DataVersion");
-        compound = (net.minecraft.nbt.CompoundTag) MinecraftServer.getServer().fixerUpper.update(References.ENTITY, new Dynamic<>(NbtOps.INSTANCE, compound), dataVersion, this.getDataVersion()).getValue();
+        compound = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY, compound, dataVersion, this.getDataVersion());
         if (!preserveUUID) {
             // Generate a new UUID so we don't have to worry about deserializing the same entity twice
             compound.remove("UUID");

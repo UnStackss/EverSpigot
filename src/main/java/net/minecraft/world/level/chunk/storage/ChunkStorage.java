@@ -96,7 +96,7 @@ public class ChunkStorage implements AutoCloseable, ca.spottedleaf.moonrise.patc
         } else {
             try {
                 // CraftBukkit start
-                if (i < 1466) {
+                if (false && i < 1466) { // Paper - no longer needed, data converter system / DFU handles it now
                     CompoundTag level = nbttagcompound.getCompound("Level");
                     if (level.getBoolean("TerrainPopulated") && !level.getBoolean("LightPopulated")) {
                         ServerChunkCache cps = (generatoraccess == null) ? null : ((ServerLevel) generatoraccess).getChunkSource();
@@ -108,7 +108,7 @@ public class ChunkStorage implements AutoCloseable, ca.spottedleaf.moonrise.patc
                 // CraftBukkit end
 
                 if (i < 1493) {
-                    nbttagcompound = DataFixTypes.CHUNK.update(this.fixerUpper, nbttagcompound, i, 1493);
+                    nbttagcompound = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, nbttagcompound, i, 1493); // Paper - replace chunk converter
                     if (nbttagcompound.getCompound("Level").getBoolean("hasLegacyStructureData")) {
                         LegacyStructureDataHandler persistentstructurelegacy = this.getLegacyStructureHandler(resourcekey, supplier);
 
@@ -128,7 +128,7 @@ public class ChunkStorage implements AutoCloseable, ca.spottedleaf.moonrise.patc
                 // Spigot end
 
                 ChunkStorage.injectDatafixingContext(nbttagcompound, resourcekey, optional);
-                nbttagcompound = DataFixTypes.CHUNK.updateToCurrentVersion(this.fixerUpper, nbttagcompound, Math.max(1493, i));
+                nbttagcompound = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, nbttagcompound, Math.max(1493, i), SharedConstants.getCurrentVersion().getDataVersion().getVersion()); // Paper - replace chunk converter
                 // Spigot start
                 if (stopBelowZero) {
                     nbttagcompound.putString("Status", net.minecraft.core.registries.BuiltInRegistries.CHUNK_STATUS.getKey(ChunkStatus.SPAWN).toString());
