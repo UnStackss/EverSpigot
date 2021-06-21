@@ -745,6 +745,11 @@ public abstract class Player extends LivingEntity {
             }
 
             double d0 = this.getEyeY() - 0.30000001192092896D;
+            // Paper start
+            ItemStack tmp = itemstack.copy();
+            itemstack.setCount(0);
+            itemstack = tmp;
+            // Paper end
             ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), d0, this.getZ(), itemstack);
 
             entityitem.setPickUpDelay(40);

@@ -38,6 +38,7 @@ public class GiveCommand {
 
     private static int giveItem(CommandSourceStack source, ItemInput item, Collection<ServerPlayer> targets, int count) throws CommandSyntaxException {
         ItemStack itemstack = item.createItemStack(1, false);
+        final Component displayName = itemstack.getDisplayName(); // Paper - get display name early
         int j = itemstack.getMaxStackSize();
         int k = j * 100;
 
@@ -79,11 +80,11 @@ public class GiveCommand {
 
             if (targets.size() == 1) {
                 source.sendSuccess(() -> {
-                    return Component.translatable("commands.give.success.single", count, itemstack.getDisplayName(), ((ServerPlayer) targets.iterator().next()).getDisplayName());
+                    return Component.translatable("commands.give.success.single", count, displayName, ((ServerPlayer) targets.iterator().next()).getDisplayName()); // Paper - use cached display name
                 }, true);
             } else {
                 source.sendSuccess(() -> {
-                    return Component.translatable("commands.give.success.single", count, itemstack.getDisplayName(), targets.size());
+                    return Component.translatable("commands.give.success.single", count, displayName, targets.size()); // Paper - use cached display name
                 }, true);
             }
 

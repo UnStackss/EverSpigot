@@ -2486,7 +2486,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
             if (flag1) {
                 if (!itemstack1.isEmpty()) {
-                    this.awardStat(Stats.ITEM_DROPPED.get(itemstack1.getItem()), itemstack.getCount());
+                    this.awardStat(Stats.ITEM_DROPPED.get(itemstack1.getItem()), itemstack1.getCount()); // Paper - Fix PlayerDropItemEvent using wrong item
                 }
 
                 this.awardStat(Stats.DROP);
