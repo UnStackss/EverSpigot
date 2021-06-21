@@ -45,6 +45,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.ow2.asm:asm-tree:9.7")
     testImplementation("org.junit-pioneer:junit-pioneer:2.2.0") // Paper - CartesianTest
+    implementation("net.neoforged:srgutils:1.0.9") // Paper - mappings handling
 }
 
 paperweight {

@@ -34,6 +34,7 @@ public class CrashReport {
     private final SystemReport systemReport = new SystemReport();
 
     public CrashReport(String message, Throwable cause) {
+        io.papermc.paper.util.StacktraceDeobfuscator.INSTANCE.deobfuscateThrowable(cause); // Paper
         this.title = message;
         this.exception = cause;
         this.systemReport.setDetail("CraftBukkit Information", new org.bukkit.craftbukkit.CraftCrashReport()); // CraftBukkit
