@@ -72,9 +72,10 @@ public class LootTable {
     }
 
     public static Consumer<ItemStack> createStackSplitter(ServerLevel world, Consumer<ItemStack> consumer) {
+        boolean skipSplitter = world != null && !world.paperConfig().fixes.splitOverstackedLoot; // Paper - preserve overstacked items
         return (itemstack) -> {
             if (itemstack.isItemEnabled(world.enabledFeatures())) {
-                if (itemstack.getCount() < itemstack.getMaxStackSize()) {
+                if (skipSplitter || itemstack.getCount() < itemstack.getMaxStackSize()) { // Paper - preserve overstacked items
                     consumer.accept(itemstack);
                 } else {
                     int i = itemstack.getCount();
