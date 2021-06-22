@@ -241,7 +241,12 @@ public abstract class TamableAnimal extends Animal implements OwnableEntity {
     @Override
     public void die(DamageSource damageSource) {
         if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES) && this.getOwner() instanceof ServerPlayer) {
-            this.getOwner().sendSystemMessage(this.getCombatTracker().getDeathMessage());
+            // Paper start - Add TameableDeathMessageEvent
+            io.papermc.paper.event.entity.TameableDeathMessageEvent event = new io.papermc.paper.event.entity.TameableDeathMessageEvent((org.bukkit.entity.Tameable) getBukkitEntity(), io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getCombatTracker().getDeathMessage()));
+            if (event.callEvent()) {
+                this.getOwner().sendSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.deathMessage()));
+            }
+            // Paper end - Add TameableDeathMessageEvent
         }
 
         super.die(damageSource);
