@@ -51,6 +51,7 @@ public abstract class AbstractSchoolingFish extends AbstractFish {
     }
 
     public void stopFollowing() {
+        if (this.leader == null) return; // Avoid NPE, plugins can now set the leader and certain fish goals might cause this method to be called
         this.leader.removeFollower();
         this.leader = null;
     }

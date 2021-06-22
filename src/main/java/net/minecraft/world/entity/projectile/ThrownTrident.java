@@ -106,6 +106,20 @@ public class ThrownTrident extends AbstractArrow {
         return (Boolean) this.entityData.get(ThrownTrident.ID_FOIL);
     }
 
+    // Paper start
+    public void setFoil(boolean foil) {
+        this.entityData.set(ThrownTrident.ID_FOIL, foil);
+    }
+
+    public int getLoyalty() {
+        return this.entityData.get(ThrownTrident.ID_LOYALTY);
+    }
+
+    public void setLoyalty(byte loyalty) {
+        this.entityData.set(ThrownTrident.ID_LOYALTY, loyalty);
+    }
+    // Paper end
+
     @Nullable
     @Override
     protected EntityHitResult findHitEntity(Vec3 currentPosition, Vec3 nextPosition) {

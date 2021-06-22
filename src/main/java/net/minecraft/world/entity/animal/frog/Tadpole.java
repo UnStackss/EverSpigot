@@ -50,6 +50,7 @@ public class Tadpole extends AbstractFish {
     public int age;
     protected static final ImmutableList<SensorType<? extends Sensor<? super Tadpole>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.HURT_BY, SensorType.FROG_TEMPTATIONS);
     protected static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.LOOK_TARGET, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.PATH, MemoryModuleType.NEAREST_VISIBLE_ADULT, MemoryModuleType.TEMPTATION_COOLDOWN_TICKS, MemoryModuleType.IS_TEMPTED, MemoryModuleType.TEMPTING_PLAYER, MemoryModuleType.BREED_TARGET, MemoryModuleType.IS_PANICKING);
+    public boolean ageLocked; // Paper
 
     public Tadpole(EntityType<? extends AbstractFish> type, Level world) {
         super(type, world);
@@ -100,7 +101,7 @@ public class Tadpole extends AbstractFish {
     @Override
     public void aiStep() {
         super.aiStep();
-        if (!this.level().isClientSide) {
+        if (!this.level().isClientSide && !this.ageLocked) { // Paper
             this.setAge(this.age + 1);
         }
 
@@ -110,12 +111,14 @@ public class Tadpole extends AbstractFish {
     public void addAdditionalSaveData(CompoundTag nbt) {
         super.addAdditionalSaveData(nbt);
         nbt.putInt("Age", this.age);
+        nbt.putBoolean("AgeLocked", this.ageLocked); // Paper
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag nbt) {
         super.readAdditionalSaveData(nbt);
         this.setAge(nbt.getInt("Age"));
+        this.ageLocked = nbt.getBoolean("AgeLocked"); // Paper
     }
 
     @Nullable
@@ -167,6 +170,7 @@ public class Tadpole extends AbstractFish {
         Bucketable.saveDefaultDataToBucketTag(this, stack);
         CustomData.update(DataComponents.BUCKET_ENTITY_DATA, stack, (nbttagcompound) -> {
             nbttagcompound.putInt("Age", this.getAge());
+            nbttagcompound.putBoolean("AgeLocked", this.ageLocked); // Paper
         });
     }
 
@@ -177,6 +181,7 @@ public class Tadpole extends AbstractFish {
             this.setAge(nbt.getInt("Age"));
         }
 
+        this.ageLocked = nbt.getBoolean("AgeLocked"); // Paper
     }
 
     @Override
@@ -208,6 +213,7 @@ public class Tadpole extends AbstractFish {
     }
 
     private void ageUp(int seconds) {
+        if (this.ageLocked) return; // Paper
         this.setAge(this.age + seconds * 20);
     }
 

@@ -74,10 +74,11 @@ public class Llama extends AbstractChestedHorse implements VariantHolder<Llama.V
     @Nullable
     private Llama caravanHead;
     @Nullable
-    private Llama caravanTail;
+    public Llama caravanTail; // Paper
 
     public Llama(EntityType<? extends Llama> type, Level world) {
         super(type, world);
+        this.maxDomestication = 30; // Paper - Missing entity API; configure max temper instead of a hardcoded value
     }
 
     public boolean isTraderLlama() {
@@ -313,7 +314,7 @@ public class Llama extends AbstractChestedHorse implements VariantHolder<Llama.V
 
     @Override
     public int getMaxTemper() {
-        return 30;
+        return super.getMaxTemper(); // Paper - Missing entity API; delegate to parent
     }
 
     @Override

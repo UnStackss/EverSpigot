@@ -88,6 +88,11 @@ public class WitherBoss extends Monster implements PowerableMob, RangedAttackMob
         return !entityliving.getType().is(EntityTypeTags.WITHER_FRIENDS) && entityliving.attackable();
     };
     private static final TargetingConditions TARGETING_CONDITIONS = TargetingConditions.forCombat().range(20.0D).selector(WitherBoss.LIVING_ENTITY_SELECTOR);
+    // Paper start
+    private boolean canPortal = false;
+
+    public void setCanTravelThroughPortals(boolean canPortal) { this.canPortal = canPortal; }
+    // Paper end
 
     public WitherBoss(EntityType<? extends WitherBoss> type, Level world) {
         super(type, world);
@@ -595,7 +600,7 @@ public class WitherBoss extends Monster implements PowerableMob, RangedAttackMob
 
     @Override
     public boolean canUsePortal(boolean allowVehicles) {
-        return false;
+        return this.canPortal; // Paper
     }
 
     @Override

@@ -554,11 +554,13 @@ public class Bee extends Animal implements NeutralMob, FlyingAnimal {
         this.setFlag(4, hasStung);
     }
 
+    public net.kyori.adventure.util.TriState rollingOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Rolling override
     public boolean isRolling() {
         return this.getFlag(2);
     }
 
     public void setRolling(boolean nearTarget) {
+        nearTarget = rollingOverride.toBooleanOrElse(nearTarget); // Paper - Rolling override
         this.setFlag(2, nearTarget);
     }
 

@@ -442,6 +442,16 @@ public class EnderMan extends Monster implements NeutralMob {
         this.entityData.set(EnderMan.DATA_STARED_AT, true);
     }
 
+    // Paper start
+    public void setCreepy(boolean creepy) {
+        this.entityData.set(EnderMan.DATA_CREEPY, creepy);
+    }
+
+    public void setHasBeenStaredAt(boolean hasBeenStaredAt) {
+        this.entityData.set(EnderMan.DATA_STARED_AT, hasBeenStaredAt);
+    }
+    // Paper end
+
     @Override
     public boolean requiresCustomPersistence() {
         return super.requiresCustomPersistence() || this.getCarriedBlock() != null;

@@ -760,6 +760,15 @@ public abstract class AbstractHorse extends Animal implements ContainerListener,
 
     }
 
+    // Paper start - Horse API
+    public void setMouthOpen(boolean open) {
+        this.setFlag(FLAG_OPEN_MOUTH, open);
+    }
+    public boolean isMouthOpen() {
+        return this.getFlag(FLAG_OPEN_MOUTH);
+    }
+    // Paper end - Horse API
+
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         if (!this.isVehicle() && !this.isBaby()) {
@@ -802,6 +811,11 @@ public abstract class AbstractHorse extends Animal implements ContainerListener,
         this.setFlag(16, eatingGrass);
     }
 
+    // Paper start - Horse API
+    public void setForceStanding(boolean standing) {
+        this.setFlag(FLAG_STANDING, standing);
+    }
+    // Paper end - Horse API
     public void setStanding(boolean angry) {
         if (angry) {
             this.setEating(false);

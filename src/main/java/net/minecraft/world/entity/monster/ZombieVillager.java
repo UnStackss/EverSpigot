@@ -205,6 +205,12 @@ public class ZombieVillager extends Zombie implements VillagerDataHolder {
     }
 
     public void startConverting(@Nullable UUID uuid, int delay) {
+    // Paper start - missing entity behaviour api - converting without entity event
+        this.startConverting(uuid, delay, true);
+    }
+
+    public void startConverting(@Nullable UUID uuid, int delay, boolean broadcastEntityEvent) {
+    // Paper end - missing entity behaviour api - converting without entity event
         this.conversionStarter = uuid;
         this.villagerConversionTime = delay;
         this.getEntityData().set(ZombieVillager.DATA_CONVERTING_ID, true);
@@ -212,7 +218,7 @@ public class ZombieVillager extends Zombie implements VillagerDataHolder {
         this.removeEffect(MobEffects.WEAKNESS, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
         this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, delay, Math.min(this.level().getDifficulty().getId() - 1, 0)), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
         // CraftBukkit end
-        this.level().broadcastEntityEvent(this, (byte) 16);
+        if (broadcastEntityEvent) this.level().broadcastEntityEvent(this, (byte) 16); // Paper - missing entity behaviour api - converting without entity event
     }
 
     @Override
