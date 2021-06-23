@@ -102,6 +102,11 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
     @Override
     protected void onHit(HitResult hitResult) {
         super.onHit(hitResult);
+        // Paper start - More projectile API
+        this.splash(hitResult);
+    }
+    public void splash(@Nullable HitResult hitResult) {
+        // Paper end - More projectile API
         if (!this.level().isClientSide) {
             ItemStack itemstack = this.getItem();
             PotionContents potioncontents = (PotionContents) itemstack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
@@ -113,7 +118,7 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
                 if (this.isLingering()) {
                     showParticles = this.makeAreaOfEffectCloud(potioncontents, hitResult); // CraftBukkit - Pass MovingObjectPosition // Paper
                 } else {
-                    showParticles = this.applySplash(potioncontents.getAllEffects(), hitResult.getType() == HitResult.Type.ENTITY ? ((EntityHitResult) hitResult).getEntity() : null, hitResult); // CraftBukkit - Pass MovingObjectPosition // Paper
+                    showParticles = this.applySplash(potioncontents.getAllEffects(), hitResult != null && hitResult.getType() == HitResult.Type.ENTITY ? ((EntityHitResult) hitResult).getEntity() : null, hitResult); // CraftBukkit - Pass MovingObjectPosition // Paper - More projectile API
                 }
             }
 
@@ -175,7 +180,7 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
 
     }
 
-    private boolean applySplash(Iterable<MobEffectInstance> iterable, @Nullable Entity entity, HitResult position) { // CraftBukkit - Pass MovingObjectPosition // Paper - Fix potions splash events
+    private boolean applySplash(Iterable<MobEffectInstance> iterable, @Nullable Entity entity, @Nullable HitResult position) { // CraftBukkit - Pass MovingObjectPosition // Paper - Fix potions splash events & More projectile API
         AABB axisalignedbb = this.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
         List<net.minecraft.world.entity.LivingEntity> list = this.level().getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, axisalignedbb);
         Map<LivingEntity, Double> affected = new HashMap<LivingEntity, Double>(); // CraftBukkit
@@ -253,7 +258,7 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
 
     }
 
-    private boolean makeAreaOfEffectCloud(PotionContents potioncontents, HitResult position) { // CraftBukkit - Pass MovingObjectPosition
+    private boolean makeAreaOfEffectCloud(PotionContents potioncontents, @Nullable HitResult position) { // CraftBukkit - Pass MovingObjectPosition // Paper - More projectile API
         AreaEffectCloud entityareaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
         Entity entity = this.getOwner();
 

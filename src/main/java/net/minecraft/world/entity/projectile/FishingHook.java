@@ -414,13 +414,18 @@ public class FishingHook extends Projectile {
                 }
             } else {
                 // CraftBukkit start - logic to modify fishing wait time
-                this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
-                this.timeUntilLured -= (this.applyLure) ? (this.lureSpeed >= this.maxWaitTime ? this.timeUntilLured - 1 : this.lureSpeed ) : 0; // Paper - Fix Lure infinite loop
+                this.resetTimeUntilLured(); // Paper - more projectile api - extract time until lured reset logic
                 // CraftBukkit end
             }
         }
 
     }
+    // Paper start - more projectile api - extract time until lured reset logic
+    public void resetTimeUntilLured() {
+        this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
+        this.timeUntilLured -= (this.applyLure) ? (this.lureSpeed >= this.maxWaitTime ? this.timeUntilLured - 1 : this.lureSpeed ) : 0; // Paper - Fix Lure infinite loop
+    }
+    // Paper end - more projectile api - extract time until lured reset logic
 
     public boolean calculateOpenWater(BlockPos pos) {
         FishingHook.OpenWaterType entityfishinghook_waterposition = FishingHook.OpenWaterType.INVALID;
