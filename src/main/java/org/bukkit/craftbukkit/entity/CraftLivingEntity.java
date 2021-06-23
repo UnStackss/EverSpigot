@@ -361,6 +361,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         }
         // Paper end
     }
+    // Paper start - Bee Stinger API
+    @Override
+    public int getBeeStingerCooldown() {
+        return getHandle().removeStingerTime;
+    }
 
     // Paper start - Add methods for working with arrows stuck in living entities
     @Override
@@ -374,6 +379,34 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         return this.getHandle().removeArrowTime;
     }
     // Paper end - Add methods for working with arrows stuck in living entities
+
+    @Override
+    public void setBeeStingerCooldown(int ticks) {
+        getHandle().removeStingerTime = ticks;
+    }
+
+    @Override
+    public int getBeeStingersInBody() {
+        return getHandle().getStingerCount();
+    }
+
+    @Override
+    public void setBeeStingersInBody(int count) {
+        Preconditions.checkArgument(count >= 0, "New bee stinger amount must be >= 0");
+        getHandle().setStingerCount(count);
+    }
+
+    @Override
+    public void setNextBeeStingerRemoval(final int ticks) {
+        Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next bee stinger removal must be >= 0");
+        this.getHandle().removeStingerTime = ticks;
+    }
+
+    @Override
+    public int getNextBeeStingerRemoval() {
+        return this.getHandle().removeStingerTime;
+    }
+    // Paper end - Bee Stinger API
 
     @Override
     public void damage(double amount) {
