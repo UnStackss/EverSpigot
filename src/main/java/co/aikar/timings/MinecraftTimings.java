@@ -115,6 +115,14 @@ public final class MinecraftTimings {
         return Timings.ofSafe("Minecraft", "## tickEntity - " + entityType + " - " + type, tickEntityTimer);
     }
 
+    public static Timing getBehaviorTimings(String type) {
+        return Timings.ofSafe("## Behavior - " + type);
+    }
+
+    public static Timing getSensorTimings(String type, int rate) {
+        return Timings.ofSafe("## Sensor - " + type + " (Default rate: " + rate + ")");
+    }
+
     /**
      * Get a named timer for the specified tile entity type to track type specific timings.
      * @param entity
