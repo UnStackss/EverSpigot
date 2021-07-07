@@ -561,6 +561,11 @@ public abstract class PlayerList {
     }
 
     public net.kyori.adventure.text.Component remove(ServerPlayer entityplayer) { // CraftBukkit - return string // Paper - return Component
+        // Paper start - Fix kick event leave message not being sent
+        return this.remove(entityplayer, net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? entityplayer.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(entityplayer.getDisplayName())));
+    }
+    public net.kyori.adventure.text.Component remove(ServerPlayer entityplayer, net.kyori.adventure.text.Component leaveMessage) {
+        // Paper end - Fix kick event leave message not being sent
         ServerLevel worldserver = entityplayer.serverLevel();
 
         entityplayer.awardStat(Stats.LEAVE_GAME);

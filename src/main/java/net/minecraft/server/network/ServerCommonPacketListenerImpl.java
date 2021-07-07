@@ -110,6 +110,11 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
 
     @Override
     public void onDisconnect(DisconnectionDetails info) {
+        // Paper start - Fix kick event leave message not being sent
+        this.onDisconnect(info, null);
+    }
+    public void onDisconnect(DisconnectionDetails info, @Nullable net.kyori.adventure.text.Component quitMessage) {
+        // Paper end - Fix kick event leave message not being sent
         if (this.isSingleplayerOwner()) {
             ServerCommonPacketListenerImpl.LOGGER.info("Stopping singleplayer server as player logged out");
             this.server.halt(false);
@@ -374,18 +379,17 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
             // Do not kick the player
             return;
         }
-        this.player.kickLeaveMessage = event.getLeaveMessage(); // CraftBukkit - SPIGOT-3034: Forward leave message to PlayerQuitEvent
         // Send the possibly modified leave message
-        this.disconnect0(new DisconnectionDetails(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason()), disconnectionInfo.report(), disconnectionInfo.bugReportLink())); // Paper - Adventure
+        this.disconnect0(new DisconnectionDetails(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.reason()), disconnectionInfo.report(), disconnectionInfo.bugReportLink()), event.leaveMessage()); // Paper - Adventure & use kick event leave message
     }
 
-    private void disconnect0(DisconnectionDetails disconnectiondetails) {
+    private void disconnect0(DisconnectionDetails disconnectiondetails, @Nullable net.kyori.adventure.text.Component leaveMessage) { // Paper - use kick event leave message
         // CraftBukkit end
         this.player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.KICKED; // Paper - Add API for quit reason
         this.connection.send(new ClientboundDisconnectPacket(disconnectiondetails.reason()), PacketSendListener.thenRun(() -> {
             this.connection.disconnect(disconnectiondetails);
         }));
-        this.onDisconnect(disconnectiondetails); // CraftBukkit - fire quit instantly
+        this.onDisconnect(disconnectiondetails, leaveMessage); // CraftBukkit - fire quit instantly // Paper - use kick event leave message
         this.connection.setReadOnly();
         MinecraftServer minecraftserver = this.server;
         Connection networkmanager = this.connection;
