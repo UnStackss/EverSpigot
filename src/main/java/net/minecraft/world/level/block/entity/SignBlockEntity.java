@@ -274,7 +274,17 @@ public class SignBlockEntity extends BlockEntity implements CommandSource { // C
             ClickEvent chatclickable = chatmodifier.getClickEvent();
 
             if (chatclickable != null && chatclickable.getAction() == ClickEvent.Action.RUN_COMMAND) {
-                player.getServer().getCommands().performPrefixedCommand(this.createCommandSourceStack(player, world, pos), chatclickable.getValue());
+                // Paper start - Fix commands from signs not firing command events
+                String command = chatclickable.getValue().startsWith("/") ? chatclickable.getValue() : "/" + chatclickable.getValue();
+                if (org.spigotmc.SpigotConfig.logCommands)  {
+                    LOGGER.info("{} issued server command: {}", player.getScoreboardName(), command);
+                }
+                io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent event = new io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent((org.bukkit.entity.Player) player.getBukkitEntity(), command, new org.bukkit.craftbukkit.util.LazyPlayerSet(player.getServer()), (org.bukkit.block.Sign) CraftBlock.at(this.level, this.worldPosition).getState(), front ? Side.FRONT : Side.BACK);
+                if (!event.callEvent()) {
+                    return false;
+                }
+                player.getServer().getCommands().performPrefixedCommand(this.createCommandSourceStack(((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle(), world, pos), event.getMessage());
+                // Paper end - Fix commands from signs not firing command events
                 flag1 = true;
             }
         }
@@ -311,8 +321,23 @@ public class SignBlockEntity extends BlockEntity implements CommandSource { // C
         String s = player == null ? "Sign" : player.getName().getString();
         Object object = player == null ? Component.literal("Sign") : player.getDisplayName();
 
+        // Paper start - Fix commands from signs not firing command events
+        CommandSource commandSource = this.level.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(this) {
+            @Override
+            public void sendSystemMessage(Component message) {
+                if (player != null) {
+                    player.sendSystemMessage(message);
+                }
+            }
+
+            @Override
+            public boolean acceptsFailure() {
+                return true;
+            }
+        } : this;
+        // Paper end - Fix commands from signs not firing command events
         // CraftBukkit - this
-        return new CommandSourceStack(this, Vec3.atCenterOf(pos), Vec2.ZERO, (ServerLevel) world, 2, s, (Component) object, world.getServer(), player);
+        return new CommandSourceStack(commandSource, Vec3.atCenterOf(pos), Vec2.ZERO, (ServerLevel) world, 2, s, (Component) object, world.getServer(), player); // Paper - Fix commands from signs not firing command events
     }
 
     @Override
