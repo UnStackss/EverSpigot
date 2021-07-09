@@ -37,6 +37,7 @@ public class DisplayInfo {
     private final boolean hidden;
     private float x;
     private float y;
+    public final io.papermc.paper.advancement.AdvancementDisplay paper = new io.papermc.paper.advancement.PaperAdvancementDisplay(this); // Paper - Add more advancement API
 
     public DisplayInfo(
         ItemStack icon,
