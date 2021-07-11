@@ -27,6 +27,12 @@ public interface ContainerLevelAccess {
         public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> getter) {
             return Optional.empty();
         }
+        // Paper start - fix menus with empty level accesses
+        @Override
+        public org.bukkit.Location getLocation() {
+            return null;
+        }
+        // Paper end - fix menus with empty level accesses
     };
 
     static ContainerLevelAccess create(final Level world, final BlockPos pos) {
