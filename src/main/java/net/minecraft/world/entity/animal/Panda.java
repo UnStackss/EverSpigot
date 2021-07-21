@@ -554,11 +554,13 @@ public class Panda extends Animal {
             List<ItemStack> list1 = loottable.getRandomItems(lootparams);
             Iterator iterator1 = list1.iterator();
 
+            this.forceDrops = true; // Paper - Add missing forceDrop toggles
             while (iterator1.hasNext()) {
                 ItemStack itemstack = (ItemStack) iterator1.next();
 
                 this.spawnAtLocation(itemstack);
             }
+            this.forceDrops = false; // Paper - Add missing forceDrop toggles
         }
 
     }
@@ -682,7 +684,9 @@ public class Panda extends Animal {
                 ItemStack itemstack1 = this.getItemBySlot(EquipmentSlot.MAINHAND);
 
                 if (!itemstack1.isEmpty() && !player.hasInfiniteMaterials()) {
+                    this.forceDrops = true; // Paper - Add missing forceDrop toggles
                     this.spawnAtLocation(itemstack1);
+                    this.forceDrops = false; // Paper - Add missing forceDrop toggles
                 }
 
                 this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(itemstack.getItem(), 1));
@@ -959,7 +963,9 @@ public class Panda extends Animal {
             ItemStack itemstack = Panda.this.getItemBySlot(EquipmentSlot.MAINHAND);
 
             if (!itemstack.isEmpty()) {
+                Panda.this.forceDrops = true; // Paper - Add missing forceDrop toggles
                 Panda.this.spawnAtLocation(itemstack);
+                Panda.this.forceDrops = false; // Paper - Add missing forceDrop toggles
                 Panda.this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
                 int i = Panda.this.isLazy() ? Panda.this.random.nextInt(50) + 10 : Panda.this.random.nextInt(150) + 10;
 

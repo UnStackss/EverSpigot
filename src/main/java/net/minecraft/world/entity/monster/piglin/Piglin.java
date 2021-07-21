@@ -310,7 +310,9 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
     @Override
     protected void finishConversion(ServerLevel world) {
         PiglinAi.cancelAdmiring(this);
+        this.forceDrops = true; // Paper - Add missing forceDrop toggles
         this.inventory.removeAllItems().forEach(this::spawnAtLocation);
+        this.forceDrops = false; // Paper - Add missing forceDrop toggles
         super.finishConversion(world);
     }
 
