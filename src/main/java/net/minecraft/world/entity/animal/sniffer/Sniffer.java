@@ -350,8 +350,9 @@ public class Sniffer extends Animal {
 
         entityitem.setDefaultPickUpDelay();
         this.finalizeSpawnChildFromBreeding(world, other, (AgeableMob) null);
+        if (this.spawnAtLocation(entityitem) != null) { // Paper - Call EntityDropItemEvent
         this.playSound(SoundEvents.SNIFFER_EGG_PLOP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 0.5F);
-        world.addFreshEntity(entityitem);
+        } // Paper - Call EntityDropItemEvent
     }
 
     @Override

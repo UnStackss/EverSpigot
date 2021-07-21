@@ -361,8 +361,7 @@ public class Goat extends Animal {
             double d2 = (double) Mth.randomBetween(this.random, -0.2F, 0.2F);
             ItemEntity entityitem = new ItemEntity(this.level(), vec3d.x(), vec3d.y(), vec3d.z(), itemstack, d0, d1, d2);
 
-            this.level().addFreshEntity(entityitem);
-            return true;
+            return this.spawnAtLocation(entityitem) != null; // Paper - Call EntityDropItemEvent
         }
     }
 

@@ -576,7 +576,7 @@ public class Dolphin extends WaterAnimal {
                 float f2 = 0.02F * Dolphin.this.random.nextFloat();
 
                 entityitem.setDeltaMovement((double) (0.3F * -Mth.sin(Dolphin.this.getYRot() * 0.017453292F) * Mth.cos(Dolphin.this.getXRot() * 0.017453292F) + Mth.cos(f1) * f2), (double) (0.3F * Mth.sin(Dolphin.this.getXRot() * 0.017453292F) * 1.5F), (double) (0.3F * Mth.cos(Dolphin.this.getYRot() * 0.017453292F) * Mth.cos(Dolphin.this.getXRot() * 0.017453292F) + Mth.sin(f1) * f2));
-                Dolphin.this.level().addFreshEntity(entityitem);
+                Dolphin.this.spawnAtLocation(entityitem); // Paper - Call EntityDropItemEvent
             }
         }
     }

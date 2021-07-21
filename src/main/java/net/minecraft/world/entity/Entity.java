@@ -2557,6 +2557,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             stack.setCount(0); // Paper - destroy this item - if this ever leaks due to game bugs, ensure it doesn't dupe
 
             entityitem.setDefaultPickUpDelay();
+            // Paper start - Call EntityDropItemEvent
+            return this.spawnAtLocation(entityitem);
+        }
+    }
+    @Nullable
+    public ItemEntity spawnAtLocation(ItemEntity entityitem) {
+        {
+            // Paper end - Call EntityDropItemEvent
             // CraftBukkit start
             EntityDropItemEvent event = new EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
             Bukkit.getPluginManager().callEvent(event);
