@@ -282,12 +282,14 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
             }
 
             SecretKey secretkey = packet.getSecretKey(privatekey);
-            Cipher cipher = Crypt.getCipher(2, secretkey);
-            Cipher cipher1 = Crypt.getCipher(1, secretkey);
+            // Paper start - Use Velocity cipher
+//            Cipher cipher = Crypt.getCipher(2, secretkey);
+//            Cipher cipher1 = Crypt.getCipher(1, secretkey);
+            // Paper end - Use Velocity cipher
 
             s = (new BigInteger(Crypt.digestData("", this.server.getKeyPair().getPublic(), secretkey))).toString(16);
             this.state = ServerLoginPacketListenerImpl.State.AUTHENTICATING;
-            this.connection.setEncryptionKey(cipher, cipher1);
+            this.connection.setupEncryption(secretkey); // Paper - Use Velocity cipher
         } catch (CryptException cryptographyexception) {
             throw new IllegalStateException("Protocol error", cryptographyexception);
         }
