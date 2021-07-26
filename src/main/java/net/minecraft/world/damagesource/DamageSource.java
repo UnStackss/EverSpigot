@@ -276,4 +276,18 @@ public class DamageSource {
     public Holder<DamageType> typeHolder() {
         return this.type;
     }
+
+    // Paper start - add critical damage API
+    private boolean critical;
+    public boolean isCritical() {
+        return this.critical;
+    }
+    public DamageSource critical() {
+        return this.critical(true);
+    }
+    public DamageSource critical(boolean critical) {
+        this.critical = critical;
+        return this;
+    }
+    // Paper end - add critical damage API
 }

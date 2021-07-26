@@ -1293,6 +1293,7 @@ public abstract class Player extends LivingEntity {
 
                     flag2 = flag2 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
                     if (flag2) {
+                        damagesource = damagesource.critical(true); // Paper start - critical damage API
                         f *= 1.5F;
                     }
 
@@ -1352,7 +1353,7 @@ public abstract class Player extends LivingEntity {
                                     float f7 = this.getEnchantedDamage(entityliving2, f6, damagesource) * f2;
 
                                     // CraftBukkit start - Only apply knockback if the damage hits
-                                    if (!entityliving2.hurt(this.damageSources().playerAttack(this).sweep(), f7)) {
+                                    if (!entityliving2.hurt(this.damageSources().playerAttack(this).sweep().critical(flag2), f7)) { // Paper - add critical damage API
                                         continue;
                                     }
                                     // CraftBukkit end
