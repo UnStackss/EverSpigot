@@ -125,6 +125,7 @@ public class Util {
         .filter(fileSystemProvider -> fileSystemProvider.getScheme().equalsIgnoreCase("jar"))
         .findFirst()
         .orElseThrow(() -> new IllegalStateException("No jar file system provider found"));
+    public static final double COLLISION_EPSILON = 1.0E-7; // Paper - Check distance in entity interactions
     private static Consumer<String> thePauser = message -> {
     };
 

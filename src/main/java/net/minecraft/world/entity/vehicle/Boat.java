@@ -718,7 +718,7 @@ public class Boat extends VehicleEntity implements Leashable, VariantHolder<Boat
             double d2 = (double) (this.getWaterLevelAbove() - this.getBbHeight()) + 0.101D;
 
             if (this.level().noCollision(this, this.getBoundingBox().move(0.0D, d2 - this.getY(), 0.0D))) {
-                this.setPos(this.getX(), d2, this.getZ());
+                this.move(MoverType.SELF, new Vec3(0.0D, d2 - this.getY(), 0.0D)); // Paper - Check distance in entity interactions // TODO Still needed?
                 this.setDeltaMovement(this.getDeltaMovement().multiply(1.0D, 0.0D, 1.0D));
                 this.lastYd = 0.0D;
             }

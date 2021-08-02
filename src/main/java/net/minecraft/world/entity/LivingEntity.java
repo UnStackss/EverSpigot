@@ -1437,7 +1437,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 if (!source.is(DamageTypeTags.IS_PROJECTILE)) {
                     Entity entity = source.getDirectEntity();
 
-                    if (entity instanceof LivingEntity) {
+                    if (entity instanceof LivingEntity && entity.distanceToSqr(this) <= (200.0D * 200.0D)) { // Paper - Check distance in entity interactions
                         LivingEntity entityliving = (LivingEntity) entity;
 
                         this.blockUsingShield(entityliving);
@@ -1557,6 +1557,14 @@ public abstract class LivingEntity extends Entity implements Attackable {
                         d0 = source.getSourcePosition().x() - this.getX();
                         d1 = source.getSourcePosition().z() - this.getZ();
                     }
+                    // Paper start - Check distance in entity interactions; see for loop in knockback method
+                    if (Math.abs(d0) > 200) {
+                        d0 = Math.random() - Math.random();
+                    }
+                    if (Math.abs(d1) > 200) {
+                        d1 = Math.random() - Math.random();
+                    }
+                    // Paper end - Check distance in entity interactions
 
                     this.knockback(0.4000000059604645D, d0, d1, entity1, entity1 == null ? io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.DAMAGE : io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // CraftBukkit // Paper - knockback events
                     if (!flag) {
@@ -2351,7 +2359,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 this.hurtCurrentlyUsedShield((float) -event.getDamage(DamageModifier.BLOCKING));
                 Entity entity = damagesource.getDirectEntity();
 
-                if (!damagesource.is(DamageTypeTags.IS_PROJECTILE) && entity instanceof LivingEntity) { // Paper - Fix shield disable inconsistency
+                if (!damagesource.is(DamageTypeTags.IS_PROJECTILE) && entity instanceof LivingEntity && entity.distanceToSqr(this) <= (200.0D * 200.0D)) { // Paper - Fix shield disable inconsistency & Check distance in entity interactions
                     this.blockUsingShield((LivingEntity) entity);
                 }
             }
