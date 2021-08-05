@@ -391,4 +391,15 @@ public class Goat extends Animal {
     public static boolean checkGoatSpawnRules(EntityType<? extends Animal> entityType, LevelAccessor world, MobSpawnType spawnReason, BlockPos pos, RandomSource random) {
         return world.getBlockState(pos.below()).is(BlockTags.GOATS_SPAWNABLE_ON) && isBrightEnoughToSpawn(world, pos);
     }
+
+    // Paper start - Goat ram API
+    public void ram(net.minecraft.world.entity.LivingEntity entity) {
+        Brain<Goat> brain = this.getBrain();
+        brain.setMemory(MemoryModuleType.RAM_TARGET, entity.position());
+        brain.eraseMemory(MemoryModuleType.RAM_COOLDOWN_TICKS);
+        brain.eraseMemory(MemoryModuleType.BREED_TARGET);
+        brain.eraseMemory(MemoryModuleType.TEMPTING_PLAYER);
+        brain.setActiveActivityIfPossible(net.minecraft.world.entity.schedule.Activity.RAM);
+    }
+    // Paper end - Goat ram API
 }
