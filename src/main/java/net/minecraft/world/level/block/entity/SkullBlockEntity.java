@@ -105,7 +105,7 @@ public class SkullBlockEntity extends BlockEntity {
                 ProfileResult profileResult = apiServices.sessionService().fetchProfile(uuid, true);
                 return Optional.ofNullable(profileResult).map(ProfileResult::profile);
             }
-        }, Util.backgroundExecutor());
+        }, Util.PROFILE_EXECUTOR); // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
     }
 
     public static void clear() {

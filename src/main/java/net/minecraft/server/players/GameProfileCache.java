@@ -169,7 +169,7 @@ public class GameProfileCache {
             } else {
                 CompletableFuture<Optional<GameProfile>> completablefuture1 = CompletableFuture.supplyAsync(() -> {
                     return this.get(username);
-                }, Util.backgroundExecutor()).whenCompleteAsync((optional, throwable) -> {
+                }, Util.PROFILE_EXECUTOR).whenCompleteAsync((optional, throwable) -> { // Paper - don't submit BLOCKING PROFILE LOOKUPS to the world gen thread
                     this.requests.remove(username);
                 }, this.executor);
 
