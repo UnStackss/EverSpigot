@@ -71,7 +71,7 @@ public class ServerEntity {
     private Vec3 lastSentMovement;
     private int tickCount;
     private int teleportDelay;
-    private List<Entity> lastPassengers = Collections.emptyList();
+    private List<Entity> lastPassengers = com.google.common.collect.ImmutableList.of(); // Paper - optimize passenger checks
     private boolean wasRiding;
     private boolean wasOnGround;
     @Nullable
