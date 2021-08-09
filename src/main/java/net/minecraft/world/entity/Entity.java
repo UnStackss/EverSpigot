@@ -3889,20 +3889,34 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     private Stream<Entity> getIndirectPassengersStream() {
+        if (this.passengers.isEmpty()) { return Stream.of(); } // Paper - Optimize indirect passenger iteration
         return this.passengers.stream().flatMap(Entity::getSelfAndPassengers);
     }
 
     @Override
     public Stream<Entity> getSelfAndPassengers() {
+        if (this.passengers.isEmpty()) { return Stream.of(this); } // Paper - Optimize indirect passenger iteration
         return Stream.concat(Stream.of(this), this.getIndirectPassengersStream());
     }
 
     @Override
     public Stream<Entity> getPassengersAndSelf() {
+        if (this.passengers.isEmpty()) { return Stream.of(this); } // Paper - Optimize indirect passenger iteration
         return Stream.concat(this.passengers.stream().flatMap(Entity::getPassengersAndSelf), Stream.of(this));
     }
 
     public Iterable<Entity> getIndirectPassengers() {
+        // Paper start - Optimize indirect passenger iteration
+        if (this.passengers.isEmpty()) { return ImmutableList.of(); }
+        ImmutableList.Builder<Entity> indirectPassengers = ImmutableList.builder();
+        for (Entity passenger : this.passengers) {
+            indirectPassengers.add(passenger);
+            indirectPassengers.addAll(passenger.getIndirectPassengers());
+        }
+        return indirectPassengers.build();
+    }
+    private Iterable<Entity> getIndirectPassengers_old() {
+        // Paper end - Optimize indirect passenger iteration
         return () -> {
             return this.getIndirectPassengersStream().iterator();
         };
@@ -3915,6 +3929,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public boolean hasExactlyOnePlayerPassenger() {
+        if (this.passengers.isEmpty()) { return false; } // Paper - Optimize indirect passenger iteration
         return this.countPlayerPassengers() == 1;
     }
 
