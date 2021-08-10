@@ -46,6 +46,11 @@ public class EnderEyeItem extends Item {
                 return InteractionResult.SUCCESS;
             } else {
                 BlockState iblockdata1 = (BlockState) iblockdata.setValue(EndPortalFrameBlock.HAS_EYE, true);
+                // Paper start
+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(context.getPlayer(), blockposition, iblockdata1)) {
+                    return InteractionResult.PASS;
+                }
+                // Paper end
 
                 Block.pushEntitiesUp(iblockdata, iblockdata1, world, blockposition);
                 world.setBlock(blockposition, iblockdata1, 2);

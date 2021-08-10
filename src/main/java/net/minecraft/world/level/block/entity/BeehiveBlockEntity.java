@@ -259,7 +259,13 @@ public class BeehiveBlockEntity extends BlockEntity {
                                         --j;
                                     }
 
-                                    world.setBlockAndUpdate(blockposition, (BlockState) iblockdata.setValue(BeehiveBlock.HONEY_LEVEL, i + j));
+                                    // Paper start - Fire EntityChangeBlockEvent in more places
+                                    BlockState newBlockState = iblockdata.setValue(BeehiveBlock.HONEY_LEVEL, i + j);
+
+                                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entitybee, blockposition, newBlockState)) {
+                                        world.setBlockAndUpdate(blockposition, newBlockState);
+                                    }
+                                    // Paper end - Fire EntityChangeBlockEvent in more places
                                 }
                             }
                         }

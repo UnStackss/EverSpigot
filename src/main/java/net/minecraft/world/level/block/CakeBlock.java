@@ -65,6 +65,12 @@ public class CakeBlock extends Block {
             if (block instanceof CandleBlock) {
                 CandleBlock candleblock = (CandleBlock) block;
 
+                // Paper start - call change block event
+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, pos, CandleCakeBlock.byCandle(candleblock))) {
+                    player.containerMenu.sendAllDataToRemote(); // update inv because candle could decrease
+                    return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+                }
+                // Paper end - call change block event
                 stack.consume(1, player);
                 world.playSound((Player) null, pos, SoundEvents.CAKE_ADD_CANDLE, SoundSource.BLOCKS, 1.0F, 1.0F);
                 world.setBlockAndUpdate(pos, CandleCakeBlock.byCandle(candleblock));
@@ -96,6 +102,14 @@ public class CakeBlock extends Block {
         if (!player.canEat(false)) {
             return InteractionResult.PASS;
         } else {
+            // Paper start - call change block event
+            int i = state.getValue(CakeBlock.BITES);
+            final BlockState newState = i < MAX_BITES ? state.setValue(CakeBlock.BITES, i + 1) : world.getFluidState(pos).createLegacyBlock();
+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, pos, newState)) {
+                ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity().sendHealthUpdate();
+                return InteractionResult.PASS; // return a non-consume result to cake blocks don't drop their candles
+            }
+            // Paper end - call change block event
             player.awardStat(Stats.EAT_CAKE_SLICE);
             // CraftBukkit start
             // entityhuman.getFoodData().eat(2, 0.1F);
@@ -109,7 +123,7 @@ public class CakeBlock extends Block {
 
             ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity().sendHealthUpdate();
             // CraftBukkit end
-            int i = (Integer) state.getValue(CakeBlock.BITES);
+            // Paper - move up
 
             world.gameEvent((Entity) player, (Holder) GameEvent.EAT, pos);
             if (i < 6) {
