@@ -116,7 +116,7 @@ public class ServerEntity {
             if (true || this.tickCount % 10 == 0) { // CraftBukkit - Moved below, should always enter this block
                 ItemStack itemstack = entityitemframe.getItem();
 
-                if (this.tickCount % 10 == 0 && itemstack.getItem() instanceof MapItem) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks
+                if (this.level.paperConfig().maps.itemFrameCursorUpdateInterval > 0 && this.tickCount % this.level.paperConfig().maps.itemFrameCursorUpdateInterval == 0 && itemstack.getItem() instanceof MapItem) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks // Paper - Make item frame map cursor update interval configurable
                     MapId mapid = (MapId) itemstack.get(DataComponents.MAP_ID);
                     MapItemSavedData worldmap = MapItem.getSavedData(mapid, this.level);
 
