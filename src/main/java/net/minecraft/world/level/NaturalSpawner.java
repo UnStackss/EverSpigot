@@ -152,6 +152,16 @@ public final class NaturalSpawner {
         world.getProfiler().pop();
     }
 
+    // Paper start - Add mobcaps commands
+    public static int globalLimitForCategory(final ServerLevel level, final MobCategory category, final int spawnableChunkCount) {
+        final int categoryLimit = level.getWorld().getSpawnLimitUnsafe(CraftSpawnCategory.toBukkit(category));
+        if (categoryLimit < 1) {
+            return categoryLimit;
+        }
+        return categoryLimit * spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
+    }
+    // Paper end - Add mobcaps commands
+
     public static void spawnCategoryForChunk(MobCategory group, ServerLevel world, LevelChunk chunk, NaturalSpawner.SpawnPredicate checker, NaturalSpawner.AfterSpawnCallback runner) {
         BlockPos blockposition = NaturalSpawner.getRandomPosWithin(world, chunk);
 
