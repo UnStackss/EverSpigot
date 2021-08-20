@@ -20,6 +20,12 @@ public class CalibratedSculkSensorBlockEntity extends SculkSensorBlockEntity {
     public VibrationSystem.User createVibrationUser() {
         return new CalibratedSculkSensorBlockEntity.VibrationUser(this.getBlockPos());
     }
+    // Paper start - Configurable sculk sensor listener range
+    @Override
+    protected void saveRangeOverride(final net.minecraft.nbt.CompoundTag nbt) {
+        if (this.rangeOverride != null && this.rangeOverride != 16) nbt.putInt(PAPER_LISTENER_RANGE_NBT_KEY, this.rangeOverride); // only save if it's different from the default
+    }
+    // Paper end - Configurable sculk sensor listener range
 
     protected class VibrationUser extends SculkSensorBlockEntity.VibrationUser {
         public VibrationUser(final BlockPos pos) {
@@ -28,6 +34,7 @@ public class CalibratedSculkSensorBlockEntity extends SculkSensorBlockEntity {
 
         @Override
         public int getListenerRadius() {
+            if (CalibratedSculkSensorBlockEntity.this.rangeOverride != null) return CalibratedSculkSensorBlockEntity.this.rangeOverride; // Paper - Configurable sculk sensor listener range
             return 16;
         }
 
