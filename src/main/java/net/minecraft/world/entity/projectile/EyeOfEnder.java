@@ -69,6 +69,11 @@ public class EyeOfEnder extends Entity implements ItemSupplier {
     }
 
     public void signalTo(BlockPos pos) {
+        // Paper start - Change EnderEye target without changing other things
+        this.signalTo(pos, true);
+    }
+    public void signalTo(BlockPos pos, boolean update) {
+        // Paper end - Change EnderEye target without changing other things
         double d0 = (double) pos.getX();
         int i = pos.getY();
         double d1 = (double) pos.getZ();
@@ -86,8 +91,10 @@ public class EyeOfEnder extends Entity implements ItemSupplier {
             this.tz = d1;
         }
 
+        if (update) { // Paper - Change EnderEye target without changing other things
         this.life = 0;
         this.surviveAfterDeath = this.random.nextInt(5) > 0;
+        } // Paper - Change EnderEye target without changing other things
     }
 
     @Override
