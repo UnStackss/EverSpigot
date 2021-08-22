@@ -314,7 +314,7 @@ public class BeehiveBlockEntity extends BlockEntity {
                     iterator.remove();
                     // CraftBukkit start
                 } else {
-                    tileentitybeehive_hivebee.ticksInHive = tileentitybeehive_hivebee.occupant.minTicksInHive / 2; // Not strictly Vanilla behaviour in cases where bees cannot spawn but still reasonable
+                    tileentitybeehive_hivebee.exitTickCounter = tileentitybeehive_hivebee.occupant.minTicksInHive / 2; // Not strictly Vanilla behaviour in cases where bees cannot spawn but still reasonable // Paper - Fix bees aging inside hives; use exitTickCounter to keep actual bee life
                     // CraftBukkit end
                 }
             }
@@ -474,15 +474,18 @@ public class BeehiveBlockEntity extends BlockEntity {
     private static class BeeData {
 
         private final BeehiveBlockEntity.Occupant occupant;
+        private int exitTickCounter; // Paper - Fix bees aging inside hives; separate counter for checking if bee should exit to reduce exit attempts
         private int ticksInHive;
 
         BeeData(BeehiveBlockEntity.Occupant data) {
             this.occupant = data;
             this.ticksInHive = data.ticksInHive();
+            this.exitTickCounter = this.ticksInHive; // Paper - Fix bees aging inside hives
         }
 
         public boolean tick() {
-            return this.ticksInHive++ > this.occupant.minTicksInHive;
+            this.ticksInHive++; // Paper - Fix bees aging inside hives
+            return this.exitTickCounter++ > this.occupant.minTicksInHive; // Paper - Fix bees aging inside hives
         }
 
         public BeehiveBlockEntity.Occupant toOccupant() {
