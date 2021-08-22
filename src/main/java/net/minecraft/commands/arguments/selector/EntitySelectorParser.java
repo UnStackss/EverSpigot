@@ -116,8 +116,15 @@ public class EntitySelectorParser {
     private boolean hasScores;
     private boolean hasAdvancements;
     private boolean usesSelectors;
+    public boolean parsingEntityArgumentSuggestions; // Paper - tell clients to ask server for suggestions for EntityArguments
 
     public EntitySelectorParser(StringReader reader, boolean atAllowed) {
+        // Paper start - tell clients to ask server for suggestions for EntityArguments
+        this(reader, atAllowed, false);
+    }
+    public EntitySelectorParser(StringReader reader, boolean atAllowed, boolean parsingEntityArgumentSuggestions) {
+        this.parsingEntityArgumentSuggestions = parsingEntityArgumentSuggestions;
+        // Paper end - tell clients to ask server for suggestions for EntityArguments
         this.distance = MinMaxBounds.Doubles.ANY;
         this.level = MinMaxBounds.Ints.ANY;
         this.rotX = WrappedMinMaxBounds.ANY;

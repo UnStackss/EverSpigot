@@ -447,4 +447,20 @@ public class CommandSourceStack implements ExecutionCommandSource<CommandSourceS
         return this.source.getBukkitSender(this);
     }
     // CraftBukkit end
+    // Paper start - tell clients to ask server for suggestions for EntityArguments
+    @Override
+    public Collection<String> getSelectedEntities() {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().commands.fixTargetSelectorTagCompletion && this.source instanceof ServerPlayer player) {
+            final Entity cameraEntity = player.getCamera();
+            final double pickDistance = player.entityInteractionRange();
+            final Vec3 min = cameraEntity.getEyePosition(1.0F);
+            final Vec3 viewVector = cameraEntity.getViewVector(1.0F);
+            final Vec3 max = min.add(viewVector.x * pickDistance, viewVector.y * pickDistance, viewVector.z * pickDistance);
+            final net.minecraft.world.phys.AABB aabb = cameraEntity.getBoundingBox().expandTowards(viewVector.scale(pickDistance)).inflate(1.0D, 1.0D, 1.0D);
+            final net.minecraft.world.phys.EntityHitResult hitResult = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(cameraEntity, min, max, aabb, (e) -> !e.isSpectator() && e.isPickable(), pickDistance * pickDistance);
+            return hitResult != null ? java.util.Collections.singletonList(hitResult.getEntity().getStringUUID()) : SharedSuggestionProvider.super.getSelectedEntities();
+        }
+        return SharedSuggestionProvider.super.getSelectedEntities();
+    }
+    // Paper end - tell clients to ask server for suggestions for EntityArguments
 }

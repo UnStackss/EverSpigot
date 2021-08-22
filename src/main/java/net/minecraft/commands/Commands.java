@@ -535,6 +535,7 @@ public class Commands {
         resultNodes.keySet().removeIf((node) -> !org.spigotmc.SpigotConfig.sendNamespaced && node.getName().contains( ":" )); // Paper - Remove namedspaced from result nodes to prevent redirect trimming ~ see comment below
         Iterator iterator = tree.getChildren().iterator();
 
+        boolean registeredAskServerSuggestionsForTree = false; // Paper - tell clients to ask server for suggestions for EntityArguments
         while (iterator.hasNext()) {
             CommandNode<CommandSourceStack> commandnode2 = (CommandNode) iterator.next();
             // Paper start - Brigadier API
@@ -597,6 +598,12 @@ public class Commands {
 
                     if (requiredargumentbuilder.getSuggestionsProvider() != null) {
                         requiredargumentbuilder.suggests(SuggestionProviders.safelySwap(requiredargumentbuilder.getSuggestionsProvider()));
+                        // Paper start - tell clients to ask server for suggestions for EntityArguments
+                        registeredAskServerSuggestionsForTree = requiredargumentbuilder.getSuggestionsProvider() == net.minecraft.commands.synchronization.SuggestionProviders.ASK_SERVER;
+                    } else if (io.papermc.paper.configuration.GlobalConfiguration.get().commands.fixTargetSelectorTagCompletion && !registeredAskServerSuggestionsForTree && requiredargumentbuilder.getType() instanceof net.minecraft.commands.arguments.EntityArgument) {
+                        requiredargumentbuilder.suggests(requiredargumentbuilder.getType()::listSuggestions);
+                        registeredAskServerSuggestionsForTree = true; // You can only
+                        // Paper end - tell clients to ask server for suggestions for EntityArguments
                     }
                 }
 

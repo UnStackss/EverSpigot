@@ -139,7 +139,7 @@ public class EntityArgument implements ArgumentType<EntitySelector> {
             final boolean permission = object instanceof CommandSourceStack stack
                     ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector")
                     : icompletionprovider.hasPermission(2);
-            EntitySelectorParser argumentparserselector = new EntitySelectorParser(stringreader, permission);
+            EntitySelectorParser argumentparserselector = new EntitySelectorParser(stringreader, permission, true); // Paper - tell clients to ask server for suggestions for EntityArguments
             // Paper end - Fix EntityArgument permissions
 
             try {
@@ -149,7 +149,19 @@ public class EntityArgument implements ArgumentType<EntitySelector> {
             }
 
             return argumentparserselector.fillSuggestions(suggestionsbuilder, (suggestionsbuilder1) -> {
-                Collection<String> collection = icompletionprovider.getOnlinePlayerNames();
+                // Paper start - tell clients to ask server for suggestions for EntityArguments
+                final Collection<String> collection;
+                if (icompletionprovider instanceof CommandSourceStack commandSourceStack && commandSourceStack.getEntity() instanceof ServerPlayer sourcePlayer) {
+                    collection = new java.util.ArrayList<>();
+                    for (final ServerPlayer player : commandSourceStack.getServer().getPlayerList().getPlayers()) {
+                        if (sourcePlayer.getBukkitEntity().canSee(player.getBukkitEntity())) {
+                            collection.add(player.getGameProfile().getName());
+                        }
+                    }
+                } else {
+                    collection = icompletionprovider.getOnlinePlayerNames();
+                }
+                // Paper end - tell clients to ask server for suggestions for EntityArguments
                 Iterable<String> iterable = this.playersOnly ? collection : Iterables.concat(collection, icompletionprovider.getSelectedEntities());
 
                 SharedSuggestionProvider.suggest((Iterable) iterable, suggestionsbuilder1);
