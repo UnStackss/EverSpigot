@@ -466,6 +466,7 @@ public final class ItemStack implements DataComponentHolder {
                     for (CraftBlockState blockstate : blocks) {
                         // SPIGOT-7572 - Move fix for SPIGOT-7248 to CapturedBlockState, to allow bees in bee nest
                         CapturedBlockState.setBlockState(blockstate);
+                        world.checkCapturedTreeStateForObserverNotify(blockposition, blockstate); // Paper - notify observers even if grow failed
                     }
                     entityhuman.awardStat(Stats.ITEM_USED.get(item)); // SPIGOT-7236 - award stat
                 }

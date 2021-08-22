@@ -634,6 +634,7 @@ public interface DispenseItemBehavior {
                     if (!fertilizeEvent.isCancelled()) {
                         for (org.bukkit.block.BlockState blockstate : blocks) {
                             blockstate.update(true);
+                            worldserver.checkCapturedTreeStateForObserverNotify(blockposition, (org.bukkit.craftbukkit.block.CraftBlockState) blockstate); // Paper - notify observers even if grow failed
                         }
                     }
                 }

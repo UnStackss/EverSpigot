@@ -86,6 +86,7 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
                     if (event == null || !event.isCancelled()) {
                         for (BlockState blockstate : blocks) {
                             CapturedBlockState.setBlockState(blockstate);
+                            world.checkCapturedTreeStateForObserverNotify(pos, (org.bukkit.craftbukkit.block.CraftBlockState) blockstate); // Paper - notify observers even if grow failed
                         }
                     }
                 }

@@ -1378,4 +1378,14 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         return range <= 0 ? 64.0 * 64.0 : range * range; // 64 is taken from default in ServerLevel#levelEvent
     }
     // Paper end - respect global sound events gamerule
+    // Paper start - notify observers even if grow failed
+    public void checkCapturedTreeStateForObserverNotify(final BlockPos pos, final CraftBlockState craftBlockState) {
+        // notify observers if the block state is the same and the Y level equals the original y level (for mega trees)
+        // blocks at the same Y level with the same state can be assumed to be saplings which trigger observers regardless of if the
+        // tree grew or not
+        if (craftBlockState.getPosition().getY() == pos.getY() && this.getBlockState(craftBlockState.getPosition()) == craftBlockState.getHandle()) {
+            this.notifyAndUpdatePhysics(craftBlockState.getPosition(), null, craftBlockState.getHandle(), craftBlockState.getHandle(), craftBlockState.getHandle(), craftBlockState.getFlag(), 512);
+        }
+    }
+    // Paper end - notify observers even if grow failed
 }
