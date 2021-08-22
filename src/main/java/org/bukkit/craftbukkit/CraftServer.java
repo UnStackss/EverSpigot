@@ -1174,6 +1174,18 @@ public final class CraftServer implements Server {
         ReloadCommand.reload(this.console);
     }
 
+    // Paper start - API for updating recipes on clients
+    @Override
+    public void updateResources() {
+        this.playerList.reloadResources();
+    }
+
+    @Override
+    public void updateRecipes() {
+        this.playerList.reloadRecipeData();
+    }
+    // Paper end - API for updating recipes on clients
+
     private void loadIcon() {
         this.icon = new CraftIconCache(null);
         try {
@@ -1553,6 +1565,13 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean addRecipe(Recipe recipe) {
+        // Paper start - API for updating recipes on clients
+        return this.addRecipe(recipe, false);
+    }
+
+    @Override
+    public boolean addRecipe(Recipe recipe, boolean resendRecipes) {
+        // Paper end - API for updating recipes on clients
         CraftRecipe toAdd;
         if (recipe instanceof CraftRecipe) {
             toAdd = (CraftRecipe) recipe;
@@ -1582,6 +1601,11 @@ public final class CraftServer implements Server {
             }
         }
         toAdd.addToCraftingManager();
+        // Paper start - API for updating recipes on clients
+        if (resendRecipes) {
+            this.playerList.reloadRecipeData();
+        }
+        // Paper end - API for updating recipes on clients
         return true;
     }
 
@@ -1762,10 +1786,23 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean removeRecipe(NamespacedKey recipeKey) {
+        // Paper start - API for updating recipes on clients
+        return this.removeRecipe(recipeKey, false);
+    }
+
+    @Override
+    public boolean removeRecipe(NamespacedKey recipeKey, boolean resendRecipes) {
+        // Paper end - API for updating recipes on clients
         Preconditions.checkArgument(recipeKey != null, "recipeKey == null");
 
         ResourceLocation mcKey = CraftNamespacedKey.toMinecraft(recipeKey);
-        return this.getServer().getRecipeManager().removeRecipe(mcKey);
+        // Paper start - resend recipes on successful removal
+        boolean removed = this.getServer().getRecipeManager().removeRecipe(mcKey);
+        if (removed && resendRecipes) {
+            this.playerList.reloadRecipeData();
+        }
+        return removed;
+        // Paper end
     }
 
     @Override
