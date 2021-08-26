@@ -1122,7 +1122,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     public boolean addEffect(MobEffectInstance mobeffect, @Nullable Entity entity, EntityPotionEffectEvent.Cause cause) {
-        org.spigotmc.AsyncCatcher.catchOp("effect add"); // Spigot
+        // org.spigotmc.AsyncCatcher.catchOp("effect add"); // Spigot // Paper - move to API
         if (this.isTickingEffects) {
             this.effectsToProcess.add(new ProcessableEffect(mobeffect, cause));
             return true;

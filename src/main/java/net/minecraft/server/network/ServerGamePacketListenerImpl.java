@@ -1577,6 +1577,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     }
 
     public void internalTeleport(double d0, double d1, double d2, float f, float f1, Set<RelativeMovement> set) { // Paper
+        org.spigotmc.AsyncCatcher.catchOp("teleport"); // Paper
         // Paper start - Prevent teleporting dead entities
         if (player.isRemoved()) {
             LOGGER.info("Attempt to teleport removed player {} restricted", player.getScoreboardName());

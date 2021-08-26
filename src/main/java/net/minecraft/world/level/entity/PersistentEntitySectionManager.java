@@ -78,6 +78,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     private boolean addEntityUuid(T entity) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity add by UUID"); // Paper
         if (!this.knownUuids.add(entity.getUUID())) {
             PersistentEntitySectionManager.LOGGER.warn("UUID of added entity already exists: {}", entity);
             return false;
@@ -91,6 +92,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     private boolean addEntity(T entity, boolean existing) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity add"); // Paper
         // Paper start - chunk system hooks
         if (existing) {
             // I don't want to know why this is a generic type.
@@ -146,19 +148,23 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     void startTicking(T entity) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity start ticking"); // Paper
         this.callbacks.onTickingStart(entity);
     }
 
     void stopTicking(T entity) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity stop ticking"); // Paper
         this.callbacks.onTickingEnd(entity);
     }
 
     void startTracking(T entity) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity start tracking"); // Paper
         this.visibleEntityStorage.add(entity);
         this.callbacks.onTrackingStart(entity);
     }
 
     void stopTracking(T entity) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity stop tracking"); // Paper
         this.callbacks.onTrackingEnd(entity);
         this.visibleEntityStorage.remove(entity);
     }
@@ -170,6 +176,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     public void updateChunkStatus(ChunkPos chunkPos, Visibility trackingStatus) {
+        org.spigotmc.AsyncCatcher.catchOp("Update chunk status"); // Paper
         long i = chunkPos.toLong();
 
         if (trackingStatus == Visibility.HIDDEN) {
@@ -214,6 +221,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     public void ensureChunkQueuedForLoad(long chunkPos) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity chunk save"); // Paper
         PersistentEntitySectionManager.ChunkLoadStatus persistententitysectionmanager_b = (PersistentEntitySectionManager.ChunkLoadStatus) this.chunkLoadStatuses.get(chunkPos);
 
         if (persistententitysectionmanager_b == PersistentEntitySectionManager.ChunkLoadStatus.FRESH) {
@@ -258,6 +266,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     private void requestChunkLoad(long chunkPos) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity chunk load request"); // Paper
         this.chunkLoadStatuses.put(chunkPos, PersistentEntitySectionManager.ChunkLoadStatus.PENDING);
         ChunkPos chunkcoordintpair = new ChunkPos(chunkPos);
         CompletableFuture completablefuture = this.permanentStorage.loadEntities(chunkcoordintpair);
@@ -271,6 +280,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     private boolean processChunkUnload(long chunkPos) {
+        org.spigotmc.AsyncCatcher.catchOp("Entity chunk unload process"); // Paper
         boolean flag = this.storeChunkSections(chunkPos, (entityaccess) -> {
             entityaccess.getPassengersAndSelf().forEach(this::unloadEntity);
         }, true); // CraftBukkit - add boolean for event call
@@ -295,6 +305,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     private void processPendingLoads() {
+        org.spigotmc.AsyncCatcher.catchOp("Entity chunk process pending loads"); // Paper
         ChunkEntities<T> chunkentities; // CraftBukkit - decompile error
 
         while ((chunkentities = (ChunkEntities) this.loadingInbox.poll()) != null) {
@@ -311,6 +322,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     public void tick() {
+        org.spigotmc.AsyncCatcher.catchOp("Entity manager tick"); // Paper
         this.processPendingLoads();
         this.processUnloads();
     }
@@ -331,6 +343,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     public void autoSave() {
+        org.spigotmc.AsyncCatcher.catchOp("Entity manager autosave"); // Paper
         this.getAllChunksToSave().forEach((java.util.function.LongConsumer) (i) -> { // CraftBukkit - decompile error
             boolean flag = this.chunkVisibility.get(i) == Visibility.HIDDEN;
 
@@ -345,6 +358,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
     }
 
     public void saveAll() {
+        org.spigotmc.AsyncCatcher.catchOp("Entity manager save"); // Paper
         LongSet longset = this.getAllChunksToSave();
 
         while (!longset.isEmpty()) {
@@ -452,6 +466,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
             long i = SectionPos.asLong(blockposition);
 
             if (i != this.currentSectionKey) {
+                org.spigotmc.AsyncCatcher.catchOp("Entity move"); // Paper
                 Visibility visibility = this.currentSection.getStatus();
 
                 if (!this.currentSection.remove(this.entity)) {
@@ -506,6 +521,7 @@ public class PersistentEntitySectionManager<T extends EntityAccess> implements A
 
         @Override
         public void onRemove(Entity.RemovalReason reason) {
+            org.spigotmc.AsyncCatcher.catchOp("Entity remove"); // Paper
             if (!this.currentSection.remove(this.entity)) {
                 PersistentEntitySectionManager.LOGGER.warn("Entity {} wasn't found in section {} (destroying due to {})", new Object[]{this.entity, SectionPos.of(this.currentSectionKey), reason});
             }
