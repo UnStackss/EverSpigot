@@ -468,6 +468,11 @@ public class EndDragonFight {
             }
         }
 
+        // Paper start - Prevent "softlocked" exit portal generation
+        if (this.portalLocation.getY() <= this.level.getMinBuildHeight()) {
+            this.portalLocation = this.portalLocation.atY(this.level.getMinBuildHeight() + 1);
+        }
+        // Paper end - Prevent "softlocked" exit portal generation
         if (worldgenendtrophy.place(FeatureConfiguration.NONE, this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.portalLocation)) {
             int i = Mth.positiveCeilDiv(4, 16);
 
