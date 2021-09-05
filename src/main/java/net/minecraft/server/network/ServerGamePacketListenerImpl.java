@@ -1565,11 +1565,17 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             return true; // CraftBukkit - Return event status
         }
 
-        PlayerTeleportEvent event = new PlayerTeleportEvent(player, from.clone(), to.clone(), cause);
+        // Paper start - Teleport API
+        Set<io.papermc.paper.entity.TeleportFlag.Relative> relativeFlags = java.util.EnumSet.noneOf(io.papermc.paper.entity.TeleportFlag.Relative.class);
+        for (RelativeMovement relativeArgument : set) {
+            relativeFlags.add(org.bukkit.craftbukkit.entity.CraftPlayer.toApiRelativeFlag(relativeArgument));
+        }
+        PlayerTeleportEvent event = new PlayerTeleportEvent(player, from.clone(), to.clone(), cause, java.util.Set.copyOf(relativeFlags));
+        // Paper end - Teleport API
         this.cserver.getPluginManager().callEvent(event);
 
         if (event.isCancelled() || !to.equals(event.getTo())) {
-            set = Collections.emptySet(); // Can't relative teleport
+            // set = Collections.emptySet(); // Can't relative teleport // Paper - Teleport API; Now you can!
             to = event.isCancelled() ? event.getFrom() : event.getTo();
             d0 = to.getX();
             d1 = to.getY();
