@@ -935,8 +935,17 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             this.disconnect(Component.literal("Invalid hotbar selection (Hacking?)"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause
             return;
         }
-        this.player.getInventory().pickSlot(packet.getSlot()); // Paper - Diff above if changed
         // Paper end - validate pick item position
+        // Paper start - Add PlayerPickItemEvent
+        Player bukkitPlayer = this.player.getBukkitEntity();
+        int targetSlot = this.player.getInventory().getSuitableHotbarSlot();
+        int sourceSlot = packet.getSlot();
+
+        io.papermc.paper.event.player.PlayerPickItemEvent event = new io.papermc.paper.event.player.PlayerPickItemEvent(bukkitPlayer, targetSlot, sourceSlot);
+        if (!event.callEvent()) return;
+
+        this.player.getInventory().pickSlot(event.getSourceSlot(), event.getTargetSlot());
+        // Paper end - Add PlayerPickItemEvent
         this.player.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, this.player.getInventory().selected, this.player.getInventory().getItem(this.player.getInventory().selected)));
         this.player.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, packet.getSlot(), this.player.getInventory().getItem(packet.getSlot())));
         this.player.connection.send(new ClientboundSetCarriedItemPacket(this.player.getInventory().selected));

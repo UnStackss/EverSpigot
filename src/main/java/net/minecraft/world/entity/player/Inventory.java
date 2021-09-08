@@ -171,7 +171,13 @@ public class Inventory implements Container, Nameable {
     }
 
     public void pickSlot(int slot) {
-        this.selected = this.getSuitableHotbarSlot();
+        // Paper start - Add PlayerPickItemEvent
+        pickSlot(slot, this.getSuitableHotbarSlot());
+    }
+
+    public void pickSlot(int slot, int targetSlot) {
+        this.selected = targetSlot;
+        // Paper end - Add PlayerPickItemEvent
         ItemStack itemstack = (ItemStack) this.items.get(this.selected);
 
         this.items.set(this.selected, (ItemStack) this.items.get(slot));
