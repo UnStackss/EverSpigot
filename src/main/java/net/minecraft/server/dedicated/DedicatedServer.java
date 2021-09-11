@@ -196,6 +196,16 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
             DedicatedServer.LOGGER.warn("To start the server with more ram, launch it as \"java -Xmx1024M -Xms1024M -jar minecraft_server.jar\"");
         }
 
+        // Paper start - detect running as root
+        if (io.papermc.paper.util.ServerEnvironment.userIsRootOrAdmin()) {
+            DedicatedServer.LOGGER.warn("****************************");
+            DedicatedServer.LOGGER.warn("YOU ARE RUNNING THIS SERVER AS AN ADMINISTRATIVE OR ROOT USER. THIS IS NOT ADVISED.");
+            DedicatedServer.LOGGER.warn("YOU ARE OPENING YOURSELF UP TO POTENTIAL RISKS WHEN DOING THIS.");
+            DedicatedServer.LOGGER.warn("FOR MORE INFORMATION, SEE https://madelinemiller.dev/blog/root-minecraft-server/");
+            DedicatedServer.LOGGER.warn("****************************");
+        }
+        // Paper end - detect running as root
+
         DedicatedServer.LOGGER.info("Loading properties");
         DedicatedServerProperties dedicatedserverproperties = this.settings.getProperties();
 
