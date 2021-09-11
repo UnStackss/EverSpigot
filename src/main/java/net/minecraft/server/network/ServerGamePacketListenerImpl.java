@@ -748,6 +748,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             return;
         }
         // CraftBukkit end
+        // Paper start - Don't suggest if tab-complete is disabled
+        if (org.spigotmc.SpigotConfig.tabComplete < 0) {
+            return;
+        }
+        // Paper end - Don't suggest if tab-complete is disabled
         // Paper start - AsyncTabCompleteEvent
         TAB_COMPLETE_EXECUTOR.execute(() -> this.handleCustomCommandSuggestions0(packet));
     }
