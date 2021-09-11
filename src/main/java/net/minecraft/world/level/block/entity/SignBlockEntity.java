@@ -185,6 +185,7 @@ public class SignBlockEntity extends BlockEntity implements CommandSource { // C
             this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
         } else {
             SignBlockEntity.LOGGER.warn("Player {} just tried to change non-editable sign", player.getName().getString());
+            if (player.distanceToSqr(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ()) < 32 * 32) // Paper - Dont send far away sign update
             ((ServerPlayer) player).connection.send(this.getUpdatePacket()); // CraftBukkit
         }
     }
