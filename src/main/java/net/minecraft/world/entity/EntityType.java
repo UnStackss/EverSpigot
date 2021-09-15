@@ -502,6 +502,16 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
 
         if (minecraftserver != null && entity != null) {
             if (world.isClientSide || !entity.onlyOpCanSetNbt() || player != null && minecraftserver.getPlayerList().isOp(player.getGameProfile())) {
+                    // Paper start - filter out protected tags
+                    if (player == null || !player.getBukkitEntity().hasPermission("minecraft.nbt.place")) {
+                        nbt = nbt.update((compound) -> {
+                            for (net.minecraft.commands.arguments.NbtPathArgument.NbtPath tag : world.paperConfig().entities.spawning.filteredEntityTagNbtPaths) {
+                                tag.remove(compound);
+                            }
+                        });
+                    }
+                    // Paper end - filter out protected tags
+
                 nbt.loadInto(entity);
             }
         }
