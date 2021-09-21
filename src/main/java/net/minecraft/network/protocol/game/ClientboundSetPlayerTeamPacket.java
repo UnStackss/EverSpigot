@@ -58,6 +58,11 @@ public class ClientboundSetPlayerTeamPacket implements Packet<ClientGamePacketLi
         );
     }
 
+    // Paper start - Multiple Entries with Scoreboards
+    public static ClientboundSetPlayerTeamPacket createMultiplePlayerPacket(PlayerTeam team, Collection<String> players, ClientboundSetPlayerTeamPacket.Action operation) {
+        return new ClientboundSetPlayerTeamPacket(team.getName(), operation == ClientboundSetPlayerTeamPacket.Action.ADD ? 3 : 4, Optional.empty(), players);
+    }
+    // Paper end - Multiple Entries with Scoreboards
     private ClientboundSetPlayerTeamPacket(RegistryFriendlyByteBuf buf) {
         this.name = buf.readUtf();
         this.method = buf.readByte();

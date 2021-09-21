@@ -106,12 +106,42 @@ public class ServerScoreboard extends Scoreboard {
         }
     }
 
+    // Paper start - Multiple Entries with Scoreboards
+    public boolean addPlayersToTeam(java.util.Collection<String> players, PlayerTeam team) {
+        boolean anyAdded = false;
+        for (String playerName : players) {
+            if (super.addPlayerToTeam(playerName, team)) {
+                anyAdded = true;
+            }
+        }
+
+        if (anyAdded) {
+            this.broadcastAll(ClientboundSetPlayerTeamPacket.createMultiplePlayerPacket(team, players, ClientboundSetPlayerTeamPacket.Action.ADD));
+            this.setDirty();
+            return true;
+        } else {
+            return false;
+        }
+    }
+    // Paper end - Multiple Entries with Scoreboards
+
     @Override
     public void removePlayerFromTeam(String scoreHolderName, PlayerTeam team) {
         super.removePlayerFromTeam(scoreHolderName, team);
         this.broadcastAll(ClientboundSetPlayerTeamPacket.createPlayerPacket(team, scoreHolderName, ClientboundSetPlayerTeamPacket.Action.REMOVE)); // CraftBukkit
         this.setDirty();
     }
+
+    // Paper start - Multiple Entries with Scoreboards
+    public void removePlayersFromTeam(java.util.Collection<String> players, PlayerTeam team) {
+        for (String playerName : players) {
+            super.removePlayerFromTeam(playerName, team);
+        }
+
+        this.broadcastAll(ClientboundSetPlayerTeamPacket.createMultiplePlayerPacket(team, players, ClientboundSetPlayerTeamPacket.Action.REMOVE));
+        this.setDirty();
+    }
+    // Paper end - Multiple Entries with Scoreboards
 
     @Override
     public void onObjectiveAdded(Objective objective) {
