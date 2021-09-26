@@ -22,8 +22,15 @@ public class SmithingTransformRecipe implements SmithingRecipe {
     final Ingredient base;
     final Ingredient addition;
     final ItemStack result;
+    final boolean copyDataComponents; // Paper - Option to prevent data components copy
 
     public SmithingTransformRecipe(Ingredient template, Ingredient base, Ingredient addition, ItemStack result) {
+        // Paper start - Option to prevent data components copy
+        this(template, base, addition, result, true);
+    }
+    public SmithingTransformRecipe(Ingredient template, Ingredient base, Ingredient addition, ItemStack result, boolean copyDataComponents) {
+        this.copyDataComponents = copyDataComponents;
+        // Paper end - Option to prevent data components copy
         this.template = template;
         this.base = base;
         this.addition = addition;
@@ -37,7 +44,9 @@ public class SmithingTransformRecipe implements SmithingRecipe {
     public ItemStack assemble(SmithingRecipeInput input, HolderLookup.Provider lookup) {
         ItemStack itemstack = input.base().transmuteCopy(this.result.getItem(), this.result.getCount());
 
+        if (this.copyDataComponents) { // Paper - Option to prevent data components copy
         itemstack.applyComponents(this.result.getComponentsPatch());
+        } // Paper - Option to prevent data components copy
         return itemstack;
     }
 
@@ -76,7 +85,7 @@ public class SmithingTransformRecipe implements SmithingRecipe {
     public Recipe toBukkitRecipe(NamespacedKey id) {
         CraftItemStack result = CraftItemStack.asCraftMirror(this.result);
 
-        CraftSmithingTransformRecipe recipe = new CraftSmithingTransformRecipe(id, result, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition));
+        CraftSmithingTransformRecipe recipe = new CraftSmithingTransformRecipe(id, result, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition), this.copyDataComponents); // Paper - Option to prevent data components copy
 
         return recipe;
     }

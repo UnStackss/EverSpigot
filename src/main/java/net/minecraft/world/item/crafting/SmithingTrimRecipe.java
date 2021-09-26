@@ -30,8 +30,15 @@ public class SmithingTrimRecipe implements SmithingRecipe {
     final Ingredient template;
     final Ingredient base;
     final Ingredient addition;
+    final boolean copyDataComponents; // Paper - Option to prevent data components copy
 
     public SmithingTrimRecipe(Ingredient template, Ingredient base, Ingredient addition) {
+        // Paper start - Option to prevent data components copy
+        this(template, base, addition, true);
+    }
+    public SmithingTrimRecipe(Ingredient template, Ingredient base, Ingredient addition, boolean copyDataComponents) {
+        this.copyDataComponents = copyDataComponents;
+        // Paper end - Option to prevent data components copy
         this.template = template;
         this.base = base;
         this.addition = addition;
@@ -55,7 +62,7 @@ public class SmithingTrimRecipe implements SmithingRecipe {
                     return ItemStack.EMPTY;
                 }
 
-                ItemStack itemstack1 = itemstack.copyWithCount(1);
+                ItemStack itemstack1 = this.copyDataComponents ? itemstack.copyWithCount(1) : new ItemStack(itemstack.getItem(), 1); // Paper - Option to prevent data components copy
 
                 itemstack1.set(DataComponents.TRIM, new ArmorTrim((Holder) optional.get(), (Holder) optional1.get()));
                 return itemstack1;
@@ -106,7 +113,7 @@ public class SmithingTrimRecipe implements SmithingRecipe {
     // CraftBukkit start
     @Override
     public Recipe toBukkitRecipe(NamespacedKey id) {
-        return new CraftSmithingTrimRecipe(id, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition));
+        return new CraftSmithingTrimRecipe(id, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition), this.copyDataComponents); // Paper - Option to prevent data components copy
     }
     // CraftBukkit end
 
