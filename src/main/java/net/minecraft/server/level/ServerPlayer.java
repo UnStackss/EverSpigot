@@ -574,7 +574,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             }
         }
 
-        if (persistVehicle && entity1 != null && entity != this && entity.hasExactlyOnePlayerPassenger()) {
+        if (persistVehicle && entity1 != null && entity != this && entity.hasExactlyOnePlayerPassenger() && !entity.isRemoved()) { // Paper - Ensure valid vehicle status
             // CraftBukkit end
             CompoundTag nbttagcompound2 = new CompoundTag();
             CompoundTag nbttagcompound3 = new CompoundTag();
