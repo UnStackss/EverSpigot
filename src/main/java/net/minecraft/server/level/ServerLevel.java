@@ -764,6 +764,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
     }
 
     protected BlockPos findLightningTargetAround(BlockPos pos) {
+        // Paper start - Add methods to find targets for lightning strikes
+        return this.findLightningTargetAround(pos, false);
+    }
+    public BlockPos findLightningTargetAround(BlockPos pos, boolean returnNullWhenNoTarget) {
+        // Paper end - Add methods to find targets for lightning strikes
         BlockPos blockposition1 = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos);
         Optional<BlockPos> optional = this.findLightningRod(blockposition1);
 
@@ -778,6 +783,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
             if (!list.isEmpty()) {
                 return ((LivingEntity) list.get(this.random.nextInt(list.size()))).blockPosition();
             } else {
+                if (returnNullWhenNoTarget) return null; // Paper - Add methods to find targets for lightning strikes
                 if (blockposition1.getY() == this.getMinBuildHeight() - 1) {
                     blockposition1 = blockposition1.above(2);
                 }
