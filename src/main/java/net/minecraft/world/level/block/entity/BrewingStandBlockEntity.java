@@ -315,12 +315,12 @@ public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements
 
     @Override
     public boolean canPlaceItem(int slot, ItemStack stack) {
+        PotionBrewing potionbrewer = this.level != null ? this.level.potionBrewing() : PotionBrewing.EMPTY; // Paper - move up
         if (slot == 3) {
-            PotionBrewing potionbrewer = this.level != null ? this.level.potionBrewing() : PotionBrewing.EMPTY;
 
             return potionbrewer.isIngredient(stack);
         } else {
-            return slot == 4 ? stack.is(Items.BLAZE_POWDER) : (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION) || stack.is(Items.GLASS_BOTTLE)) && this.getItem(slot).isEmpty();
+            return slot == 4 ? stack.is(Items.BLAZE_POWDER) : (stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION) || stack.is(Items.GLASS_BOTTLE) || potionbrewer.isCustomInput(stack)) && this.getItem(slot).isEmpty(); // Paper - Custom Potion Mixes
         }
     }
 
