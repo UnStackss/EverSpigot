@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import org.bukkit.Material;
 import org.bukkit.support.AbstractTestingBase;
 import org.junit.jupiter.api.Test;
@@ -41,4 +42,13 @@ public class BlockStateTest extends AbstractTestingBase {
             }
         }
     }
+
+    // Paper start
+    @Test
+    public void testBlockEntityTypes() {
+        for (var blockEntityType : BuiltInRegistries.BLOCK_ENTITY_TYPE) {
+            org.junit.jupiter.api.Assertions.assertNotNull(CraftBlockStates.getBlockStateType(blockEntityType));
+        }
+    }
+    // Paper end
 }
