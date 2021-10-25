@@ -91,10 +91,15 @@ public class Skeleton extends AbstractSkeleton {
     }
 
     protected void doFreezeConversion() {
-        this.convertTo(EntityType.STRAY, true, org.bukkit.event.entity.EntityTransformEvent.TransformReason.FROZEN, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.FROZEN); // CraftBukkit - add spawn and transform reasons
+        Stray stray = this.convertTo(EntityType.STRAY, true, org.bukkit.event.entity.EntityTransformEvent.TransformReason.FROZEN, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.FROZEN); // CraftBukkit - add spawn and transform reasons // Paper - Fix issues with mob conversion
         if (!this.isSilent()) {
             this.level().levelEvent((Player) null, 1048, this.blockPosition(), 0);
         }
+        // Paper start - Fix issues with mob conversion; reset conversion time to prevent event spam
+        if (stray == null) {
+            this.conversionTime = 300;
+        }
+        // Paper end - Fix issues with mob conversion
 
     }
 

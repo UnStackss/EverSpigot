@@ -258,6 +258,11 @@ public class Hoglin extends Animal implements Enemy, HoglinBase {
         if (zoglin != null) {
             zoglin.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));
         }
+        // Paper start - Fix issues with mob conversion; reset to prevent event spam
+        else {
+            this.timeInOverworld = 0;
+        }
+        // Paper end - Fix issues with mob conversion
     }
 
     @Override

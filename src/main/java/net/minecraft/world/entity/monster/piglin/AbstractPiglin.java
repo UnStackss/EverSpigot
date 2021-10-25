@@ -99,6 +99,11 @@ public abstract class AbstractPiglin extends Monster {
         if (entitypigzombie != null) {
             entitypigzombie.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));
         }
+        // Paper start - Fix issues with mob conversion; reset to prevent event spam
+        else {
+            this.timeInOverworld = 0;
+        }
+        // Paper end - Fix issues with mob conversion
 
     }
 
