@@ -186,6 +186,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         return this.getChunkIfLoaded(chunkX, chunkZ) != null;
     }
     // Paper end - Use getChunkIfLoadedImmediately
+    // Paper start - per world ticks per spawn
+    private int getTicksPerSpawn(SpawnCategory spawnCategory) {
+        final int perWorld = this.paperConfig().entities.spawning.ticksPerSpawn.getInt(CraftSpawnCategory.toNMS(spawnCategory));
+        if (perWorld >= 0) {
+            return perWorld;
+        }
+        return this.getCraftServer().getTicksPerSpawns(spawnCategory);
+    }
+    // Paper end
 
     public abstract ResourceKey<LevelStem> getTypeKey();
 
@@ -198,7 +207,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         // CraftBukkit Ticks things
         for (SpawnCategory spawnCategory : SpawnCategory.values()) {
             if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
-                this.ticksPerSpawnCategory.put(spawnCategory, (long) this.getCraftServer().getTicksPerSpawns(spawnCategory));
+                this.ticksPerSpawnCategory.put(spawnCategory, this.getTicksPerSpawn(spawnCategory)); // Paper
             }
         }
 
