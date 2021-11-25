@@ -79,7 +79,10 @@ public class PlayerChunkSender {
     }
 
     public static void sendChunk(ServerGamePacketListenerImpl handler, ServerLevel world, LevelChunk chunk) { // Paper - public
-        handler.send(new ClientboundLevelChunkWithLightPacket(chunk, world.getLightEngine(), null, null));
+        // Paper start - Anti-Xray
+        final boolean shouldModify = world.chunkPacketBlockController.shouldModify(handler.player, chunk);
+        handler.send(new ClientboundLevelChunkWithLightPacket(chunk, world.getLightEngine(), null, null, shouldModify));
+        // Paper end - Anti-Xray
         // Paper start - PlayerChunkLoadEvent
         if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
             new io.papermc.paper.event.packet.PlayerChunkLoadEvent(new org.bukkit.craftbukkit.CraftChunk(chunk), handler.getPlayer().getBukkitEntity()).callEvent();

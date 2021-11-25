@@ -27,8 +27,13 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
     private final Registry<net.minecraft.world.level.biome.Biome> biomes;
     private Set<BlockPos> tiles;
     private final Set<BlockPos> lights = new HashSet<>();
+    // Paper start - Anti-Xray - Add parameters
+    private final org.bukkit.World world;
 
-    public OldCraftChunkData(int minHeight, int maxHeight, Registry<net.minecraft.world.level.biome.Biome> biomes) {
+    @Deprecated @io.papermc.paper.annotation.DoNotUse public OldCraftChunkData(int minHeight, int maxHeight, Registry<net.minecraft.world.level.biome.Biome> biomes) { this(minHeight, maxHeight, biomes, null); }
+    public OldCraftChunkData(int minHeight, int maxHeight, Registry<net.minecraft.world.level.biome.Biome> biomes, org.bukkit.World world) {
+        this.world = world;
+        // Paper end
         this.minHeight = minHeight;
         this.maxHeight = maxHeight;
         this.biomes = biomes;
@@ -176,7 +181,7 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
         int offset = (y - this.minHeight) >> 4;
         LevelChunkSection section = this.sections[offset];
         if (create && section == null) {
-            this.sections[offset] = section = new LevelChunkSection(this.biomes);
+            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset + (this.minHeight >> 4)); // Paper - Anti-Xray - Add parameters
         }
         return section;
     }

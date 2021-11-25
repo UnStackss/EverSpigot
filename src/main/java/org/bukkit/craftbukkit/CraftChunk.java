@@ -56,7 +56,7 @@ public class CraftChunk implements Chunk {
     private final ServerLevel worldServer;
     private final int x;
     private final int z;
-    private static final PalettedContainer<net.minecraft.world.level.block.state.BlockState> emptyBlockIDs = new PalettedContainer<>(net.minecraft.world.level.block.Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
+    private static final PalettedContainer<net.minecraft.world.level.block.state.BlockState> emptyBlockIDs = new PalettedContainer<>(net.minecraft.world.level.block.Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, null); // Paper - Anti-Xray - Add preset block states
     private static final byte[] FULL_LIGHT = new byte[2048];
     private static final byte[] EMPTY_LIGHT = new byte[2048];
 

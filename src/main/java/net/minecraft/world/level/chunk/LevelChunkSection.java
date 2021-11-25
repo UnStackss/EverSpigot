@@ -55,9 +55,12 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
         this.recalcBlockCounts();
     }
 
-    public LevelChunkSection(Registry<Biome> biomeRegistry) {
-        this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
-        this.biomes = new PalettedContainer<>(biomeRegistry.asHolderIdMap(), biomeRegistry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES);
+    // Paper start - Anti-Xray - Add parameters
+    @Deprecated @io.papermc.paper.annotation.DoNotUse public LevelChunkSection(Registry<Biome> biomeRegistry) { this(biomeRegistry, null, null, 0); }
+    public LevelChunkSection(Registry<Biome> biomeRegistry, net.minecraft.world.level.Level level, net.minecraft.world.level.ChunkPos chunkPos, int chunkSectionY) {
+        // Paper end
+        this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, level == null || level.chunkPacketBlockController == null ? null : level.chunkPacketBlockController.getPresetBlockStates(level, chunkPos, chunkSectionY)); // Paper - Anti-Xray - Add preset block states
+        this.biomes = new PalettedContainer<>(biomeRegistry.asHolderIdMap(), biomeRegistry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null); // Paper - Anti-Xray - Add preset biomes
     }
 
     public BlockState getBlockState(int x, int y, int z) {
@@ -236,10 +239,13 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
         this.biomes = datapaletteblock;
     }
 
-    public void write(FriendlyByteBuf buf) {
+    // Paper start - Anti-Xray - Add chunk packet info
+    @Deprecated @io.papermc.paper.annotation.DoNotUse public void write(FriendlyByteBuf buf) { this.write(buf, null, 0); }
+    public void write(FriendlyByteBuf buf, com.destroystokyo.paper.antixray.ChunkPacketInfo<BlockState> chunkPacketInfo, int chunkSectionIndex) {
         buf.writeShort(this.nonEmptyBlockCount);
-        this.states.write(buf);
-        this.biomes.write(buf);
+        this.states.write(buf, chunkPacketInfo, chunkSectionIndex);
+        this.biomes.write(buf, null, chunkSectionIndex);
+        // Paper end
     }
 
     public int getSerializedSize() {

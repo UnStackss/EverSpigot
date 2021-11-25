@@ -172,6 +172,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
     }
     // Paper end - add paper world config
 
+    public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
     public static BlockPos lastPhysicsProblem; // Spigot
     private org.spigotmc.TickLimiter entityLimiter;
@@ -683,7 +684,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
     }
     // Paper end - optimise random ticking
 
-    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator) { // Paper - create paper world config
+    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, java.util.concurrent.Executor executor) { // Paper - create paper world config & Anti-Xray
         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
         this.generator = gen;
@@ -770,6 +771,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
         this.minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this);
         this.maxSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(this);
         // Paper end - optimise collisions
+        this.chunkPacketBlockController = this.paperConfig().anticheat.antiXray.enabled ? new com.destroystokyo.paper.antixray.ChunkPacketBlockControllerAntiXray(this, executor) : com.destroystokyo.paper.antixray.ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
     }
 
     // Paper start - Cancel hit for vanished players
@@ -1047,6 +1049,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
             // CraftBukkit end
 
             BlockState iblockdata1 = chunk.setBlockState(pos, state, (flags & 64) != 0, (flags & 1024) == 0); // CraftBukkit custom NO_PLACE flag
+            this.chunkPacketBlockController.onBlockChange(this, pos, state, iblockdata1, flags, maxUpdateDepth); // Paper - Anti-Xray
 
             if (iblockdata1 == null) {
                 // CraftBukkit start - remove blockstate if failed (or the same)

@@ -50,7 +50,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 public class ServerPlayerGameMode {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    protected ServerLevel level;
+    public ServerLevel level; // Paper - Anti-Xray - protected -> public
     protected final ServerPlayer player;
     private GameType gameModeForPlayer;
     @Nullable
@@ -334,6 +334,8 @@ public class ServerPlayerGameMode {
             }
 
         }
+
+        this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this, pos, action, direction, worldHeight, sequence); // Paper - Anti-Xray
     }
 
     public void destroyAndAck(BlockPos pos, int sequence, String reason) {

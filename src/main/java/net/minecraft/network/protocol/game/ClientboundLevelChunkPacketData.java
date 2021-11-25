@@ -28,7 +28,10 @@ public class ClientboundLevelChunkPacketData {
     private final byte[] buffer;
     private final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
 
-    public ClientboundLevelChunkPacketData(LevelChunk chunk) {
+    // Paper start - Anti-Xray - Add chunk packet info
+    @Deprecated @io.papermc.paper.annotation.DoNotUse public ClientboundLevelChunkPacketData(LevelChunk chunk) { this(chunk, null); }
+    public ClientboundLevelChunkPacketData(LevelChunk chunk, com.destroystokyo.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
+        // Paper end
         this.heightmaps = new CompoundTag();
 
         for (Entry<Heightmap.Types, Heightmap> entry : chunk.getHeightmaps()) {
@@ -38,7 +41,14 @@ public class ClientboundLevelChunkPacketData {
         }
 
         this.buffer = new byte[calculateChunkSize(chunk)];
-        extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), chunk);
+
+        // Paper start - Anti-Xray - Add chunk packet info
+        if (chunkPacketInfo != null) {
+            chunkPacketInfo.setBuffer(this.buffer);
+        }
+
+        extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), chunk, chunkPacketInfo);
+        // Paper end
         this.blockEntitiesData = Lists.newArrayList();
 
         for (Entry<BlockPos, BlockEntity> entry2 : chunk.getBlockEntities().entrySet()) {
@@ -85,9 +95,15 @@ public class ClientboundLevelChunkPacketData {
         return byteBuf;
     }
 
-    public static void extractChunkData(FriendlyByteBuf buf, LevelChunk chunk) {
+    // Paper start - Anti-Xray - Add chunk packet info
+    @Deprecated @io.papermc.paper.annotation.DoNotUse public static void extractChunkData(FriendlyByteBuf buf, LevelChunk chunk) { ClientboundLevelChunkPacketData.extractChunkData(buf, chunk, null); }
+    public static void extractChunkData(FriendlyByteBuf buf, LevelChunk chunk, com.destroystokyo.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
+        int chunkSectionIndex = 0;
+
         for (LevelChunkSection levelChunkSection : chunk.getSections()) {
-            levelChunkSection.write(buf);
+            levelChunkSection.write(buf, chunkPacketInfo, chunkSectionIndex);
+            chunkSectionIndex++;
+            // Paper end
         }
     }
 

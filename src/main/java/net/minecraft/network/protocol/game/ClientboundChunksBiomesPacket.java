@@ -70,8 +70,10 @@ public record ClientboundChunksBiomesPacket(List<ClientboundChunksBiomesPacket.C
         }
 
         public static void extractChunkData(FriendlyByteBuf buf, LevelChunk chunk) {
+            int chunkSectionIndex = 0; // Paper - Anti-Xray
             for (LevelChunkSection levelChunkSection : chunk.getSections()) {
-                levelChunkSection.getBiomes().write(buf);
+                levelChunkSection.getBiomes().write(buf, null, chunkSectionIndex); // Paper - Anti-Xray
+                chunkSectionIndex++; // Paper - Anti-Xray
             }
         }
 

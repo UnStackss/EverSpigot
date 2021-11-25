@@ -470,11 +470,16 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                 List<ServerPlayer> playersInRange = playerChunk.playerProvider.getPlayers(playerChunk.getPos(), false);
                 if (playersInRange.isEmpty()) return true; // Paper - chunk system
 
-                ClientboundLevelChunkWithLightPacket refreshPacket = new ClientboundLevelChunkWithLightPacket(chunk, this.world.getLightEngine(), null, null);
+                // Paper start - Anti-Xray bypass
+                final Map<Object, ClientboundLevelChunkWithLightPacket> refreshPackets = new HashMap<>();
                 for (ServerPlayer player : playersInRange) {
                     if (player.connection == null) continue;
 
-                    player.connection.send(refreshPacket);
+                    Boolean shouldModify = chunk.getLevel().chunkPacketBlockController.shouldModify(player, chunk);
+                    player.connection.send(refreshPackets.computeIfAbsent(shouldModify, s -> { // Use connection to prevent creating firing event
+                        return new ClientboundLevelChunkWithLightPacket(chunk, this.world.getLightEngine(), null, null, (Boolean) s);
+                    }));
+                    // Paper end - Anti-Xray bypass
                 }
         // Paper - chunk system
 

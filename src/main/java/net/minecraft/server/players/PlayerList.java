@@ -414,7 +414,7 @@ public abstract class PlayerList {
                 .getHolderOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket(
                 new net.minecraft.world.level.chunk.EmptyLevelChunk(worldserver1, player.chunkPosition(), plains),
-                worldserver1.getLightEngine(), (java.util.BitSet)null, (java.util.BitSet) null)
+                worldserver1.getLightEngine(), (java.util.BitSet)null, (java.util.BitSet) null, true)
             );
         }
         // Paper end - Send empty chunk

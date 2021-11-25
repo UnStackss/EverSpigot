@@ -18,13 +18,30 @@ public class ClientboundLevelChunkWithLightPacket implements Packet<ClientGamePa
     private final int z;
     private final ClientboundLevelChunkPacketData chunkData;
     private final ClientboundLightUpdatePacketData lightData;
+    // Paper start - Async-Anti-Xray - Ready flag for the connection
+    private volatile boolean ready;
 
-    public ClientboundLevelChunkWithLightPacket(LevelChunk chunk, LevelLightEngine lightProvider, @Nullable BitSet skyBits, @Nullable BitSet blockBits) {
+    @Override
+    public boolean isReady() {
+        return this.ready;
+    }
+
+    public void setReady(boolean ready) {
+        this.ready = ready;
+    }
+    // Paper end
+
+    // Paper start - Anti-Xray - Add chunk packet info
+    @Deprecated @io.papermc.paper.annotation.DoNotUse public ClientboundLevelChunkWithLightPacket(LevelChunk chunk, LevelLightEngine lightProvider, @Nullable BitSet skyBits, @Nullable BitSet blockBits) { this(chunk, lightProvider, skyBits, blockBits, true); }
+    public ClientboundLevelChunkWithLightPacket(LevelChunk chunk, LevelLightEngine lightProvider, @Nullable BitSet skyBits, @Nullable BitSet blockBits, boolean modifyBlocks) {
         ChunkPos chunkPos = chunk.getPos();
         this.x = chunkPos.x;
         this.z = chunkPos.z;
-        this.chunkData = new ClientboundLevelChunkPacketData(chunk);
+        com.destroystokyo.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? chunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, chunk) : null;
+        this.chunkData = new ClientboundLevelChunkPacketData(chunk, chunkPacketInfo);
+        // Paper end
         this.lightData = new ClientboundLightUpdatePacketData(chunkPos, lightProvider, skyBits, blockBits);
+        chunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
     }
 
     private ClientboundLevelChunkWithLightPacket(RegistryFriendlyByteBuf buf) {

@@ -91,7 +91,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
     }
 
     public LevelChunk(Level world, ChunkPos pos, UpgradeData upgradeData, LevelChunkTicks<Block> blockTickScheduler, LevelChunkTicks<Fluid> fluidTickScheduler, long inhabitedTime, @Nullable LevelChunkSection[] sectionArrayInitializer, @Nullable LevelChunk.PostLoadProcessor entityLoader, @Nullable BlendingData blendingData) {
-        super(pos, upgradeData, world, world.registryAccess().registryOrThrow(Registries.BIOME), inhabitedTime, sectionArrayInitializer, blendingData);
+        super(pos, upgradeData, world, net.minecraft.server.MinecraftServer.getServer().registryAccess().registryOrThrow(Registries.BIOME), inhabitedTime, sectionArrayInitializer, blendingData); // Paper - Anti-Xray - The world isn't ready yet, use server singleton for registry
         this.tickersInLevel = Maps.newHashMap();
         this.level = (ServerLevel) world; // CraftBukkit - type
         this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap();
