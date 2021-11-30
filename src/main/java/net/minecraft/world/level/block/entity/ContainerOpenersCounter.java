@@ -69,6 +69,7 @@ public abstract class ContainerOpenersCounter {
 
     public void decrementOpeners(Player player, Level world, BlockPos pos, BlockState state) {
         int oldPower = Math.max(0, Math.min(15, this.openCount)); // CraftBukkit - Get power before new viewer is added
+        if (this.openCount == 0) return; // Paper - Prevent ContainerOpenersCounter openCount from going negative
         int i = this.openCount--;
 
         // CraftBukkit start - Call redstone event
