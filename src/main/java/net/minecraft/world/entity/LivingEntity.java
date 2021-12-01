@@ -3353,7 +3353,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
             }
 
         });
-        ((ServerLevel) this.level()).getChunkSource().broadcast(this, new ClientboundSetEquipmentPacket(this.getId(), list));
+        ((ServerLevel) this.level()).getChunkSource().broadcast(this, new ClientboundSetEquipmentPacket(this.getId(), list, true)); // Paper - data sanitization
     }
 
     private ItemStack getLastArmorItem(EquipmentSlot slot) {

@@ -349,7 +349,7 @@ public class ServerEntity {
             }
 
             if (!list.isEmpty()) {
-                sender.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list));
+                sender.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), list, true)); // Paper - data sanitization
             }
             ((LivingEntity) this.entity).detectEquipmentUpdatesPublic(); // CraftBukkit - SPIGOT-3789: sync again immediately after sending
         }

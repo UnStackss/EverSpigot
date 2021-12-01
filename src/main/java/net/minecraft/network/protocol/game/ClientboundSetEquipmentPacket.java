@@ -19,6 +19,13 @@ public class ClientboundSetEquipmentPacket implements Packet<ClientGamePacketLis
     private final List<Pair<EquipmentSlot, ItemStack>> slots;
 
     public ClientboundSetEquipmentPacket(int entityId, List<Pair<EquipmentSlot, ItemStack>> equipmentList) {
+        // Paper start - data sanitization
+        this(entityId, equipmentList, false);
+    }
+    private boolean sanitize;
+    public ClientboundSetEquipmentPacket(int entityId, List<Pair<EquipmentSlot, ItemStack>> equipmentList, boolean sanitize) {
+        this.sanitize = sanitize;
+        // Paper end - data sanitization
         this.entity = entityId;
         this.slots = equipmentList;
     }
@@ -41,6 +48,7 @@ public class ClientboundSetEquipmentPacket implements Packet<ClientGamePacketLis
         buf.writeVarInt(this.entity);
         int i = this.slots.size();
 
+        try (var ignored = io.papermc.paper.util.DataSanitizationUtil.start(this.sanitize)) {  // Paper - data sanitization
         for (int j = 0; j < i; j++) {
             Pair<EquipmentSlot, ItemStack> pair = this.slots.get(j);
             EquipmentSlot equipmentSlot = pair.getFirst();
@@ -49,6 +57,7 @@ public class ClientboundSetEquipmentPacket implements Packet<ClientGamePacketLis
             buf.writeByte(bl ? k | -128 : k);
             ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, pair.getSecond());
         }
+        } // Paper - data sanitization
     }
 
     @Override

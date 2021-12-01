@@ -19,9 +19,11 @@ public record ClientboundSetEntityDataPacket(int id, List<SynchedEntityData.Data
     }
 
     private static void pack(List<SynchedEntityData.DataValue<?>> trackedValues, RegistryFriendlyByteBuf buf) {
+        try (var ignored = io.papermc.paper.util.DataSanitizationUtil.start(true)) { // Paper - data sanitization
         for (SynchedEntityData.DataValue<?> dataValue : trackedValues) {
             dataValue.write(buf);
         }
+        } // Paper - data sanitization
 
         buf.writeByte(255);
     }
