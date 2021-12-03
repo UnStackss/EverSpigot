@@ -394,6 +394,14 @@ public abstract class BlockEntity {
     }
     // CraftBukkit end
 
+    // Paper start - Sanitize sent data
+    public CompoundTag sanitizeSentNbt(CompoundTag tag) {
+        tag.remove("PublicBukkitValues");
+
+        return tag;
+    }
+    // Paper end - Sanitize sent data
+
     private static class ComponentHelper {
 
         public static final Codec<DataComponentMap> COMPONENTS_CODEC = DataComponentMap.CODEC.optionalFieldOf("components", DataComponentMap.EMPTY).codec();

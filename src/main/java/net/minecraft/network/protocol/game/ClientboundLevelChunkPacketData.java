@@ -154,6 +154,7 @@ public class ClientboundLevelChunkPacketData {
             CompoundTag compoundTag = blockEntity.getUpdateTag(blockEntity.getLevel().registryAccess());
             BlockPos blockPos = blockEntity.getBlockPos();
             int i = SectionPos.sectionRelative(blockPos.getX()) << 4 | SectionPos.sectionRelative(blockPos.getZ());
+            blockEntity.sanitizeSentNbt(compoundTag); // Paper - Sanitize sent data
             return new ClientboundLevelChunkPacketData.BlockEntityInfo(i, blockPos.getY(), blockEntity.getType(), compoundTag.isEmpty() ? null : compoundTag);
         }
     }
