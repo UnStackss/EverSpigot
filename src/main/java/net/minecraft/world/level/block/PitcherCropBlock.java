@@ -123,7 +123,7 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
     @Override
     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
         float f = CropBlock.getGrowthSpeed(this, world, pos);
-        boolean bl = random.nextInt((int)(25.0F / f) + 1) == 0;
+        boolean bl = random.nextFloat() < (world.spigotConfig.pitcherPlantModifier / (100.0F * (Math.floor(25.0F / f) + 1))); // Paper - Fix Spigot growth modifiers
         if (bl) {
             this.grow(world, state, pos, 1);
         }

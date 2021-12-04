@@ -60,11 +60,17 @@ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements
             BlockPos blockposition1 = pos.relative(this.growthDirection);
 
             if (this.canGrowInto(world.getBlockState(blockposition1))) {
-                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(world, pos, blockposition1, this.getGrowIntoState(state, world.random)); // CraftBukkit
+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(world, pos, blockposition1, this.getGrowIntoState(state, world.random, world)); // CraftBukkit // Paper - Fix Spigot growth modifiers
             }
         }
 
     }
+
+    // Paper start - Fix Spigot growth modifiers
+    protected BlockState getGrowIntoState(BlockState state, RandomSource random, @javax.annotation.Nullable Level level) {
+        return this.getGrowIntoState(state, random);
+    }
+    // Paper end - Fix Spigot growth modifiers
 
     protected BlockState getGrowIntoState(BlockState state, RandomSource random) {
         return (BlockState) state.cycle(GrowingPlantHeadBlock.AGE);
