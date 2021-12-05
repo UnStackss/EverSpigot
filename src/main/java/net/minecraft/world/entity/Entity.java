@@ -3353,6 +3353,13 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     public void restoreFrom(Entity original) {
+        // Paper start - Forward CraftEntity in teleport command
+        CraftEntity bukkitEntity = original.bukkitEntity;
+        if (bukkitEntity != null) {
+            bukkitEntity.setHandle(this);
+            this.bukkitEntity = bukkitEntity;
+        }
+        // Paper end - Forward CraftEntity in teleport command
         CompoundTag nbttagcompound = original.saveWithoutId(new CompoundTag());
 
         nbttagcompound.remove("Dimension");
@@ -3439,8 +3446,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                         entity2.restoreFrom(this);
                         this.removeAfterChangingDimensions();
                         // CraftBukkit start - Forward the CraftEntity to the new entity
-                        this.getBukkitEntity().setHandle(entity2);
-                        entity2.bukkitEntity = this.getBukkitEntity();
+                        // this.getBukkitEntity().setHandle(entity2); // Paper - forward CraftEntity in teleport command; moved to Entity#restoreFrom
+                        // entity2.bukkitEntity = this.getBukkitEntity();
                         // CraftBukkit end
                     }
 
