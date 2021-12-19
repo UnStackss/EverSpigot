@@ -442,6 +442,7 @@ public class RegionFile implements AutoCloseable {
 
     }
 
+    public static final int MAX_CHUNK_SIZE = 500 * 1024 * 1024; // Paper - don't write garbage data to disk if writing serialization fails
     private class ChunkBuffer extends ByteArrayOutputStream {
 
         private final ChunkPos pos;
@@ -455,6 +456,23 @@ public class RegionFile implements AutoCloseable {
             super.write(RegionFile.this.version.getId());
             this.pos = chunkcoordintpair;
         }
+        // Paper start - don't write garbage data to disk if writing serialization fails
+        @Override
+        public void write(final int b) {
+            if (this.count > MAX_CHUNK_SIZE) {
+                throw new RegionFileStorage.RegionFileSizeException("Region file too large: " + this.count);
+            }
+            super.write(b);
+        }
+
+        @Override
+        public void write(final byte[] b, final int off, final int len) {
+            if (this.count + len > MAX_CHUNK_SIZE) {
+                throw new RegionFileStorage.RegionFileSizeException("Region file too large: " + (this.count + len));
+            }
+            super.write(b, off, len);
+        }
+        // Paper end - don't write garbage data to disk if writing serialization fails
 
         public void close() throws IOException {
             ByteBuffer bytebuffer = ByteBuffer.wrap(this.buf, 0, this.count);
