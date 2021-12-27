@@ -3497,7 +3497,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
         this.level().getProfiler().pop();
         this.level().getProfiler().push("freezing");
-        if (!this.level().isClientSide && !this.isDeadOrDying()) {
+        if (!this.level().isClientSide && !this.isDeadOrDying() && !this.freezeLocked) { // Paper - Freeze Tick Lock API
             int i = this.getTicksFrozen();
 
             if (this.isInPowderSnow && this.canFreeze()) {
