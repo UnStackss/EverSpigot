@@ -70,7 +70,7 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
         if (!world.isClientSide && entity.isOnFire() && this.isEntityInsideContent(state, pos, entity)) {
             // CraftBukkit start
             if (entity.mayInteract(world, pos)) {
-                if (!LayeredCauldronBlock.lowerFillLevel(state, world, pos, entity, CauldronLevelChangeEvent.ChangeReason.EXTINGUISH)) {
+                if (!this.handleEntityOnFireInsideWithEvent(state, world, pos, entity)) { // Paper - fix powdered snow cauldron extinguishing entities
                     return;
                 }
             }
@@ -80,6 +80,7 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
 
     }
 
+    @io.papermc.paper.annotation.DoNotUse @Deprecated // Paper - fix powdered snow cauldron extinguishing entities; use #handleEntityOnFireInsideWithEvent
     private void handleEntityOnFireInside(BlockState state, Level world, BlockPos pos) {
         if (this.precipitationType == Biome.Precipitation.SNOW) {
             LayeredCauldronBlock.lowerFillLevel((BlockState) Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, (Integer) state.getValue(LayeredCauldronBlock.LEVEL)), world, pos);
@@ -88,6 +89,15 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
         }
 
     }
+    // Paper start - fix powdered snow cauldron extinguishing entities
+    protected boolean handleEntityOnFireInsideWithEvent(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (this.precipitationType == Biome.Precipitation.SNOW) {
+            return LayeredCauldronBlock.lowerFillLevel((BlockState) Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, (Integer) state.getValue(LayeredCauldronBlock.LEVEL)), world, pos, entity, CauldronLevelChangeEvent.ChangeReason.EXTINGUISH);
+        } else {
+            return LayeredCauldronBlock.lowerFillLevel(state, world, pos, entity, CauldronLevelChangeEvent.ChangeReason.EXTINGUISH);
+        }
+    }
+    // Paper end - fix powdered snow cauldron extinguishing entities
 
     public static void lowerFillLevel(BlockState state, Level world, BlockPos pos) {
         // CraftBukkit start
