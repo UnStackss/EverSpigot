@@ -53,7 +53,7 @@ public class TimeCommand {
     }
 
     public static int setTime(CommandSourceStack source, int time) {
-        Iterator iterator = com.google.common.collect.Iterators.singletonIterator(source.getLevel()); // CraftBukkit - SPIGOT-6496: Only set the time for the world the command originates in
+        Iterator iterator = io.papermc.paper.configuration.GlobalConfiguration.get().commands.timeCommandAffectsAllWorlds ? source.getServer().getAllLevels().iterator() : com.google.common.collect.Iterators.singletonIterator(source.getLevel()); // CraftBukkit - SPIGOT-6496: Only set the time for the world the command originates in // Paper - add config option for spigot's change
 
         while (iterator.hasNext()) {
             ServerLevel worldserver = (ServerLevel) iterator.next();
@@ -74,7 +74,7 @@ public class TimeCommand {
     }
 
     public static int addTime(CommandSourceStack source, int time) {
-        Iterator iterator = com.google.common.collect.Iterators.singletonIterator(source.getLevel()); // CraftBukkit - SPIGOT-6496: Only set the time for the world the command originates in
+        Iterator iterator = io.papermc.paper.configuration.GlobalConfiguration.get().commands.timeCommandAffectsAllWorlds ? source.getServer().getAllLevels().iterator() : com.google.common.collect.Iterators.singletonIterator(source.getLevel()); // CraftBukkit - SPIGOT-6496: Only set the time for the world the command originates in // Paper - add config option for spigot's change
 
         while (iterator.hasNext()) {
             ServerLevel worldserver = (ServerLevel) iterator.next();
