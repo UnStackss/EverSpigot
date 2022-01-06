@@ -369,7 +369,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
         this.serverLevelData.setWorld(this);
 
         if (biomeProvider != null) {
-            BiomeSource worldChunkManager = new CustomWorldChunkManager(this.getWorld(), biomeProvider, this.server.registryAccess().registryOrThrow(Registries.BIOME));
+            BiomeSource worldChunkManager = new CustomWorldChunkManager(this.getWorld(), biomeProvider, this.server.registryAccess().registryOrThrow(Registries.BIOME), chunkgenerator.getBiomeSource()); // Paper - add vanillaBiomeProvider
             if (chunkgenerator instanceof NoiseBasedChunkGenerator cga) {
                 chunkgenerator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
             } else if (chunkgenerator instanceof FlatLevelSource cpf) {
