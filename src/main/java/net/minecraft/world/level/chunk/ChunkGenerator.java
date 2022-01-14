@@ -573,7 +573,7 @@ public abstract class ChunkGenerator {
                 }
             }
 
-            if (structureplacement.isStructureChunk(placementCalculator, chunkcoordintpair.x, chunkcoordintpair.z)) {
+            if (structureplacement.isStructureChunk(placementCalculator, chunkcoordintpair.x, chunkcoordintpair.z, structureplacement instanceof net.minecraft.world.level.chunk.ChunkGeneratorStructureState.KeyedRandomSpreadStructurePlacement keyed ? keyed.key : null)) { // Paper - Add missing structure set seed configs
                 if (list.size() == 1) {
                     this.tryGenerateStructure((StructureSet.StructureSelectionEntry) list.get(0), structureAccessor, registryManager, randomstate, structureTemplateManager, placementCalculator.getLevelSeed(), chunk, chunkcoordintpair, sectionposition);
                 } else {
