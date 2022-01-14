@@ -321,6 +321,13 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
             }
 
+            // Paper start - Sync offhand slot in menus
+            @Override
+            public void sendOffHandSlotChange() {
+                ServerPlayer.this.connection.send(new ClientboundContainerSetSlotPacket(ServerPlayer.this.inventoryMenu.containerId, ServerPlayer.this.inventoryMenu.incrementStateId(), net.minecraft.world.inventory.InventoryMenu.SHIELD_SLOT, ServerPlayer.this.inventoryMenu.getSlot(net.minecraft.world.inventory.InventoryMenu.SHIELD_SLOT).getItem().copy()));
+            }
+            // Paper end - Sync offhand slot in menus
+
             @Override
             public void sendSlotChange(AbstractContainerMenu handler, int slot, ItemStack stack) {
                 ServerPlayer.this.connection.send(new ClientboundContainerSetSlotPacket(handler.containerId, handler.incrementStateId(), slot, stack));

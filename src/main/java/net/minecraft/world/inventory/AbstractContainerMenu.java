@@ -200,6 +200,7 @@ public abstract class AbstractContainerMenu {
 
         if (this.synchronizer != null) {
             this.synchronizer.sendInitialData(this, this.remoteSlots, this.remoteCarried, this.remoteDataSlots.toIntArray());
+            this.synchronizer.sendOffHandSlotChange(); // Paper - Sync offhand slot in menus; update player's offhand since the offhand slot is not added to the slots for menus but can be changed by swapping from a menu slot
         }
 
     }

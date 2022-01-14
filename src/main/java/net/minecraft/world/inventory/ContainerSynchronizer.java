@@ -6,6 +6,7 @@ import net.minecraft.world.item.ItemStack;
 public interface ContainerSynchronizer {
     void sendInitialData(AbstractContainerMenu handler, NonNullList<ItemStack> stacks, ItemStack cursorStack, int[] properties);
 
+    default void sendOffHandSlotChange() {} // Paper - Sync offhand slot in menus
     void sendSlotChange(AbstractContainerMenu handler, int slot, ItemStack stack);
 
     void sendCarriedChange(AbstractContainerMenu handler, ItemStack stack);
