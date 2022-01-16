@@ -176,11 +176,16 @@ public class Zombie extends Monster {
 
     @Override
     protected int getBaseExperienceReward() {
+        final int previousReward = this.xpReward; // Paper - store previous value to reset after calculating XP reward
         if (this.isBaby()) {
             this.xpReward = (int) ((double) this.xpReward * 2.5D);
         }
 
-        return super.getBaseExperienceReward();
+        // Paper start - store previous value to reset after calculating XP reward
+        int reward = super.getBaseExperienceReward();
+        this.xpReward = previousReward;
+        return reward;
+        // Paper end - store previous value to reset after calculating XP reward
     }
 
     @Override
