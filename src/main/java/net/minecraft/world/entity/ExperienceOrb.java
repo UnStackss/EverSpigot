@@ -354,7 +354,10 @@ public class ExperienceOrb extends Entity {
             int j = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.serverLevel(), itemstack, amount);
             int k = Math.min(j, itemstack.getDamageValue());
             // CraftBukkit start
-            org.bukkit.event.player.PlayerItemMendEvent event = CraftEventFactory.callPlayerItemMendEvent(player, this, itemstack, optional.get().inSlot(), k);
+            // Paper start - mending event
+            final int consumedExperience = k > 0 ? k * amount / j : 0;
+            org.bukkit.event.player.PlayerItemMendEvent event = CraftEventFactory.callPlayerItemMendEvent(player, this, itemstack, optional.get().inSlot(), k, consumedExperience);
+            // Paper end - mending event
             k = event.getRepairAmount();
             if (event.isCancelled()) {
                 return amount;
@@ -363,7 +366,7 @@ public class ExperienceOrb extends Entity {
 
             itemstack.setDamageValue(itemstack.getDamageValue() - k);
             if (k > 0) {
-                int l = amount - k * amount / j;
+                int l = amount - k * amount / j; // Paper - diff on change - expand PlayerMendEvents
 
                 if (l > 0) {
                     // this.value = l; // CraftBukkit - update exp value of orb for PlayerItemMendEvent calls // Paper - the value field should not be mutated here because it doesn't take "count" into account
