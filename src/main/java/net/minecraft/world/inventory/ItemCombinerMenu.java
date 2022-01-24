@@ -18,7 +18,7 @@ public abstract class ItemCombinerMenu extends AbstractContainerMenu {
     protected final Player player;
     protected final Container inputSlots;
     private final List<Integer> inputSlotIndexes;
-    protected final ResultContainer resultSlots = new ResultContainer();
+    protected final ResultContainer resultSlots; // Paper - Add missing InventoryHolders; delay field init
     private final int resultSlotIndex;
 
     protected abstract boolean mayPickup(Player player, boolean present);
@@ -30,6 +30,7 @@ public abstract class ItemCombinerMenu extends AbstractContainerMenu {
     public ItemCombinerMenu(@Nullable MenuType<?> type, int syncId, Inventory playerInventory, ContainerLevelAccess context) {
         super(type, syncId);
         this.access = context;
+        this.resultSlots = new ResultContainer(this.createBlockHolder(this.access)); // Paper - Add missing InventoryHolders; delay field init
         this.player = playerInventory.player;
         ItemCombinerMenuSlotDefinition itemcombinermenuslotdefinition = this.createInputSlotDefinitions();
 
@@ -96,7 +97,7 @@ public abstract class ItemCombinerMenu extends AbstractContainerMenu {
     protected abstract ItemCombinerMenuSlotDefinition createInputSlotDefinitions();
 
     private SimpleContainer createContainer(int size) {
-        return new SimpleContainer(size) {
+        return new SimpleContainer(this.createBlockHolder(this.access), size) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 super.setChanged();

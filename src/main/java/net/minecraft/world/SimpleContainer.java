@@ -30,7 +30,7 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
     // CraftBukkit start - add fields and methods
     public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
     private int maxStack = MAX_STACK;
-    protected org.bukkit.inventory.InventoryHolder bukkitOwner;
+    protected @Nullable org.bukkit.inventory.InventoryHolder bukkitOwner; // Paper - annotation
 
     public List<ItemStack> getContents() {
         return this.items;
@@ -58,6 +58,11 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
     }
 
     public org.bukkit.inventory.InventoryHolder getOwner() {
+        // Paper start - Add missing InventoryHolders
+        if (this.bukkitOwner == null && this.bukkitOwnerCreator != null) {
+            this.bukkitOwner = this.bukkitOwnerCreator.get();
+        }
+        // Paper end - Add missing InventoryHolders
         return this.bukkitOwner;
     }
 
@@ -86,6 +91,13 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
     public SimpleContainer(int size) {
         this(size, null);
     }
+    // Paper start - Add missing InventoryHolders
+    private @Nullable java.util.function.Supplier<? extends org.bukkit.inventory.InventoryHolder> bukkitOwnerCreator;
+    public SimpleContainer(java.util.function.Supplier<? extends org.bukkit.inventory.InventoryHolder> bukkitOwnerCreator, int size) {
+        this(size);
+        this.bukkitOwnerCreator = bukkitOwnerCreator;
+    }
+    // Paper end - Add missing InventoryHolders
 
     public SimpleContainer(int i, org.bukkit.inventory.InventoryHolder owner) {
         this.bukkitOwner = owner;

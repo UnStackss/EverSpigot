@@ -60,8 +60,8 @@ public class GrindstoneMenu extends AbstractContainerMenu {
 
     public GrindstoneMenu(int syncId, Inventory playerInventory, final ContainerLevelAccess context) {
         super(MenuType.GRINDSTONE, syncId);
-        this.resultSlots = new ResultContainer();
-        this.repairSlots = new SimpleContainer(2) {
+        this.resultSlots = new ResultContainer(this.createBlockHolder(context)); // Paper - Add missing InventoryHolders
+        this.repairSlots = new SimpleContainer(this.createBlockHolder(context), 2) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 super.setChanged();

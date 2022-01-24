@@ -69,7 +69,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
         this.input = ItemStack.EMPTY;
         this.slotUpdateListener = () -> {
         };
-        this.container = new SimpleContainer(1) {
+        this.container = new SimpleContainer(this.createBlockHolder(context), 1) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 super.setChanged();
@@ -84,7 +84,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
             }
             // CraftBukkit end
         };
-        this.resultContainer = new ResultContainer();
+        this.resultContainer = new ResultContainer(this.createBlockHolder(context)); // Paper - Add missing InventoryHolders
         this.access = context;
         this.level = playerInventory.player.level();
         this.inputSlot = this.addSlot(new Slot(this.container, 0, 20, 33));

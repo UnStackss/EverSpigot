@@ -29,7 +29,12 @@ public class ResultContainer implements Container, RecipeCraftingHolder {
     }
 
     public org.bukkit.inventory.InventoryHolder getOwner() {
-        return null; // Result slots don't get an owner
+        // Paper start - Add missing InventoryHolders
+        if (this.holder == null && this.holderCreator != null) {
+            this.holder = this.holderCreator.get();
+        }
+        return this.holder; // Result slots don't get an owner
+        // Paper end - Add missing InventoryHolders
     }
 
     // Don't need a transaction; the InventoryCrafting keeps track of it for us
@@ -53,6 +58,14 @@ public class ResultContainer implements Container, RecipeCraftingHolder {
         return null;
     }
     // CraftBukkit end
+    // Paper start - Add missing InventoryHolders
+    private @Nullable java.util.function.Supplier<? extends org.bukkit.inventory.InventoryHolder> holderCreator;
+    private @Nullable org.bukkit.inventory.InventoryHolder holder;
+    public ResultContainer(java.util.function.Supplier<? extends org.bukkit.inventory.InventoryHolder> holderCreator) {
+        this();
+        this.holderCreator = holderCreator;
+    }
+    // Paper end - Add missing InventoryHolders
 
     public ResultContainer() {
         this.itemStacks = NonNullList.withSize(1, ItemStack.EMPTY);

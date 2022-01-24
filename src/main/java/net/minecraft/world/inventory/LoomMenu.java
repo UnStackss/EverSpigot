@@ -73,7 +73,7 @@ public class LoomMenu extends AbstractContainerMenu {
         this.selectablePatterns = List.of();
         this.slotUpdateListener = () -> {
         };
-        this.inputContainer = new SimpleContainer(3) {
+        this.inputContainer = new SimpleContainer(this.createBlockHolder(context), 3) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 super.setChanged();
@@ -88,7 +88,7 @@ public class LoomMenu extends AbstractContainerMenu {
             }
             // CraftBukkit end
         };
-        this.outputContainer = new SimpleContainer(1) {
+        this.outputContainer = new SimpleContainer(this.createBlockHolder(context), 1) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 super.setChanged();

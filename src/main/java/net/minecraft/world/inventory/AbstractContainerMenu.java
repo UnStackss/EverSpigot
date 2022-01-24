@@ -991,4 +991,15 @@ public abstract class AbstractContainerMenu {
         this.stateId = this.stateId + 1 & 32767;
         return this.stateId;
     }
+
+    // Paper start - Add missing InventoryHolders
+    // The reason this is a supplier, is that the createHolder method uses the bukkit InventoryView#getTopInventory to get the inventory in question
+    // and that can't be obtained safely until the AbstractContainerMenu has been fully constructed. Using a supplier lazily
+    // initializes the InventoryHolder safely.
+    protected final Supplier<org.bukkit.inventory.BlockInventoryHolder> createBlockHolder(final ContainerLevelAccess context) {
+        //noinspection ConstantValue
+        Preconditions.checkArgument(context != null, "context was null");
+        return () -> context.createBlockHolder(this);
+    }
+    // Paper end - Add missing InventoryHolders
 }

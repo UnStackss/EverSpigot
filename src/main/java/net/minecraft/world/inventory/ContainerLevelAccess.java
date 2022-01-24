@@ -21,6 +21,18 @@ public interface ContainerLevelAccess {
         return new org.bukkit.Location(this.getWorld().getWorld(), this.getPosition().getX(), this.getPosition().getY(), this.getPosition().getZ());
     }
     // CraftBukkit end
+    // Paper start - Add missing InventoryHolders
+    default boolean isBlock() {
+        return false;
+    }
+
+    default org.bukkit.inventory.@org.jetbrains.annotations.Nullable BlockInventoryHolder createBlockHolder(AbstractContainerMenu menu) {
+        if (!this.isBlock()) {
+            return null;
+        }
+        return new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(this, menu.getBukkitView().getTopInventory());
+    }
+    // Paper end - Add missing InventoryHolders
 
     ContainerLevelAccess NULL = new ContainerLevelAccess() {
         @Override
@@ -48,6 +60,12 @@ public interface ContainerLevelAccess {
                 return pos;
             }
             // CraftBukkit end
+            // Paper start - Add missing InventoryHolders
+            @Override
+            public boolean isBlock() {
+                return true;
+            }
+            // Paper end - Add missing InventoryHolders
 
             @Override
             public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> getter) {

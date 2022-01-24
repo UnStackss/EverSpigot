@@ -63,7 +63,7 @@ public class EnchantmentMenu extends AbstractContainerMenu {
 
     public EnchantmentMenu(int syncId, Inventory playerInventory, ContainerLevelAccess context) {
         super(MenuType.ENCHANTMENT, syncId);
-        this.enchantSlots = new SimpleContainer(2) {
+        this.enchantSlots = new SimpleContainer(this.createBlockHolder(context), 2) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 super.setChanged();

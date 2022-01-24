@@ -54,7 +54,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
 
     public CartographyTableMenu(int syncId, Inventory inventory, final ContainerLevelAccess context) {
         super(MenuType.CARTOGRAPHY_TABLE, syncId);
-        this.container = new SimpleContainer(2) {
+        this.container = new SimpleContainer(this.createBlockHolder(context), 2) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 CartographyTableMenu.this.slotsChanged(this);
@@ -68,7 +68,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
             }
             // CraftBukkit end
         };
-        this.resultContainer = new ResultContainer() {
+        this.resultContainer = new ResultContainer(this.createBlockHolder(context)) { // Paper - Add missing InventoryHolders
             @Override
             public void setChanged() {
                 CartographyTableMenu.this.slotsChanged(this);

@@ -103,7 +103,7 @@ public interface Container extends Clearable {
 
     java.util.List<org.bukkit.entity.HumanEntity> getViewers();
 
-    org.bukkit.inventory.InventoryHolder getOwner();
+    org.bukkit.inventory.@org.jetbrains.annotations.Nullable InventoryHolder getOwner(); // Paper - annotation
 
     void setMaxStackSize(int size);
 

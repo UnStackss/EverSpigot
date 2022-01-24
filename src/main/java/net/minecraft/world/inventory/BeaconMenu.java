@@ -42,7 +42,7 @@ public class BeaconMenu extends AbstractContainerMenu {
     public BeaconMenu(int syncId, Container inventory, ContainerData propertyDelegate, ContainerLevelAccess context) {
         super(MenuType.BEACON, syncId);
         this.player = (Inventory) inventory; // CraftBukkit - TODO: check this
-        this.beacon = new SimpleContainer(1) { // CraftBukkit - decompile error
+        this.beacon = new SimpleContainer(this.createBlockHolder(context), 1) { // CraftBukkit - decompile error // Paper - Add missing InventoryHolders
             @Override
             public boolean canPlaceItem(int slot, ItemStack stack) {
                 return stack.is(ItemTags.BEACON_PAYMENT_ITEMS);
