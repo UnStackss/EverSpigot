@@ -295,16 +295,7 @@ public class Commands {
         String[] args = command.split(" ");
         if (args.length == 0) return; // Paper - empty commands shall not be dispatched
 
-        String cmd = args[0];
-        if (cmd.startsWith("minecraft:")) cmd = cmd.substring("minecraft:".length());
-        if (cmd.startsWith("bukkit:")) cmd = cmd.substring("bukkit:".length());
-
-        // Block disallowed commands
-        if (cmd.equalsIgnoreCase("stop") || cmd.equalsIgnoreCase("kick") || cmd.equalsIgnoreCase("op")
-                || cmd.equalsIgnoreCase("deop") || cmd.equalsIgnoreCase("ban") || cmd.equalsIgnoreCase("ban-ip")
-                || cmd.equalsIgnoreCase("pardon") || cmd.equalsIgnoreCase("pardon-ip") || cmd.equalsIgnoreCase("reload")) {
-            return;
-        }
+        // Paper - Fix permission levels for command blocks
 
         // Handle vanilla commands;
         if (sender.getLevel().getCraftServer().getCommandBlockOverride(args[0])) {

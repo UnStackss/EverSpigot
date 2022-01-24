@@ -204,10 +204,29 @@ public class CommandSourceStack implements ExecutionCommandSource<CommandSourceS
         return this.permissionLevel >= level;
     }
 
+    // Paper start - Fix permission levels for command blocks
+    private boolean forceRespectPermissionLevel() {
+        return this.source == CommandSource.NULL || (this.source instanceof final net.minecraft.world.level.BaseCommandBlock commandBlock && commandBlock.getLevel().paperConfig().commandBlocks.forceFollowPermLevel);
+    }
+    // Paper end - Fix permission levels for command blocks
+
     // CraftBukkit start
     public boolean hasPermission(int i, String bukkitPermission) {
-        // World is null when loading functions
-        return ((this.getLevel() == null || !this.getLevel().getCraftServer().ignoreVanillaPermissions) && this.permissionLevel >= i) || this.getBukkitSender().hasPermission(bukkitPermission);
+        // Paper start - Fix permission levels for command blocks
+        final java.util.function.BooleanSupplier hasBukkitPerm = () -> this.source == CommandSource.NULL /*treat NULL as having all bukkit perms*/ || this.getBukkitSender().hasPermission(bukkitPermission); // lazily check bukkit perms to the benefit of custom permission setups
+        // if the server is null, we must check the vanilla perm level system
+        // if ignoreVanillaPermissions is true, we can skip vanilla perms and just run the bukkit perm check
+        //noinspection ConstantValue
+        if (this.getServer() == null || !this.getServer().server.ignoreVanillaPermissions) { // server & level are null for command function loading
+            final boolean hasPermLevel = this.permissionLevel >= i;
+            if (this.forceRespectPermissionLevel()) { // NULL CommandSource and command blocks (if setting is enabled) should always pass the vanilla perm check
+                return hasPermLevel && hasBukkitPerm.getAsBoolean();
+            } else { // otherwise check vanilla perm first then bukkit perm, matching upstream behavior
+                return hasPermLevel || hasBukkitPerm.getAsBoolean();
+            }
+        }
+        return hasBukkitPerm.getAsBoolean();
+        // Paper end - Fix permission levels for command blocks
     }
     // CraftBukkit end
 
