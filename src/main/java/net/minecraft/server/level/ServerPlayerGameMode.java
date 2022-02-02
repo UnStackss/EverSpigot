@@ -429,12 +429,16 @@ public class ServerPlayerGameMode {
                     block.destroy(this.level, pos, iblockdata1);
                 }
 
+                ItemStack mainHandStack = null; // Paper - Trigger bee_nest_destroyed trigger in the correct place
+                boolean isCorrectTool = false; // Paper - Trigger bee_nest_destroyed trigger in the correct place
                 if (this.isCreative()) {
                     // return true; // CraftBukkit
                 } else {
                     ItemStack itemstack = this.player.getMainHandItem();
                     ItemStack itemstack1 = itemstack.copy();
                     boolean flag1 = this.player.hasCorrectToolForDrops(iblockdata1);
+                    mainHandStack = itemstack1; // Paper - Trigger bee_nest_destroyed trigger in the correct place
+                    isCorrectTool = flag1; // Paper - Trigger bee_nest_destroyed trigger in the correct place
 
                     itemstack.mineBlock(this.level, iblockdata1, pos, this.player);
                     if (flag && flag1 && event.isDropItems()) { // CraftBukkit - Check if block should drop items
@@ -455,6 +459,13 @@ public class ServerPlayerGameMode {
                 if (flag && event != null) {
                     iblockdata.getBlock().popExperience(this.level, pos, event.getExpToDrop(), this.player); // Paper
                 }
+                // Paper start - Trigger bee_nest_destroyed trigger in the correct place (check impls of block#playerDestroy)
+                if (mainHandStack != null) {
+                    if (flag && isCorrectTool && event.isDropItems() && block instanceof net.minecraft.world.level.block.BeehiveBlock && tileentity instanceof net.minecraft.world.level.block.entity.BeehiveBlockEntity beehiveBlockEntity) { // simulates the guard on block#playerDestroy above
+                        CriteriaTriggers.BEE_NEST_DESTROYED.trigger(player, iblockdata, mainHandStack, beehiveBlockEntity.getOccupantCount());
+                    }
+                }
+                // Paper end - Trigger bee_nest_destroyed trigger in the correct place
 
                 return true;
                 // CraftBukkit end

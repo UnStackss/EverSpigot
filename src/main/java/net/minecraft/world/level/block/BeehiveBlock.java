@@ -95,7 +95,7 @@ public class BeehiveBlock extends BaseEntityBlock {
                 this.angerNearbyBees(world, pos);
             }
 
-            CriteriaTriggers.BEE_NEST_DESTROYED.trigger((ServerPlayer) player, state, tool, tileentitybeehive.getOccupantCount());
+            // CriteriaTriggers.BEE_NEST_DESTROYED.trigger((ServerPlayer) player, state, tool, tileentitybeehive.getOccupantCount()); // Paper - Trigger bee_nest_destroyed trigger in the correct place; moved until after items are dropped
         }
 
     }
