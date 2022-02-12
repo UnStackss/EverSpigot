@@ -84,6 +84,7 @@ public abstract class BaseSpawner {
     }
 
     public void serverTick(ServerLevel world, BlockPos pos) {
+        if (spawnCount <= 0 || maxNearbyEntities <= 0) return; // Paper - Ignore impossible spawn tick
         // Paper start - Configurable mob spawner tick rate
         if (spawnDelay > 0 && --tickDelay > 0) return;
         tickDelay = world.paperConfig().tickRates.mobSpawner;
