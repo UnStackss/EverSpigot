@@ -632,7 +632,15 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                 this.commandStorage = new CommandStorage(worldpersistentdata);
             } else {
                 ChunkProgressListener worldloadlistener = this.progressListenerFactory.create(this.worldData.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS));
-                world = new ServerLevel(this, this.executor, worldSession, iworlddataserver, worldKey, worlddimension, worldloadlistener, flag, j, ImmutableList.of(), true, this.overworld().getRandomSequences(), org.bukkit.World.Environment.getEnvironment(dimension), gen, biomeProvider);
+                // Paper start - option to use the dimension_type to check if spawners should be added. I imagine mojang will add some datapack-y way of managing this in the future.
+                final List<CustomSpawner> spawners;
+                if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.useDimensionTypeForCustomSpawners && this.registryAccess().registryOrThrow(Registries.DIMENSION_TYPE).getResourceKey(worlddimension.type().value()).orElseThrow() == net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD) {
+                    spawners = list;
+                } else {
+                    spawners = Collections.emptyList();
+                }
+                world = new ServerLevel(this, this.executor, worldSession, iworlddataserver, worldKey, worlddimension, worldloadlistener, flag, j, spawners, true, this.overworld().getRandomSequences(), org.bukkit.World.Environment.getEnvironment(dimension), gen, biomeProvider);
+                // Paper end - option to use the dimension_type to check if spawners should be added
             }
 
             worlddata.setModdedInfo(this.getServerModName(), this.getModdedStatus().shouldReportAsModified());
