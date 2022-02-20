@@ -329,6 +329,19 @@ public abstract class AbstractArrow extends Projectile {
         }
     }
 
+    // Paper start - Fix cancelling ProjectileHitEvent for piercing arrows
+    @Override
+    public ProjectileDeflection preHitTargetOrDeflectSelf(HitResult hitResult) {
+        if (hitResult instanceof EntityHitResult entityHitResult && this.hitCancelled && this.getPierceLevel() > 0) {
+            if (this.piercingIgnoreEntityIds == null) {
+                this.piercingIgnoreEntityIds = new IntOpenHashSet(5);
+            }
+            this.piercingIgnoreEntityIds.add(entityHitResult.getEntity().getId());
+        }
+        return super.preHitTargetOrDeflectSelf(hitResult);
+    }
+    // Paper end - Fix cancelling ProjectileHitEvent for piercing arrows
+
     @Override
     protected double getDefaultGravity() {
         return 0.05D;
