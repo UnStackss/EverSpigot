@@ -2522,7 +2522,13 @@ public final class CraftServer implements Server {
         Preconditions.checkArgument(key != null, "NamespacedKey key cannot be null");
 
         ReloadableServerRegistries.Holder registry = this.getServer().reloadableRegistries();
-        return new CraftLootTable(key, registry.getLootTable(CraftLootTable.bukkitKeyToMinecraft(key)));
+        // Paper start - honor method contract
+        final ResourceKey<net.minecraft.world.level.storage.loot.LootTable> lootTableKey = CraftLootTable.bukkitKeyToMinecraft(key);
+        final Optional<net.minecraft.world.level.storage.loot.LootTable> table = registry.get().lookup(Registries.LOOT_TABLE)
+            .flatMap(registryEntryLookup -> registryEntryLookup.get(lootTableKey))
+            .map(net.minecraft.core.Holder::value);
+        return table.map(lootTable -> new CraftLootTable(key, lootTable)).orElse(null);
+        // Paper end
     }
 
     @Override

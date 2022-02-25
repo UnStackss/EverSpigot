@@ -40,7 +40,7 @@ public class StructureCheck {
     private final ChunkScanAccess storageAccess;
     private final RegistryAccess registryAccess;
     private final StructureTemplateManager structureTemplateManager;
-    private final ResourceKey<Level> dimension;
+    private final ResourceKey<net.minecraft.world.level.dimension.LevelStem> dimension; // Paper - fix missing CB diff
     private final ChunkGenerator chunkGenerator;
     private final RandomState randomState;
     private final LevelHeightAccessor heightAccessor;
@@ -54,7 +54,7 @@ public class StructureCheck {
         ChunkScanAccess chunkIoWorker,
         RegistryAccess registryManager,
         StructureTemplateManager structureTemplateManager,
-        ResourceKey<Level> worldKey,
+        ResourceKey<net.minecraft.world.level.dimension.LevelStem> worldKey, // Paper - fix missing CB diff
         ChunkGenerator chunkGenerator,
         RandomState noiseConfig,
         LevelHeightAccessor world,

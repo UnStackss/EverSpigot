@@ -54,7 +54,7 @@ public record SummonEntityEffect(HolderSet<EntityType<?>> entityTypes, boolean j
                         // CraftBukkit start
                         world.strikeLightning(entity1, (context.itemStack().getItem() == Items.TRIDENT) ? LightningStrikeEvent.Cause.TRIDENT : LightningStrikeEvent.Cause.ENCHANTMENT);
                     } else {
-                        world.addFreshEntityWithPassengers(user, CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
+                        world.addFreshEntityWithPassengers(entity1, CreatureSpawnEvent.SpawnReason.ENCHANTMENT); // Paper - Fix typo when adding summoned entity
                         // CraftBukkit end
                     }
 
