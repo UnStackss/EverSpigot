@@ -1656,12 +1656,17 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             this.nextContainerCounter();
             AbstractContainerMenu container = factory.createMenu(this.containerCounter, this.getInventory(), this);
 
+            Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
             // CraftBukkit start - Inventory open hook
             if (container != null) {
                 container.setTitle(factory.getDisplayName());
 
                 boolean cancelled = false;
-                container = CraftEventFactory.callInventoryOpenEvent(this, container, cancelled);
+                // Paper start - Add titleOverride to InventoryOpenEvent
+                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, container, cancelled);
+                container = result.getSecond();
+                title = PaperAdventure.asVanilla(result.getFirst());
+                // Paper end - Add titleOverride to InventoryOpenEvent
                 if (container == null && !cancelled) { // Let pre-cancelled events fall through
                     // SPIGOT-5263 - close chest if cancelled
                     if (factory instanceof Container) {
@@ -1683,7 +1688,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
             } else {
                 // CraftBukkit start
                 this.containerMenu = container;
-                if (!this.isImmobile()) this.connection.send(new ClientboundOpenScreenPacket(container.containerId, container.getType(), container.getTitle())); // Paper - Prevent opening inventories when frozen
+                if (!this.isImmobile()) this.connection.send(new ClientboundOpenScreenPacket(container.containerId, container.getType(), Objects.requireNonNullElseGet(title, container::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
                 // CraftBukkit end
                 this.initMenu(container);
                 return OptionalInt.of(this.containerCounter);
