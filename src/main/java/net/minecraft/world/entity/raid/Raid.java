@@ -107,6 +107,11 @@ public class Raid {
     private Raid.RaidStatus status;
     private int celebrationTicks;
     private Optional<BlockPos> waveSpawnPos;
+    // Paper start
+    private static final String PDC_NBT_KEY = "BukkitValues";
+    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry PDC_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
+    public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(PDC_TYPE_REGISTRY);
+    // Paper end
 
     public Raid(int id, ServerLevel world, BlockPos pos) {
         this.raidEvent = new ServerBossEvent(Raid.RAID_NAME_COMPONENT, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10);
@@ -150,6 +155,11 @@ public class Raid {
                 this.heroesOfTheVillage.add(NbtUtils.loadUUID(nbtbase));
             }
         }
+        // Paper start
+        if (nbt.contains(PDC_NBT_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+            this.persistentDataContainer.putAll(nbt.getCompound(PDC_NBT_KEY));
+        }
+        // Paper end
 
     }
 
@@ -867,6 +877,11 @@ public class Raid {
         }
 
         nbt.put("HeroesOfTheVillage", nbttaglist);
+        // Paper start
+        if (!this.persistentDataContainer.isEmpty()) {
+            nbt.put(PDC_NBT_KEY, this.persistentDataContainer.toTagCompound());
+        }
+        // Paper end
         return nbt;
     }
 
