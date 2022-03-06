@@ -714,6 +714,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     public void baseTick() {
         this.level().getProfiler().push("entityBaseTick");
+        if (firstTick && this instanceof net.minecraft.world.entity.NeutralMob neutralMob) neutralMob.tickInitialPersistentAnger(level); // Paper - Prevent entity loading causing async lookups
         this.inBlockState = null;
         if (this.isPassenger() && this.getVehicle().isRemoved()) {
             this.stopRiding();

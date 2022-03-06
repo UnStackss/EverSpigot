@@ -45,24 +45,11 @@ public interface NeutralMob {
                 UUID uuid = nbt.getUUID("AngryAt");
 
                 this.setPersistentAngerTarget(uuid);
-                Entity entity = ((ServerLevel) world).getEntity(uuid);
-
-                if (entity != null) {
-                    if (entity instanceof Mob) {
-                        Mob entityinsentient = (Mob) entity;
-
-                        this.setTarget(entityinsentient, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
-                        this.setLastHurtByMob(entityinsentient);
-                    }
-
-                    if (entity instanceof Player) {
-                        Player entityhuman = (Player) entity;
-
-                        this.setTarget(entityhuman, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
-                        this.setLastHurtByPlayer(entityhuman);
-                    }
-
-                }
+                // Paper - Prevent entity loading causing async lookups; Moved diff to separate method
+                // If this entity already survived its first tick, e.g. is loaded and ticked in sync, actively
+                // tick the initial persistent anger.
+                // If not, let the first tick on the baseTick call the method later down the line.
+                if (this instanceof Entity entity && !entity.firstTick) this.tickInitialPersistentAnger(world);
             }
         }
     }
@@ -136,4 +123,28 @@ public interface NeutralMob {
 
     @Nullable
     LivingEntity getTarget();
+
+    // Paper start - Prevent entity loading causing async lookups
+    // Update last hurt when ticking
+    default void tickInitialPersistentAnger(Level level) {
+        UUID target = getPersistentAngerTarget();
+        if (target == null) {
+            return;
+        }
+
+        Entity entity = ((ServerLevel) level).getEntity(target);
+
+        if (entity != null) {
+            if (entity instanceof Mob mob) {
+                this.setTarget(mob, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
+                this.setLastHurtByMob(mob);
+            }
+
+            if (entity instanceof Player player) {
+                this.setTarget(player, EntityTargetEvent.TargetReason.UNKNOWN, false); // CraftBukkit
+                this.setLastHurtByPlayer(player);
+            }
+        }
+    }
+    // Paper end - Prevent entity loading causing async lookups
 }
