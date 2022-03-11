@@ -570,7 +570,7 @@ public class Camel extends AbstractHorse implements PlayerRideableJumping, Saddl
     }
 
     public void sitDown() {
-        if (!this.isCamelSitting()) {
+        if (!this.isCamelSitting() && new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), true).callEvent()) { // Paper - Add EntityToggleSitEvent
             this.makeSound(SoundEvents.CAMEL_SIT);
             this.setPose(Pose.SITTING);
             this.gameEvent(GameEvent.ENTITY_ACTION);
@@ -579,7 +579,7 @@ public class Camel extends AbstractHorse implements PlayerRideableJumping, Saddl
     }
 
     public void standUp() {
-        if (this.isCamelSitting()) {
+        if (this.isCamelSitting() && new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), false).callEvent()) { // Paper - Add EntityToggleSitEvent
             this.makeSound(SoundEvents.CAMEL_STAND);
             this.setPose(Pose.STANDING);
             this.gameEvent(GameEvent.ENTITY_ACTION);
@@ -588,6 +588,7 @@ public class Camel extends AbstractHorse implements PlayerRideableJumping, Saddl
     }
 
     public void standUpInstantly() {
+        if (this.isCamelSitting() && !new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), false).callEvent()) return; // Paper - Add EntityToggleSitEvent
         this.setPose(Pose.STANDING);
         this.gameEvent(GameEvent.ENTITY_ACTION);
         this.resetLastPoseChangeTickToFullStand(this.level().getGameTime());
