@@ -357,7 +357,7 @@ public class Cat extends TamableAnimal implements VariantHolder<Holder<CatVarian
         BuiltInRegistries.CAT_VARIANT.getRandomElementOf(tagkey, world.getRandom()).ifPresent(this::setVariant);
         ServerLevel worldserver = world.getLevel();
 
-        if (worldserver.structureManager().getStructureWithPieceAt(this.blockPosition(), StructureTags.CATS_SPAWN_AS_BLACK).isValid()) {
+        if (worldserver.structureManager().getStructureWithPieceAt(this.blockPosition(), StructureTags.CATS_SPAWN_AS_BLACK, world).isValid()) { // Paper - Fix swamp hut cat generation deadlock
             this.setVariant((Holder) BuiltInRegistries.CAT_VARIANT.getHolderOrThrow(CatVariant.ALL_BLACK));
             this.setPersistenceRequired();
         }
