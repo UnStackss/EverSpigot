@@ -484,6 +484,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             this.disconnect((Component) Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_VEHICLE_MOVEMENT); // Paper - kick event cause
         } else if (!this.updateAwaitingTeleport()) {
             Entity entity = this.player.getRootVehicle();
+            // Paper start - Don't allow vehicle movement from players while teleporting
+            if (this.awaitingPositionFromClient != null || this.player.isImmobile() || entity.isRemoved()) {
+                return;
+            }
+            // Paper end - Don't allow vehicle movement from players while teleporting
 
             if (entity != this.player && entity.getControllingPassenger() == this.player && entity == this.lastVehicle) {
                 ServerLevel worldserver = this.player.serverLevel();
