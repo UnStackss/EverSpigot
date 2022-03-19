@@ -237,6 +237,7 @@ public class WorldGenRegion implements WorldGenLevel {
         if (iblockdata.isAir()) {
             return false;
         } else {
+            if (drop) LOGGER.warn("Potential async entity add during worldgen", new Throwable()); // Paper - Fix async entity add due to fungus trees; log when this happens
             if (false) { // CraftBukkit - SPIGOT-6833: Do not drop during world generation
                 BlockEntity tileentity = iblockdata.hasBlockEntity() ? this.getBlockEntity(pos) : null;
 
