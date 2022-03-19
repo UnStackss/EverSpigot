@@ -284,6 +284,7 @@ public class WorldGenRegion implements WorldGenLevel {
         }
     }
 
+    private boolean hasSetFarWarned = false; // Paper - Buffer OOB setBlock calls
     @Override
     public boolean ensureCanWrite(BlockPos pos) {
         int i = SectionPos.blockToSectionCoord(pos.getX());
@@ -303,7 +304,15 @@ public class WorldGenRegion implements WorldGenLevel {
 
             return true;
         } else {
+            // Paper start - Buffer OOB setBlock calls
+            if (!hasSetFarWarned) {
             Util.logAndPauseIfInIde("Detected setBlock in a far chunk [" + i + ", " + j + "], pos: " + String.valueOf(pos) + ", status: " + String.valueOf(this.generatingStep.targetStatus()) + (this.currentlyGenerating == null ? "" : ", currently generating: " + (String) this.currentlyGenerating.get()));
+                hasSetFarWarned = true;
+                if (this.getServer() != null && this.getServer().isDebugging()) {
+                    io.papermc.paper.util.TraceUtil.dumpTraceForThread("far setBlock call");
+                }
+            }
+            // Paper end - Buffer OOB setBlock calls
             return false;
         }
     }
