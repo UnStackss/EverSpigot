@@ -37,7 +37,7 @@ public class WaterlilyBlock extends BushBlock {
         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (world instanceof ServerLevel && entity instanceof Boat) {
             // CraftBukkit start
-            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, Blocks.AIR.defaultBlockState())) {
+            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
                 return;
             }
             // CraftBukkit end

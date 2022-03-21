@@ -108,7 +108,7 @@ public class HarvestFarmland extends Behavior<Villager> {
                 Block block1 = world.getBlockState(this.aboveFarmlandPos.below()).getBlock();
 
                 if (block instanceof CropBlock && ((CropBlock) block).isMaxAge(iblockdata)) {
-                    if (CraftEventFactory.callEntityChangeBlockEvent(entity, this.aboveFarmlandPos, Blocks.AIR.defaultBlockState())) { // CraftBukkit
+                    if (CraftEventFactory.callEntityChangeBlockEvent(entity, this.aboveFarmlandPos, iblockdata.getFluidState().createLegacyBlock())) { // CraftBukkit // Paper - fix wrong block state
                     world.destroyBlock(this.aboveFarmlandPos, true, entity);
                     } // CraftBukkit
                 }

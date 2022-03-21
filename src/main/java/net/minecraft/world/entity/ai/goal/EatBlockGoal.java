@@ -67,8 +67,9 @@ public class EatBlockGoal extends Goal {
         if (this.eatAnimationTick == this.adjustedTickDelay(4)) {
             BlockPos blockposition = this.mob.blockPosition();
 
-            if (EatBlockGoal.IS_TALL_GRASS.test(this.level.getBlockState(blockposition))) {
-                if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition, Blocks.AIR.defaultBlockState(), !this.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit
+            final BlockState blockState = this.level.getBlockState(blockposition); // Paper - fix wrong block state
+            if (EatBlockGoal.IS_TALL_GRASS.test(blockState)) { // Paper - fix wrong block state
+                if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition, blockState.getFluidState().createLegacyBlock(), !this.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit // Paper - fix wrong block state
                     this.level.destroyBlock(blockposition, false);
                 }
 
@@ -77,7 +78,7 @@ public class EatBlockGoal extends Goal {
                 BlockPos blockposition1 = blockposition.below();
 
                 if (this.level.getBlockState(blockposition1).is(Blocks.GRASS_BLOCK)) {
-                    if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition1, Blocks.AIR.defaultBlockState(), !this.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit
+                    if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition1, Blocks.DIRT.defaultBlockState(), !this.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit // Paper - Fix wrong block state
                         this.level.levelEvent(2001, blockposition1, Block.getId(Blocks.GRASS_BLOCK.defaultBlockState()));
                         this.level.setBlock(blockposition1, Blocks.DIRT.defaultBlockState(), 2);
                     }

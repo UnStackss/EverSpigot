@@ -162,7 +162,8 @@ public class Silverfish extends Monster {
 
                             if (block instanceof InfestedBlock) {
                                 // CraftBukkit start
-                                if (!CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, blockposition1, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
+                                BlockState afterState = world.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) ? iblockdata.getFluidState().createLegacyBlock() : ((InfestedBlock) block).hostStateByInfested(world.getBlockState(blockposition1)); // Paper - fix wrong block state
+                                if (!CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, blockposition1, afterState)) { // Paper - fix wrong block state
                                     continue;
                                 }
                                 // CraftBukkit end

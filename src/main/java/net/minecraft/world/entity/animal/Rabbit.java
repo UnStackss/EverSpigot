@@ -581,7 +581,7 @@ public class Rabbit extends Animal implements VariantHolder<Rabbit.Variant> {
 
                     if (i == 0) {
                         // CraftBukkit start
-                        if (!CraftEventFactory.callEntityChangeBlockEvent(this.rabbit, blockposition, Blocks.AIR.defaultBlockState())) {
+                        if (!CraftEventFactory.callEntityChangeBlockEvent(this.rabbit, blockposition, iblockdata.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
                             return;
                         }
                         // CraftBukkit end

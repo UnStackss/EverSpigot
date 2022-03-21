@@ -292,7 +292,7 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
 
         if (iblockdata.is(BlockTags.FIRE)) {
             // CraftBukkit start
-            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, Blocks.AIR.defaultBlockState())) {
+            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, iblockdata.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
                 this.level().destroyBlock(pos, false, this);
             }
             // CraftBukkit end

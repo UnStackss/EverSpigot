@@ -151,7 +151,7 @@ public class Ravager extends Raider {
 
                     if (block instanceof LeavesBlock) {
                         // CraftBukkit start
-                        if (!CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
+                        if (!CraftEventFactory.callEntityChangeBlockEvent(this, blockposition, iblockdata.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
                             continue;
                         }
                         // CraftBukkit end

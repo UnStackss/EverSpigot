@@ -158,7 +158,7 @@ public class TntBlock extends Block {
 
             if (projectile.isOnFire() && projectile.mayInteract(world, blockposition)) {
                 // CraftBukkit start
-                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, blockposition, Blocks.AIR.defaultBlockState()) || !CraftEventFactory.callTNTPrimeEvent(world, blockposition, PrimeCause.PROJECTILE, projectile, null)) {
+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, blockposition, state.getFluidState().createLegacyBlock()) || !CraftEventFactory.callTNTPrimeEvent(world, blockposition, PrimeCause.PROJECTILE, projectile, null)) { // Paper - fix wrong block state
                     return;
                 }
                 // CraftBukkit end

@@ -284,7 +284,7 @@ public class ChorusFlowerBlock extends Block {
 
         if (!world.isClientSide && projectile.mayInteract(world, blockposition) && projectile.mayBreak(world)) {
             // CraftBukkit
-            if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, blockposition, Blocks.AIR.defaultBlockState())) {
+            if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, blockposition, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
                 return;
             }
             // CraftBukkit end
