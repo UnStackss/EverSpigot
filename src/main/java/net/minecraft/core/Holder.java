@@ -221,7 +221,7 @@ public interface Holder<T> {
         }
 
         void bindTags(Collection<TagKey<T>> tags) {
-            this.tags = Set.copyOf(tags);
+            this.tags = java.util.Collections.unmodifiableSet(new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(tags)); // Paper
         }
 
         @Override
