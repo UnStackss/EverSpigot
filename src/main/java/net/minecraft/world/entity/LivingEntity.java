@@ -278,7 +278,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     protected float appliedScale;
     // CraftBukkit start
     public int expToDrop;
-    public ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
+    public ArrayList<DefaultDrop> drops = new ArrayList<>(); // Paper - Restore vanilla drops behavior
     public final org.bukkit.craftbukkit.attribute.CraftAttributeMap craftAttributes;
     public boolean collides = true;
     public Set<UUID> collidableExemptions = new HashSet<>();

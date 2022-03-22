@@ -2562,6 +2562,25 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     @Nullable
     public ItemEntity spawnAtLocation(ItemStack stack, float yOffset) {
+        // Paper start - Restore vanilla drops behavior
+        return this.spawnAtLocation(stack, yOffset, null);
+    }
+    public record DefaultDrop(Item item, org.bukkit.inventory.ItemStack stack, @Nullable java.util.function.Consumer<ItemStack> dropConsumer) {
+        public DefaultDrop(final ItemStack stack, final java.util.function.Consumer<ItemStack> dropConsumer) {
+            this(stack.getItem(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(stack), dropConsumer);
+        }
+
+        public void runConsumer(final org.bukkit.World fallbackWorld, final Location fallbackLoc) {
+            if (this.dropConsumer == null || org.bukkit.craftbukkit.inventory.CraftItemType.bukkitToMinecraft(this.stack.getType()) != this.item) {
+                fallbackWorld.dropItem(fallbackLoc, this.stack);
+            } else {
+                this.dropConsumer.accept(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(this.stack));
+            }
+        }
+    }
+    @Nullable
+    public ItemEntity spawnAtLocation(ItemStack stack, float yOffset, @Nullable java.util.function.Consumer<? super ItemEntity> delayedAddConsumer) {
+        // Paper end - Restore vanilla drops behavior
         if (stack.isEmpty()) {
             return null;
         } else if (this.level().isClientSide) {
@@ -2569,14 +2588,21 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         } else {
             // CraftBukkit start - Capture drops for death event
             if (this instanceof net.minecraft.world.entity.LivingEntity && !((net.minecraft.world.entity.LivingEntity) this).forceDrops) {
-                ((net.minecraft.world.entity.LivingEntity) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(stack)); // Paper - mirror so we can destroy it later
+                // Paper start - Restore vanilla drops behavior
+                ((net.minecraft.world.entity.LivingEntity) this).drops.add(new net.minecraft.world.entity.Entity.DefaultDrop(stack, itemStack -> {
+                    ItemEntity itemEntity = new ItemEntity(this.level, this.getX(), this.getY() + (double) yOffset, this.getZ(), itemStack); // stack is copied before consumer
+                    itemEntity.setDefaultPickUpDelay();
+                    this.level.addFreshEntity(itemEntity);
+                    if (delayedAddConsumer != null) delayedAddConsumer.accept(itemEntity);
+                }));
+                // Paper end - Restore vanilla drops behavior
                 return null;
             }
             // CraftBukkit end
             ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY() + (double) yOffset, this.getZ(), stack.copy()); // Paper - copy so we can destroy original
             stack.setCount(0); // Paper - destroy this item - if this ever leaks due to game bugs, ensure it doesn't dupe
 
-            entityitem.setDefaultPickUpDelay();
+            entityitem.setDefaultPickUpDelay(); // Paper - diff on change (in dropConsumer)
             // Paper start - Call EntityDropItemEvent
             return this.spawnAtLocation(entityitem);
         }
