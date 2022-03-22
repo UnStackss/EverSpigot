@@ -916,6 +916,11 @@ public final class CraftServer implements Server {
         return new ArrayList<World>(this.worlds.values());
     }
 
+    @Override
+    public boolean isTickingWorlds() {
+        return console.isIteratingOverLevels;
+    }
+
     public DedicatedPlayerList getHandle() {
         return this.playerList;
     }
@@ -1178,6 +1183,7 @@ public final class CraftServer implements Server {
     @Override
     public World createWorld(WorldCreator creator) {
         Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
+        //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot create a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
         Preconditions.checkArgument(creator != null, "WorldCreator cannot be null");
 
         String name = creator.name();
@@ -1354,6 +1360,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean unloadWorld(World world, boolean save) {
+        //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot unload a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
         if (world == null) {
             return false;
         }

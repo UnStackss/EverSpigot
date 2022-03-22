@@ -318,6 +318,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     // Spigot end
     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
     public static long currentTickLong = 0L; // Paper - track current tick as a long
+    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 
     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
         AtomicReference<S> atomicreference = new AtomicReference();
@@ -1582,7 +1583,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         this.getFunctions().tick();
         MinecraftTimings.commandFunctionsTimer.stopTiming(); // Spigot // Paper
         this.profiler.popPush("levels");
-        Iterator iterator = this.getAllLevels().iterator();
+        //Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; moved down
 
         // CraftBukkit start
         // Run tasks that are waiting on processing
@@ -1614,6 +1615,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         // Paper end - Perf: Optimize time updates
         MinecraftTimings.timeUpdateTimer.stopTiming(); // Spigot // Paper
 
+        this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
+        Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; move down
         while (iterator.hasNext()) {
             ServerLevel worldserver = (ServerLevel) iterator.next();
             worldserver.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
@@ -1649,6 +1652,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.profiler.pop();
             worldserver.explosionDensityCache.clear(); // Paper - Optimize explosions
         }
+        this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 
         this.profiler.popPush("connection");
         MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper
