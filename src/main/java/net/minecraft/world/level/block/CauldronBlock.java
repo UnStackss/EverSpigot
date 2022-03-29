@@ -44,9 +44,19 @@ public class CauldronBlock extends AbstractCauldronBlock {
     public void handlePrecipitation(BlockState state, Level world, BlockPos pos, Biome.Precipitation precipitation) {
         if (CauldronBlock.shouldHandlePrecipitation(world, precipitation)) {
             if (precipitation == Biome.Precipitation.RAIN) {
+                // Paper start - Call CauldronLevelChangeEvent
+                if (!LayeredCauldronBlock.changeLevel(state, world, pos, Blocks.WATER_CAULDRON.defaultBlockState(), null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL, false)) { // avoid duplicate game event
+                    return;
+                }
+                // Paper end - Call CauldronLevelChangeEvent
                 world.setBlockAndUpdate(pos, Blocks.WATER_CAULDRON.defaultBlockState());
                 world.gameEvent((Entity) null, (Holder) GameEvent.BLOCK_CHANGE, pos);
             } else if (precipitation == Biome.Precipitation.SNOW) {
+                // Paper start - Call CauldronLevelChangeEvent
+                if (!LayeredCauldronBlock.changeLevel(state, world, pos, Blocks.POWDER_SNOW_CAULDRON.defaultBlockState(), null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL, false)) { // avoid duplicate game event
+                    return;
+                }
+                // Paper end - Call CauldronLevelChangeEvent
                 world.setBlockAndUpdate(pos, Blocks.POWDER_SNOW_CAULDRON.defaultBlockState());
                 world.gameEvent((Entity) null, (Holder) GameEvent.BLOCK_CHANGE, pos);
             }
@@ -65,11 +75,19 @@ public class CauldronBlock extends AbstractCauldronBlock {
 
         if (fluid == Fluids.WATER) {
             iblockdata1 = Blocks.WATER_CAULDRON.defaultBlockState();
-            LayeredCauldronBlock.changeLevel(state, world, pos, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
+            // Paper start - Call CauldronLevelChangeEvent; don't send level event or game event if cancelled
+            if (!LayeredCauldronBlock.changeLevel(state, world, pos, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // CraftBukkit
+                return;
+            }
+            // Paper end - Call CauldronLevelChangeEvent
             world.levelEvent(1047, pos, 0);
         } else if (fluid == Fluids.LAVA) {
             iblockdata1 = Blocks.LAVA_CAULDRON.defaultBlockState();
-            LayeredCauldronBlock.changeLevel(state, world, pos, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
+            // Paper start - Call CauldronLevelChangeEvent; don't send level event or game event if cancelled
+            if (!LayeredCauldronBlock.changeLevel(state, world, pos, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // CraftBukkit
+                return;
+            }
+            // Paper end - Call CauldronLevelChangeEvent
             world.levelEvent(1046, pos, 0);
         }
 

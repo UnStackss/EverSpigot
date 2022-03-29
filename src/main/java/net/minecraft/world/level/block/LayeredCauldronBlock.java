@@ -102,7 +102,13 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
     }
 
     // CraftBukkit start
-    public static boolean changeLevel(BlockState iblockdata, Level world, BlockPos blockposition, BlockState newBlock, Entity entity, CauldronLevelChangeEvent.ChangeReason reason) {
+    // Paper start - Call CauldronLevelChangeEvent
+    public static boolean changeLevel(BlockState iblockdata, Level world, BlockPos blockposition, BlockState newBlock, @javax.annotation.Nullable Entity entity, CauldronLevelChangeEvent.ChangeReason reason) { // Paper - entity is nullable
+        return changeLevel(iblockdata, world, blockposition, newBlock, entity, reason, true);
+    }
+
+    public static boolean changeLevel(BlockState iblockdata, Level world, BlockPos blockposition, BlockState newBlock, @javax.annotation.Nullable Entity entity, CauldronLevelChangeEvent.ChangeReason reason, boolean sendGameEvent) { // Paper - entity is nullable
+    // Paper end - Call CauldronLevelChangeEvent
         CraftBlockState newState = CraftBlockStates.getBlockState(world, blockposition);
         newState.setData(newBlock);
 
@@ -115,7 +121,7 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
             return false;
         }
         newState.update(true);
-        world.gameEvent((Holder) GameEvent.BLOCK_CHANGE, blockposition, GameEvent.Context.of(newBlock));
+        if (sendGameEvent) world.gameEvent((Holder) GameEvent.BLOCK_CHANGE, blockposition, GameEvent.Context.of(newBlock)); // Paper - Call CauldronLevelChangeEvent
         return true;
     }
     // CraftBukkit end

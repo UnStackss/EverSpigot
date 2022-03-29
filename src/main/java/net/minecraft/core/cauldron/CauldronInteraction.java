@@ -81,7 +81,7 @@ public interface CauldronInteraction {
             if (potioncontents != null && potioncontents.is(Potions.WATER)) {
                 if (!world.isClientSide) {
                     // CraftBukkit start
-                    if (!LayeredCauldronBlock.changeLevel(iblockdata, world, blockposition, Blocks.WATER_CAULDRON.defaultBlockState(), entityhuman, CauldronLevelChangeEvent.ChangeReason.BOTTLE_EMPTY)) {
+                    if (!LayeredCauldronBlock.changeLevel(iblockdata, world, blockposition, Blocks.WATER_CAULDRON.defaultBlockState(), entityhuman, CauldronLevelChangeEvent.ChangeReason.BOTTLE_EMPTY, false)) { // Paper - Call CauldronLevelChangeEvent
                         return ItemInteractionResult.SUCCESS;
                     }
                     // CraftBukkit end
@@ -136,7 +136,7 @@ public interface CauldronInteraction {
                 if (potioncontents != null && potioncontents.is(Potions.WATER)) {
                     if (!world.isClientSide) {
                         // CraftBukkit start
-                        if (!LayeredCauldronBlock.changeLevel(iblockdata, world, blockposition, iblockdata.cycle(LayeredCauldronBlock.LEVEL), entityhuman, CauldronLevelChangeEvent.ChangeReason.BOTTLE_EMPTY)) {
+                        if (!LayeredCauldronBlock.changeLevel(iblockdata, world, blockposition, iblockdata.cycle(LayeredCauldronBlock.LEVEL), entityhuman, CauldronLevelChangeEvent.ChangeReason.BOTTLE_EMPTY, false)) { // Paper - Call CauldronLevelChangeEvent
                             return ItemInteractionResult.SUCCESS;
                         }
                         // CraftBukkit end
@@ -222,7 +222,7 @@ public interface CauldronInteraction {
         } else {
             if (!world.isClientSide) {
                 // CraftBukkit start
-                if (!LayeredCauldronBlock.changeLevel(state, world, pos, Blocks.CAULDRON.defaultBlockState(), player, CauldronLevelChangeEvent.ChangeReason.BUCKET_FILL)) {
+                if (!LayeredCauldronBlock.changeLevel(state, world, pos, Blocks.CAULDRON.defaultBlockState(), player, CauldronLevelChangeEvent.ChangeReason.BUCKET_FILL, false)) { // Paper - Call CauldronLevelChangeEvent
                     return ItemInteractionResult.SUCCESS;
                 }
                 // CraftBukkit end
@@ -243,7 +243,7 @@ public interface CauldronInteraction {
     static ItemInteractionResult emptyBucket(Level world, BlockPos pos, Player player, InteractionHand hand, ItemStack stack, BlockState state, SoundEvent soundEvent) {
         if (!world.isClientSide) {
             // CraftBukkit start
-            if (!LayeredCauldronBlock.changeLevel(state, world, pos, state, player, CauldronLevelChangeEvent.ChangeReason.BUCKET_EMPTY)) {
+            if (!LayeredCauldronBlock.changeLevel(state, world, pos, state, player, CauldronLevelChangeEvent.ChangeReason.BUCKET_EMPTY, false)) { // Paper - Call CauldronLevelChangeEvent
                 return ItemInteractionResult.SUCCESS;
             }
             // CraftBukkit end
