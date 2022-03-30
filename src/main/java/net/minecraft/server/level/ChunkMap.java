@@ -1533,7 +1533,11 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                 // CraftBukkit end
                 if (flag) {
                     if (this.seenBy.add(player.connection)) {
+                        // Paper start - entity tracking events
+                        if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
                         this.serverEntity.addPairing(player);
+                        }
+                        // Paper end - entity tracking events
                     }
                 } else if (this.seenBy.remove(player.connection)) {
                     this.serverEntity.removePairing(player);

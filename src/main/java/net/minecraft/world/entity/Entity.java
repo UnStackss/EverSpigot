@@ -3868,7 +3868,14 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     public void startSeenByPlayer(ServerPlayer player) {}
 
-    public void stopSeenByPlayer(ServerPlayer player) {}
+    // Paper start - entity tracking events
+    public void stopSeenByPlayer(ServerPlayer player) {
+        // Since this event cannot be cancelled, we should call it here to catch all "un-tracks"
+        if (io.papermc.paper.event.player.PlayerUntrackEntityEvent.getHandlerList().getRegisteredListeners().length > 0) {
+            new io.papermc.paper.event.player.PlayerUntrackEntityEvent(player.getBukkitEntity(), this.getBukkitEntity()).callEvent();
+        }
+    }
+    // Paper end - entity tracking events
 
     public float rotate(Rotation rotation) {
         float f = Mth.wrapDegrees(this.getYRot());
