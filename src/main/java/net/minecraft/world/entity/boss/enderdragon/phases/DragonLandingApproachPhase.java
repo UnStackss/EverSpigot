@@ -53,7 +53,7 @@ public class DragonLandingApproachPhase extends AbstractDragonPhaseInstance {
             int i = this.dragon.findClosestNode();
             BlockPos blockPos = this.dragon
                 .level()
-                .getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.dragon.getFightOrigin()));
+                .getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, this.dragon.getPodium()); // Paper - Allow changing the EnderDragon podium
             Player player = this.dragon
                 .level()
                 .getNearestPlayer(NEAR_EGG_TARGETING, this.dragon, (double)blockPos.getX(), (double)blockPos.getY(), (double)blockPos.getZ());

@@ -25,7 +25,7 @@ public class DragonTakeoffPhase extends AbstractDragonPhaseInstance {
         if (!this.firstTick && this.currentPath != null) {
             BlockPos blockPos = this.dragon
                 .level()
-                .getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.dragon.getFightOrigin()));
+                .getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, this.dragon.getPodium()); // Paper - Allow changing the EnderDragon podium
             if (!blockPos.closerToCenterThan(this.dragon.position(), 10.0)) {
                 this.dragon.getPhaseManager().setPhase(EnderDragonPhase.HOLDING_PATTERN);
             }

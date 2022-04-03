@@ -43,7 +43,7 @@ public class DragonDeathPhase extends AbstractDragonPhaseInstance {
         if (this.targetLocation == null) {
             BlockPos blockPos = this.dragon
                 .level()
-                .getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.dragon.getFightOrigin()));
+                .getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, this.dragon.getPodium()); // Paper - Allow changing the EnderDragon podium
             this.targetLocation = Vec3.atBottomCenterOf(blockPos);
         }
 
