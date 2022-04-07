@@ -123,6 +123,29 @@ public class ServerConnectionListener {
                     Connection object = j > 0 ? new RateKickingConnection(j) : new Connection(PacketFlow.SERVERBOUND); // CraftBukkit - decompile error
 
                     //ServerConnectionListener.this.connections.add(object); // Paper
+                    // Paper start - Add support for Proxy Protocol
+                    if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
+                        channel.pipeline().addAfter("timeout", "haproxy-decoder", new io.netty.handler.codec.haproxy.HAProxyMessageDecoder());
+                        channel.pipeline().addAfter("haproxy-decoder", "haproxy-handler", new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                if (msg instanceof io.netty.handler.codec.haproxy.HAProxyMessage message) {
+                                    if (message.command() == io.netty.handler.codec.haproxy.HAProxyCommand.PROXY) {
+                                        String realaddress = message.sourceAddress();
+                                        int realport = message.sourcePort();
+
+                                        SocketAddress socketaddr = new java.net.InetSocketAddress(realaddress, realport);
+
+                                        Connection connection = (Connection) channel.pipeline().get("packet_handler");
+                                        connection.address = socketaddr;
+                                    }
+                                } else {
+                                    super.channelRead(ctx, msg);
+                                }
+                            }
+                        });
+                    }
+                    // Paper end - Add support for proxy protocol
                     pending.add(object); // Paper - prevent blocking on adding a new connection while the server is ticking
                     ((Connection) object).configurePacketHandler(channelpipeline);
                     ((Connection) object).setListenerForServerboundHandshake(new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, (Connection) object));
