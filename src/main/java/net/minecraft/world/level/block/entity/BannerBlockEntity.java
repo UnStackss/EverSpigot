@@ -29,7 +29,7 @@ public class BannerBlockEntity extends BlockEntity implements Nameable {
     public static final int MAX_PATTERNS = 6;
     private static final String TAG_PATTERNS = "patterns";
     @Nullable
-    private Component name;
+    public Component name; // Paper - public
     public DyeColor baseColor;
     private BannerPatternLayers patterns;
 
