@@ -650,10 +650,11 @@ public final class ItemStack implements DataComponentHolder {
         if (this.isDamageableItem()) {
             if (player == null || !player.hasInfiniteMaterials()) {
                 if (amount > 0) {
+                    int originalDamage = amount; // Paper - Expand PlayerItemDamageEvent
                     amount = EnchantmentHelper.processDurabilityChange(world, this, amount);
                     // CraftBukkit start
                     if (player instanceof ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent
-                        PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), amount); // Paper - Add EntityDamageItemEvent
+                        PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), amount, originalDamage); // Paper - Add EntityDamageItemEvent & Expand PlayerItemDamageEvent
                         event.getPlayer().getServer().getPluginManager().callEvent(event);
 
                         if (amount != event.getDamage() || event.isCancelled()) {
