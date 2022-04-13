@@ -3200,7 +3200,12 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                 BlockPos blockposition = BlockEntity.getPosFromTag(customdata.getUnsafe());
 
                 if (this.player.level().isLoaded(blockposition)) {
-                    BlockEntity tileentity = this.player.level().getBlockEntity(blockposition);
+                    // Paper start - Prevent tile entity copies loading chunks
+                    BlockEntity tileentity = null;
+                    if (this.player.distanceToSqr(blockposition.getX(), blockposition.getY(), blockposition.getZ()) < 32 * 32 && this.player.serverLevel().isLoadedAndInBounds(blockposition)) {
+                        tileentity = this.player.level().getBlockEntity(blockposition);
+                    }
+                    // Paper end - Prevent tile entity copies loading chunks
 
                     if (tileentity != null) {
                         tileentity.saveToItem(itemstack, this.player.level().registryAccess());
