@@ -302,7 +302,7 @@ public abstract class AbstractContainerMenu {
             while (iterator.hasNext()) {
                 ContainerListener icrafting = (ContainerListener) iterator.next();
 
-                icrafting.slotChanged(this, slot, itemstack2);
+                icrafting.slotChanged(this, slot, itemstack1, itemstack2); // Paper - Add PlayerInventorySlotChangeEvent
             }
         }
 

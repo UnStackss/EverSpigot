@@ -352,6 +352,25 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
                 }
             }
+            // Paper start - Add PlayerInventorySlotChangeEvent
+            @Override
+            public void slotChanged(AbstractContainerMenu handler, int slotId, ItemStack oldStack, ItemStack stack) {
+                Slot slot = handler.getSlot(slotId);
+                if (!(slot instanceof ResultSlot)) {
+                    if (slot.container == ServerPlayer.this.getInventory()) {
+                        if (io.papermc.paper.event.player.PlayerInventorySlotChangeEvent.getHandlerList().getRegisteredListeners().length == 0) {
+                            CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
+                            return;
+                        }
+                        io.papermc.paper.event.player.PlayerInventorySlotChangeEvent event = new io.papermc.paper.event.player.PlayerInventorySlotChangeEvent(ServerPlayer.this.getBukkitEntity(), slotId, CraftItemStack.asBukkitCopy(oldStack), CraftItemStack.asBukkitCopy(stack));
+                        event.callEvent();
+                        if (event.shouldTriggerAdvancements()) {
+                            CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
+                        }
+                    }
+                }
+            }
+            // Paper end - Add PlayerInventorySlotChangeEvent
 
             @Override
             public void dataChanged(AbstractContainerMenu handler, int property, int value) {}
