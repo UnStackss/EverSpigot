@@ -3251,6 +3251,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     @Override
     public void handleClientInformation(ServerboundClientInformationPacket packet) {
         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
+        // Paper start - do not accept invalid information
+        if (packet.information().viewDistance() < 0) {
+            LOGGER.warn("Disconnecting " + this.player.getScoreboardName() + " for invalid view distance: " + packet.information().viewDistance());
+            this.disconnect(Component.literal("Invalid client settings"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION);
+            return;
+        }
+        // Paper end - do not accept invalid information
         this.player.updateOptions(packet.information());
         this.connection.channel.attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).set(net.kyori.adventure.translation.Translator.parseLocale(packet.information().language())); // Paper
     }
