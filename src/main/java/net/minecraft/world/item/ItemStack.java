@@ -647,8 +647,13 @@ public final class ItemStack implements DataComponentHolder {
     }
 
     public void hurtAndBreak(int amount, ServerLevel world, @Nullable LivingEntity player, Consumer<Item> breakCallback) { // Paper - Add EntityDamageItemEvent
+        // Paper start - add param to skip infinite mats check
+        this.hurtAndBreak(amount, world, player, breakCallback, false);
+    }
+    public void hurtAndBreak(int amount, ServerLevel world, @Nullable LivingEntity player, Consumer<Item> breakCallback, boolean force) {
+        // Paper end - add param to skip infinite mats check
         if (this.isDamageableItem()) {
-            if (player == null || !player.hasInfiniteMaterials()) {
+            if (player == null || !player.hasInfiniteMaterials() || force) { // Paper
                 if (amount > 0) {
                     int originalDamage = amount; // Paper - Expand PlayerItemDamageEvent
                     amount = EnchantmentHelper.processDurabilityChange(world, this, amount);
@@ -699,6 +704,11 @@ public final class ItemStack implements DataComponentHolder {
     }
 
     public void hurtAndBreak(int amount, LivingEntity entity, EquipmentSlot slot) {
+        // Paper start - add param to skip infinite mats check
+        this.hurtAndBreak(amount, entity, slot, false);
+    }
+    public void hurtAndBreak(int amount, LivingEntity entity, EquipmentSlot slot, boolean force) {
+        // Paper end - add param to skip infinite mats check
         Level world = entity.level();
 
         if (world instanceof ServerLevel worldserver) {
@@ -716,8 +726,8 @@ public final class ItemStack implements DataComponentHolder {
                     org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent((net.minecraft.world.entity.player.Player) entity, this);
                 }
                 // CraftBukkit end
-                entity.onEquippedItemBroken(item, slot);
-            });
+                if (slot != null) entity.onEquippedItemBroken(item, slot); // Paper - itemstack damage API - do not process entity related callbacks when damaging from API
+            }, force); // Paper
         }
 
     }
