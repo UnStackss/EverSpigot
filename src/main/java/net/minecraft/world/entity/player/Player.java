@@ -196,6 +196,7 @@ public abstract class Player extends LivingEntity {
     private boolean ignoreFallDamageFromCurrentImpulse;
     private int currentImpulseContextResetGraceTime;
     public boolean affectsSpawning = true; // Paper - Affects Spawning API
+    public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
 
     // CraftBukkit start
     public boolean fauxSleeping;
@@ -1693,7 +1694,7 @@ public abstract class Player extends LivingEntity {
 
     @Override
     public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
-        if (this.abilities.mayfly) {
+        if (this.abilities.mayfly && !this.flyingFallDamage.toBooleanOrElse(false)) { // Paper - flying fall damage
             return false;
         } else {
             if (fallDistance >= 2.0F) {
