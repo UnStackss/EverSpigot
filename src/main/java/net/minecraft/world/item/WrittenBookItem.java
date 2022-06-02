@@ -54,7 +54,7 @@ public class WrittenBookItem extends Item {
 
     public static boolean resolveBookComponents(ItemStack book, CommandSourceStack commandSource, @Nullable Player player) {
         WrittenBookContent writtenBookContent = book.get(DataComponents.WRITTEN_BOOK_CONTENT);
-        if (writtenBookContent != null && !writtenBookContent.resolved()) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().itemValidation.resolveSelectorsInBooks && writtenBookContent != null && !writtenBookContent.resolved()) { // Paper - Disable component selector resolving in books by default
             WrittenBookContent writtenBookContent2 = writtenBookContent.resolve(commandSource, player);
             if (writtenBookContent2 != null) {
                 book.set(DataComponents.WRITTEN_BOOK_CONTENT, writtenBookContent2);
