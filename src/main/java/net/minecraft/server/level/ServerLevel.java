@@ -228,6 +228,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
     public final UUID uuid;
     public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
     public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
+    private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
 
     public LevelChunk getChunkIfLoaded(int x, int z) {
         return this.chunkSource.getChunkAtIfLoadedImmediately(x, z); // Paper - Use getChunkIfLoadedImmediately
@@ -2424,6 +2425,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
         });
         return crashreportsystemdetails;
     }
+
+    // Paper start - optimize redstone (Alternate Current)
+    @Override
+    public alternate.current.wire.WireHandler getWireHandler() {
+        return wireHandler;
+    }
+    // Paper end - optimize redstone (Alternate Current)
 
     private final class EntityCallbacks implements LevelCallback<Entity> {
 
