@@ -200,6 +200,10 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
         org.spigotmc.SpigotConfig.registerCommands();
         // Spigot end
+        // Paper start - initialize global and world-defaults configuration
+        this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
+        this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+        // Paper end - initialize global and world-defaults configuration
 
         this.setPvpAllowed(dedicatedserverproperties.pvp);
         this.setFlightAllowed(dedicatedserverproperties.allowFlight);

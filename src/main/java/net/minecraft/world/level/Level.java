@@ -156,6 +156,12 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
     public boolean populating;
     public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
+    // Paper start - add paper world config
+    private final io.papermc.paper.configuration.WorldConfiguration paperConfig;
+    public io.papermc.paper.configuration.WorldConfiguration paperConfig() {
+        return this.paperConfig;
+    }
+    // Paper end - add paper world config
 
     public final SpigotTimings.WorldTimingsHandler timings; // Spigot
     public static BlockPos lastPhysicsProblem; // Spigot
@@ -173,8 +179,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
 
     public abstract ResourceKey<LevelStem> getTypeKey();
 
-    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env) {
+    protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator) { // Paper - create paper world config
         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
         this.generator = gen;
         this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
 

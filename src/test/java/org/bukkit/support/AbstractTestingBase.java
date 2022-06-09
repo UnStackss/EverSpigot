@@ -68,6 +68,7 @@ public abstract class AbstractTestingBase {
         BIOMES = REGISTRY_CUSTOM.registryOrThrow(Registries.BIOME);
 
         DummyServer.setup();
+        io.papermc.paper.configuration.GlobalConfigTestingBase.setupGlobalConfigForTest(); // Paper
 
         CraftRegistry.setMinecraftRegistry(REGISTRY_CUSTOM);
 

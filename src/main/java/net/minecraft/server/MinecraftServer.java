@@ -309,6 +309,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     private static final int SAMPLE_INTERVAL = 100;
     public final double[] recentTps = new double[ 3 ];
     // Spigot end
+    public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations; // Paper - add paper configuration files
 
     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
         AtomicReference<S> atomicreference = new AtomicReference();
@@ -405,6 +406,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         }
         Runtime.getRuntime().addShutdownHook(new org.bukkit.craftbukkit.util.ServerShutdownThread(this));
         // CraftBukkit end
+        this.paperConfigurations = services.paperConfigurations(); // Paper - add paper configuration files
     }
 
     private void readScoreboard(DimensionDataStorage persistentStateManager) {
