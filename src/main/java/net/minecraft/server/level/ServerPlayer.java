@@ -1387,6 +1387,12 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
         ResourceKey<Level> maindimensionkey = CraftDimensionUtil.getMainDimensionKey(origin);
         ResourceKey<Level> maindimensionkey1 = CraftDimensionUtil.getMainDimensionKey(this.level());
 
+        // Paper start - Add option for strict advancement dimension checks
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.strictAdvancementDimensionCheck) {
+            maindimensionkey = resourcekey;
+            maindimensionkey1 = resourcekey1;
+        }
+        // Paper end - Add option for strict advancement dimension checks
         CriteriaTriggers.CHANGED_DIMENSION.trigger(this, maindimensionkey, maindimensionkey1);
         if (maindimensionkey != resourcekey || maindimensionkey1 != resourcekey1) {
             CriteriaTriggers.CHANGED_DIMENSION.trigger(this, resourcekey, resourcekey1);
