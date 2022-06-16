@@ -1235,6 +1235,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
             // WorldServer.LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityTypes.getKey(entity.getType())); // CraftBukkit
             return false;
         } else {
+            if (entity instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
             // Paper start - capture all item additions to the world
             if (captureDrops != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) {
                 captureDrops.add((net.minecraft.world.entity.item.ItemEntity) entity);
