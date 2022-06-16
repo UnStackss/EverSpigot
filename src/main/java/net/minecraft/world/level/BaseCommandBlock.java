@@ -178,6 +178,7 @@ public abstract class BaseCommandBlock implements CommandSource {
     @Override
     public void sendSystemMessage(Component message) {
         if (this.trackOutput) {
+            org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
             SimpleDateFormat simpledateformat = BaseCommandBlock.TIME_FORMAT;
             Date date = new Date();
 
