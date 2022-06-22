@@ -171,7 +171,7 @@ public class FireBlock extends BaseFireBlock {
 
     @Override
     protected void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-        world.scheduleTick(pos, (Block) this, FireBlock.getFireTickDelay(world.random));
+        world.scheduleTick(pos, (Block) this, FireBlock.getFireTickDelay(world)); // Paper - Add fire-tick-delay option
         if (world.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
             if (!state.canSurvive(world, pos)) {
                 this.fireExtinguished(world, pos); // CraftBukkit - invalid place location
@@ -372,11 +372,11 @@ public class FireBlock extends BaseFireBlock {
     protected void onPlace(BlockState iblockdata, Level world, BlockPos blockposition, BlockState iblockdata1, boolean flag, UseOnContext context) {
         super.onPlace(iblockdata, world, blockposition, iblockdata1, flag, context);
         // CraftBukkit end
-        world.scheduleTick(blockposition, (Block) this, FireBlock.getFireTickDelay(world.random));
+        world.scheduleTick(blockposition, (Block) this, FireBlock.getFireTickDelay(world)); // Paper - Add fire-tick-delay option
     }
 
-    private static int getFireTickDelay(RandomSource random) {
-        return 30 + random.nextInt(10);
+    private static int getFireTickDelay(Level world) { // Paper - Add fire-tick-delay option
+        return world.paperConfig().environment.fireTickDelay + world.random.nextInt(10); // Paper - Add fire-tick-delay option
     }
 
     @Override
