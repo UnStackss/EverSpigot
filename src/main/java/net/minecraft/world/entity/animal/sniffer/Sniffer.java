@@ -345,11 +345,16 @@ public class Sniffer extends Animal {
 
     @Override
     public void spawnChildFromBreeding(ServerLevel world, Animal other) {
+        // Paper start - Add EntityFertilizeEggEvent event
+        final io.papermc.paper.event.entity.EntityFertilizeEggEvent result = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityFertilizeEggEvent(this, other);
+        if (result.isCancelled()) return;
+        // Paper end - Add EntityFertilizeEggEvent event
+
         ItemStack itemstack = new ItemStack(Items.SNIFFER_EGG);
         ItemEntity entityitem = new ItemEntity(world, this.position().x(), this.position().y(), this.position().z(), itemstack);
 
         entityitem.setDefaultPickUpDelay();
-        this.finalizeSpawnChildFromBreeding(world, other, (AgeableMob) null);
+        this.finalizeSpawnChildFromBreeding(world, other, (AgeableMob) null, result.getExperience()); // Paper - Add EntityFertilizeEggEvent event
         if (this.spawnAtLocation(entityitem) != null) { // Paper - Call EntityDropItemEvent
         this.playSound(SoundEvents.SNIFFER_EGG_PLOP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 0.5F);
         } // Paper - Call EntityDropItemEvent

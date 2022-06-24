@@ -441,6 +441,10 @@ public class Turtle extends Animal {
             if (entityplayer == null && this.partner.getLoveCause() != null) {
                 entityplayer = this.partner.getLoveCause();
             }
+            // Paper start - Add EntityFertilizeEggEvent event
+            io.papermc.paper.event.entity.EntityFertilizeEggEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityFertilizeEggEvent(this.animal, this.partner);
+            if (event.isCancelled()) return;
+            // Paper end - Add EntityFertilizeEggEvent event
 
             if (entityplayer != null) {
                 entityplayer.awardStat(Stats.ANIMALS_BRED);
@@ -455,7 +459,7 @@ public class Turtle extends Animal {
             RandomSource randomsource = this.animal.getRandom();
 
             if (this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
-                this.level.addFreshEntity(new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), randomsource.nextInt(7) + 1, org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, entityplayer)); // Paper;
+                if (event.getExperience() > 0) this.level.addFreshEntity(new ExperienceOrb(this.level, this.animal.getX(), this.animal.getY(), this.animal.getZ(), event.getExperience(), org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, entityplayer)); // Paper - Add EntityFertilizeEggEvent event
             }
 
         }
