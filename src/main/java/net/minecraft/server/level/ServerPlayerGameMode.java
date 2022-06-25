@@ -63,6 +63,8 @@ public class ServerPlayerGameMode {
     private BlockPos delayedDestroyPos;
     private int delayedTickStart;
     private int lastSentState;
+    public boolean captureSentBlockEntities = false; // Paper - Send block entities after destroy prediction
+    public boolean capturedBlockEntity = false; // Paper - Send block entities after destroy prediction
 
     public ServerPlayerGameMode(ServerPlayer player) {
         this.gameModeForPlayer = GameType.DEFAULT_MODE;
@@ -193,10 +195,7 @@ public class ServerPlayerGameMode {
                     this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                     this.debugLogging(pos, false, sequence, "may not interact");
                     // Update any tile entity data for this block
-                    BlockEntity tileentity = this.level.getBlockEntity(pos);
-                    if (tileentity != null) {
-                        this.player.connection.send(tileentity.getUpdatePacket());
-                    }
+                    capturedBlockEntity = true; // Paper - Send block entities after destroy prediction
                     // CraftBukkit end
                     return;
                 }
@@ -207,10 +206,7 @@ public class ServerPlayerGameMode {
                     // Let the client know the block still exists
                     this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
                     // Update any tile entity data for this block
-                    BlockEntity tileentity = this.level.getBlockEntity(pos);
-                    if (tileentity != null) {
-                        this.player.connection.send(tileentity.getUpdatePacket());
-                    }
+                    capturedBlockEntity = true; // Paper - Send block entities after destroy prediction
                     return;
                 }
                 // CraftBukkit end
@@ -395,10 +391,12 @@ public class ServerPlayerGameMode {
                 }
 
                 // Update any tile entity data for this block
+                if (!captureSentBlockEntities) { // Paper - Send block entities after destroy prediction
                 BlockEntity tileentity = this.level.getBlockEntity(pos);
                 if (tileentity != null) {
                     this.player.connection.send(tileentity.getUpdatePacket());
                 }
+                } else {capturedBlockEntity = true;} // Paper - Send block entities after destroy prediction
                 return false;
             }
         }
