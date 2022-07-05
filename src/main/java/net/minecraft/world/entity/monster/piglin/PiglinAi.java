@@ -242,11 +242,16 @@ public class PiglinAi {
         ItemStack itemstack;
 
         // CraftBukkit start
-        if (drop.getItem().is(Items.GOLD_NUGGET) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(piglin, drop, 0, false).isCancelled()) {
+        // Paper start - EntityPickupItemEvent fixes; fix event firing twice
+        if (drop.getItem().is(Items.GOLD_NUGGET) /* && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(piglin, drop, 0, false).isCancelled() */) {
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(piglin, drop, 0, false).isCancelled()) return;
+            piglin.onItemPickup(drop); // Paper - moved from Piglin#pickUpItem - call prior to item entity modification
+            // Paper end - EntityPickupItemEvent fixes
             piglin.take(drop, drop.getItem().getCount());
             itemstack = drop.getItem();
             drop.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
         } else if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(piglin, drop, drop.getItem().getCount() - 1, false).isCancelled()) {
+            piglin.onItemPickup(drop); // Paper - EntityPickupItemEvent fixes; moved from Piglin#pickUpItem - call prior to item entity modification
             piglin.take(drop, 1);
             itemstack = PiglinAi.removeOneItemFromItemEntity(drop);
         } else {
@@ -261,7 +266,7 @@ public class PiglinAi {
         } else if (PiglinAi.isFood(itemstack) && !PiglinAi.hasEatenRecently(piglin)) {
             PiglinAi.eat(piglin);
         } else {
-            boolean flag = !piglin.equipItemIfPossible(itemstack, drop).equals(ItemStack.EMPTY); // CraftBukkit
+            boolean flag = !piglin.equipItemIfPossible(itemstack, null).equals(ItemStack.EMPTY); // CraftBukkit // Paper - pass null item entity to prevent duplicate pickup item event call - called above.
 
             if (!flag) {
                 PiglinAi.putInInventory(piglin, itemstack);

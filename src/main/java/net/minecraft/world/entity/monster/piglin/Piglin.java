@@ -412,7 +412,7 @@ public class Piglin extends AbstractPiglin implements CrossbowAttackMob, Invento
 
     @Override
     protected void pickUpItem(ItemEntity item) {
-        this.onItemPickup(item);
+        // this.onItemPickup(item); // Paper - EntityPickupItemEvent fixes; call in PiglinAi#pickUpItem after EntityPickupItemEvent is fired
         PiglinAi.pickUpItem(this, item);
     }
 

@@ -225,6 +225,11 @@ public abstract class Raider extends PatrollingMonster {
         boolean flag = this.hasActiveRaid() && this.getCurrentRaid().getLeader(this.getWave()) != null;
 
         if (this.hasActiveRaid() && !flag && ItemStack.matches(itemstack, Raid.getLeaderBannerInstance(this.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN)))) {
+            // Paper start - EntityPickupItemEvent fixes
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, item, 0, false).isCancelled()) {
+                return;
+            }
+            // Paper end - EntityPickupItemEvent fixes
             EquipmentSlot enumitemslot = EquipmentSlot.HEAD;
             ItemStack itemstack1 = this.getItemBySlot(enumitemslot);
             double d0 = (double) this.getEquipmentDropChance(enumitemslot);
