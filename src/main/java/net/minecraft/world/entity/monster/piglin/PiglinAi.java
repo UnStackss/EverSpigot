@@ -403,7 +403,7 @@ public class PiglinAi {
         } else {
             boolean flag = piglin.canAddToInventory(stack);
 
-            return stack.is(Items.GOLD_NUGGET) ? flag : (PiglinAi.isFood(stack) ? !PiglinAi.hasEatenRecently(piglin) && flag : (!PiglinAi.isLovedItem(stack) ? piglin.canReplaceCurrentItem(stack) : PiglinAi.isNotHoldingLovedItemInOffHand(piglin) && flag));
+            return stack.is(Items.GOLD_NUGGET) ? flag : (PiglinAi.isFood(stack) ? !PiglinAi.hasEatenRecently(piglin) && flag : (!PiglinAi.isLovedItem(stack, piglin) ? piglin.canReplaceCurrentItem(stack) : PiglinAi.isNotHoldingLovedItemInOffHand(piglin) && flag)); // Paper - upstream missed isLovedItem check
         }
     }
 
