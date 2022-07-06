@@ -805,7 +805,7 @@ public class Bee extends Animal implements NeutralMob, FlyingAnimal {
             ++this.pollinatingTicks;
             if (this.pollinatingTicks > 600) {
                 Bee.this.savedFlowerPos = null;
-            } else {
+            } else if (Bee.this.savedFlowerPos != null) { // Paper - add null check since API can manipulate this
                 Vec3 vec3d = Vec3.atBottomCenterOf(Bee.this.savedFlowerPos).add(0.0D, 0.6000000238418579D, 0.0D);
 
                 if (vec3d.distanceTo(Bee.this.position()) > 1.0D) {
