@@ -119,6 +119,7 @@ public class Main {
                 JvmProfiler.INSTANCE.start(Environment.SERVER);
             }
 
+            io.papermc.paper.plugin.PluginInitializerManager.load(optionset); // Paper
             Bootstrap.bootStrap();
             Bootstrap.validate();
             Util.startTimerHackThread();

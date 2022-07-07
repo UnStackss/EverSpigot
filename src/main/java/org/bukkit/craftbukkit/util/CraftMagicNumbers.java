@@ -395,6 +395,16 @@ public final class CraftMagicNumbers implements UnsafeValues {
         net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
         return nmsItemStack.getItem().getDescriptionId(nmsItemStack);
     }
+    // Paper start
+    @Override
+    public boolean isSupportedApiVersion(String apiVersion) {
+        if (apiVersion == null) return false;
+        final ApiVersion toCheck = ApiVersion.getOrCreateVersion(apiVersion);
+        final ApiVersion minimumVersion = MinecraftServer.getServer().server.minimumAPI;
+
+        return !toCheck.isNewerThan(ApiVersion.CURRENT) && !toCheck.isOlderThan(minimumVersion);
+    }
+    // Paper end
 
     @Override
     public String getTranslationKey(final Attribute attribute) {

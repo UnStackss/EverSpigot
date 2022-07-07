@@ -62,6 +62,7 @@ public class Bootstrap {
             Bootstrap.isBootstrapped = true;
             Instant instant = Instant.now();
 
+            io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler.enterBootstrappers(); // Paper - Entrypoint for bootstrapping
             if (BuiltInRegistries.REGISTRY.keySet().isEmpty()) {
                 throw new IllegalStateException("Unable to load registries");
             } else {
@@ -73,7 +74,10 @@ public class Bootstrap {
                     EntitySelectorOptions.bootStrap();
                     DispenseItemBehavior.bootStrap();
                     CauldronInteraction.bootStrap();
-                    BuiltInRegistries.bootStrap();
+                    // Paper start
+                    BuiltInRegistries.bootStrap(() -> {
+                    });
+                    // Paper end
                     CreativeModeTabs.validate();
                     Bootstrap.wrapStreams();
                     Bootstrap.bootstrapDuration.set(Duration.between(instant, Instant.now()).toMillis());
