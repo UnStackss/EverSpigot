@@ -62,7 +62,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
     public PrimedTnt(Level world, double x, double y, double z, @Nullable LivingEntity igniter) {
         this(EntityType.TNT, world);
         this.setPos(x, y, z);
-        double d3 = world.random.nextDouble() * 6.2831854820251465D;
+        double d3 = this.random.nextDouble() * 6.2831854820251465D; // Paper - Don't use level random in entity constructors
 
         this.setDeltaMovement(-Math.sin(d3) * 0.02D, 0.20000000298023224D, -Math.cos(d3) * 0.02D);
         this.setFuse(80);

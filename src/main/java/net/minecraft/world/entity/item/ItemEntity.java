@@ -72,7 +72,12 @@ public class ItemEntity extends Entity implements TraceableEntity {
     }
 
     public ItemEntity(Level world, double x, double y, double z, ItemStack stack) {
-        this(world, x, y, z, stack, world.random.nextDouble() * 0.2D - 0.1D, 0.2D, world.random.nextDouble() * 0.2D - 0.1D);
+        // Paper start - Don't use level random in entity constructors (to make them thread-safe)
+        this(EntityType.ITEM, world);
+        this.setPos(x, y, z);
+        this.setDeltaMovement(this.random.nextDouble() * 0.2D - 0.1D, 0.2D, this.random.nextDouble() * 0.2D - 0.1D);
+        this.setItem(stack);
+        // Paper end - Don't use level random in entity constructors
     }
 
     public ItemEntity(Level world, double x, double y, double z, ItemStack stack, double velocityX, double velocityY, double velocityZ) {
