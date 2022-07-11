@@ -1027,7 +1027,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
         // CraftBukkit end
     }
 
-    boolean anyPlayerCloseEnoughForSpawning(ChunkPos pos) {
+    public boolean anyPlayerCloseEnoughForSpawning(ChunkPos pos) { // Paper - public
         // Spigot start
         return this.anyPlayerCloseEnoughForSpawning(pos, false);
     }

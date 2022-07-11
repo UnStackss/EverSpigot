@@ -39,7 +39,7 @@ public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, fl
     }
 
     public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
-        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, 0.0F, 0.0F, false, dimensiontransition_a, cause);
+        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, worldserver.getSharedSpawnAngle(), 0.0F, false, dimensiontransition_a, cause); // Paper - MC-200092 - fix spawn pos yaw being ignored
         // CraftBukkit end
     }
 
@@ -55,7 +55,7 @@ public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, fl
     }
 
     public static DimensionTransition missingRespawnBlock(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
-        return new DimensionTransition(world, findAdjustedSharedSpawnPos(world, entity), Vec3.ZERO, 0.0F, 0.0F, true, postDimensionTransition);
+        return new DimensionTransition(world, findAdjustedSharedSpawnPos(world, entity), Vec3.ZERO, world.getSharedSpawnAngle(), 0.0F, true, postDimensionTransition); // Paper - MC-200092 - fix spawn pos yaw being ignored
     }
 
     private static Vec3 findAdjustedSharedSpawnPos(ServerLevel world, Entity entity) {

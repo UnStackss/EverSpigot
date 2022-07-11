@@ -21,6 +21,13 @@ public class SwellGoal extends Goal {
         return this.creeper.getSwellDir() > 0 || livingEntity != null && this.creeper.distanceToSqr(livingEntity) < 9.0;
     }
 
+    // Paper start - Fix MC-179072
+    @Override
+    public boolean canContinueToUse() {
+        return !net.minecraft.world.entity.EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(this.creeper.getTarget()) && canUse();
+    }
+    // Paper end
+
     @Override
     public void start() {
         this.creeper.getNavigation().stop();

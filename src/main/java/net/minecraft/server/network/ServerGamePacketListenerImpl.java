@@ -1814,7 +1814,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                             } else if (enuminteractionresult.shouldSwing() && !this.player.gameMode.interactResult) { // Paper - Call interact event
                                 this.player.swing(enumhand, true);
                             }
-                        }
+                        } else { this.player.containerMenu.sendAllDataToRemote(); } // Paper - Fix inventory desync; MC-99075
                     } else {
                         MutableComponent ichatmutablecomponent1 = Component.translatable("build.tooHigh", i - 1).withStyle(ChatFormatting.RED);
 

@@ -51,4 +51,11 @@ public class AzaleaBlock extends BushBlock implements BonemealableBlock {
     public void performBonemeal(ServerLevel world, RandomSource random, BlockPos pos, BlockState state) {
         TreeGrower.AZALEA.growTree(world, world.getChunkSource().getGenerator(), pos, state, random);
     }
+
+    // Paper start - Fix MC-224454
+    @Override
+    public boolean isPathfindable(BlockState state, net.minecraft.world.level.pathfinder.PathComputationType type) {
+        return false;
+    }
+    // Paper end
 }

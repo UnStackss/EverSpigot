@@ -260,6 +260,14 @@ public class ItemFrame extends HangingEntity {
         return (ItemStack) this.getEntityData().get(ItemFrame.DATA_ITEM);
     }
 
+    // Paper start - Fix MC-123848 (spawn item frame drops above block)
+    @Nullable
+    @Override
+    public net.minecraft.world.entity.item.ItemEntity spawnAtLocation(ItemStack stack) {
+        return this.spawnAtLocation(stack, getDirection().equals(Direction.DOWN) ? -0.6F : 0.0F);
+    }
+    // Paper end
+
     @Nullable
     public MapId getFramedMapId(ItemStack itemstack) {
         return (MapId) itemstack.get(DataComponents.MAP_ID);

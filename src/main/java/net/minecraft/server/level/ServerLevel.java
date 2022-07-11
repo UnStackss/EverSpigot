@@ -777,7 +777,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
         } else {
             AABB axisalignedbb = AABB.encapsulatingFullBlocks(blockposition1, new BlockPos(blockposition1.atY(this.getMaxBuildHeight()))).inflate(3.0D);
             List<LivingEntity> list = this.getEntitiesOfClass(LivingEntity.class, axisalignedbb, (entityliving) -> {
-                return entityliving != null && entityliving.isAlive() && this.canSeeSky(entityliving.blockPosition());
+                return entityliving != null && entityliving.isAlive() && this.canSeeSky(entityliving.blockPosition()) && !entityliving.isSpectator(); // Paper - Fix lightning being able to hit spectators (MC-262422)
             });
 
             if (!list.isEmpty()) {

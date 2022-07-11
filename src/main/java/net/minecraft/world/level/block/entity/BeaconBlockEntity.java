@@ -295,7 +295,11 @@ public class BeaconBlockEntity extends BlockEntity implements MenuProvider, Name
         org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, worldPosition);
         new io.papermc.paper.event.block.BeaconDeactivatedEvent(block).callEvent();
         // Paper end - beacon activation/deactivation events
+        // Paper start - fix MC-153086
+        if (this.levels > 0 && !this.beamSections.isEmpty()) {
         BeaconBlockEntity.playSound(this.level, this.worldPosition, SoundEvents.BEACON_DEACTIVATE);
+        }
+        // Paper end
         super.setRemoved();
     }
 

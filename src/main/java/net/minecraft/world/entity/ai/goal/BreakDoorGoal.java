@@ -77,9 +77,10 @@ public class BreakDoorGoal extends DoorInteractGoal {
                 return;
             }
             // CraftBukkit end
+            final net.minecraft.world.level.block.state.BlockState oldState = this.mob.level().getBlockState(this.doorPos); // Paper - fix MC-263999
             this.mob.level().removeBlock(this.doorPos, false);
             this.mob.level().levelEvent(1021, this.doorPos, 0);
-            this.mob.level().levelEvent(2001, this.doorPos, Block.getId(this.mob.level().getBlockState(this.doorPos)));
+            this.mob.level().levelEvent(2001, this.doorPos, Block.getId(oldState)); // Paper - fix MC-263999
         }
 
     }

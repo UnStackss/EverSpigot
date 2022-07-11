@@ -260,7 +260,7 @@ public abstract class PlayerList {
         }
         if (optional.isEmpty() || invalidPlayerWorld[0]) {
             // Paper end - reset to main world spawn if first spawn or invalid world
-            player.moveTo(player.adjustSpawnLocation(worldserver1, worldserver1.getSharedSpawnPos()).getBottomCenter(), 0.0F, 0.0F);
+            player.moveTo(player.adjustSpawnLocation(worldserver1, worldserver1.getSharedSpawnPos()).getBottomCenter(), worldserver1.getSharedSpawnAngle(), 0.0F); // Paper - MC-200092 - fix first spawn pos yaw being ignored
         }
         // Paper end - Entity#getEntitySpawnReason
         player.setServerLevel(worldserver1);
@@ -703,8 +703,10 @@ public abstract class PlayerList {
         Player player = entity.getBukkitEntity();
         PlayerLoginEvent event = new PlayerLoginEvent(player, loginlistener.connection.hostname, ((java.net.InetSocketAddress) socketaddress).getAddress(), ((java.net.InetSocketAddress) loginlistener.connection.channel.remoteAddress()).getAddress());
 
-        if (this.bans.isBanned(gameprofile)) {
-            UserBanListEntry gameprofilebanentry = (UserBanListEntry) this.bans.get(gameprofile);
+        // Paper start - Fix MC-158900
+        UserBanListEntry gameprofilebanentry;
+        if (this.bans.isBanned(gameprofile) && (gameprofilebanentry = this.bans.get(gameprofile)) != null) {
+            // Paper end - Fix MC-158900
 
             ichatmutablecomponent = Component.translatable("multiplayer.disconnect.banned.reason", gameprofilebanentry.getReason());
             if (gameprofilebanentry.getExpires() != null) {

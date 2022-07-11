@@ -31,6 +31,11 @@ public class EatBlockGoal extends Goal {
 
     @Override
     public boolean canUse() {
+        // Paper start - Fix MC-210802
+        if (!((net.minecraft.server.level.ServerLevel) this.level).chunkSource.chunkMap.anyPlayerCloseEnoughForSpawning(this.mob.chunkPosition())) {
+            return false;
+        }
+        // Paper end
         if (this.mob.getRandom().nextInt(this.mob.isBaby() ? 50 : 1000) != 0) {
             return false;
         } else {

@@ -178,6 +178,11 @@ public class BeaconMenu extends AbstractContainerMenu {
     // Paper end - Add PlayerChangeBeaconEffectEvent
 
     public void updateEffects(Optional<Holder<MobEffect>> primary, Optional<Holder<MobEffect>> secondary) {
+        // Paper start - fix MC-174630 - validate secondary power
+        if (secondary.isPresent() && secondary.get() != net.minecraft.world.effect.MobEffects.REGENERATION && (primary.isPresent() && secondary.get() != primary.get())) {
+            secondary = Optional.empty();
+        }
+        // Paper end
         if (this.paymentSlot.hasItem()) {
             // Paper start - Add PlayerChangeBeaconEffectEvent
             io.papermc.paper.event.player.PlayerChangeBeaconEffectEvent event = new io.papermc.paper.event.player.PlayerChangeBeaconEffectEvent((org.bukkit.entity.Player) this.player.player.getBukkitEntity(), convert(primary), convert(secondary), this.access.getLocation().getBlock());

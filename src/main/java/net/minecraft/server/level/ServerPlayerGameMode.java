@@ -93,7 +93,7 @@ public class ServerPlayerGameMode {
                 return event; // Paper - Expand PlayerGameModeChangeEvent
             }
             // CraftBukkit end
-            this.setGameModeForPlayer(gameMode, this.previousGameModeForPlayer);
+            this.setGameModeForPlayer(gameMode, this.gameModeForPlayer); // Paper - Fix MC-259571
             this.player.onUpdateAbilities();
             this.player.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE, this.player), this.player); // CraftBukkit
             this.level.updateSleepingPlayerList();

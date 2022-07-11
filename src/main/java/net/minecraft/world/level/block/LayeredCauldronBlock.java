@@ -69,7 +69,7 @@ public class LayeredCauldronBlock extends AbstractCauldronBlock {
         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (!world.isClientSide && entity.isOnFire() && this.isEntityInsideContent(state, pos, entity)) {
             // CraftBukkit start
-            if (entity.mayInteract(world, pos)) {
+            if ((entity instanceof net.minecraft.world.entity.player.Player || world.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING)) && entity.mayInteract(world, pos)) { // Paper - Fixes MC-248588
                 if (!this.handleEntityOnFireInsideWithEvent(state, world, pos, entity)) { // Paper - fix powdered snow cauldron extinguishing entities
                     return;
                 }

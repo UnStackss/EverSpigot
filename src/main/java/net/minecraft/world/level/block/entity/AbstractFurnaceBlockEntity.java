@@ -648,13 +648,10 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
 
     @Override
     public void fillStackedContents(StackedContents finder) {
-        Iterator iterator = this.items.iterator();
-
-        while (iterator.hasNext()) {
-            ItemStack itemstack = (ItemStack) iterator.next();
-
-            finder.accountStack(itemstack);
-        }
+        // Paper start - don't account fuel stack (fixes MC-243057)
+        finder.accountStack(this.items.get(SLOT_INPUT));
+        finder.accountStack(this.items.get(SLOT_RESULT));
+        // Paper end
 
     }
 }

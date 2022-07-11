@@ -243,9 +243,10 @@ public class Goat extends Animal {
             player.setItemInHand(hand, itemstack1);
             return InteractionResult.sidedSuccess(this.level().isClientSide);
         } else {
+            boolean isFood = this.isFood(itemstack); // Paper - track before stack is possibly decreased to 0 (Fixes MC-244739)
             InteractionResult enuminteractionresult = super.mobInteract(player, hand);
 
-            if (enuminteractionresult.consumesAction() && this.isFood(itemstack)) {
+            if (enuminteractionresult.consumesAction() && isFood) { // Paper
                 this.level().playSound((Player) null, (Entity) this, this.getEatingSound(itemstack), SoundSource.NEUTRAL, 1.0F, Mth.randomBetween(this.level().random, 0.8F, 1.2F));
             }
 

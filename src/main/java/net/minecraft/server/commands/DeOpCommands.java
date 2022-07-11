@@ -35,7 +35,7 @@ public class DeOpCommands {
             if (playerList.isOp(gameProfile)) {
                 playerList.deop(gameProfile);
                 i++;
-                source.sendSuccess(() -> Component.translatable("commands.deop.success", targets.iterator().next().getName()), true);
+                source.sendSuccess(() -> Component.translatable("commands.deop.success", gameProfile.getName()), true); // Paper - fixes MC-253721
             }
         }
 
