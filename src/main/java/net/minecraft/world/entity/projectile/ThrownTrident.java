@@ -36,16 +36,19 @@ public class ThrownTrident extends AbstractArrow {
 
     public ThrownTrident(EntityType<? extends ThrownTrident> type, Level world) {
         super(type, world);
+        this.setBaseDamage(net.minecraft.world.item.TridentItem.BASE_DAMAGE); // Paper - Allow trident custom damage
     }
 
     public ThrownTrident(Level world, LivingEntity owner, ItemStack stack) {
         super(EntityType.TRIDENT, owner, world, stack, (ItemStack) null);
+        this.setBaseDamage(net.minecraft.world.item.TridentItem.BASE_DAMAGE); // Paper - Allow trident custom damage
         this.entityData.set(ThrownTrident.ID_LOYALTY, this.getLoyaltyFromItem(stack));
         this.entityData.set(ThrownTrident.ID_FOIL, stack.hasFoil());
     }
 
     public ThrownTrident(Level world, double x, double y, double z, ItemStack stack) {
         super(EntityType.TRIDENT, x, y, z, world, stack, stack);
+        this.setBaseDamage(net.minecraft.world.item.TridentItem.BASE_DAMAGE); // Paper - Allow trident custom damage
         this.entityData.set(ThrownTrident.ID_LOYALTY, this.getLoyaltyFromItem(stack));
         this.entityData.set(ThrownTrident.ID_FOIL, stack.hasFoil());
     }
@@ -129,7 +132,7 @@ public class ThrownTrident extends AbstractArrow {
     @Override
     protected void onHitEntity(EntityHitResult entityHitResult) {
         Entity entity = entityHitResult.getEntity();
-        float f = 8.0F;
+        float f = (float) this.getBaseDamage(); // Paper - Allow trident custom damage
         Entity entity1 = this.getOwner();
         DamageSource damagesource = this.damageSources().trident(this, (Entity) (entity1 == null ? this : entity1));
         Level world = this.level();
