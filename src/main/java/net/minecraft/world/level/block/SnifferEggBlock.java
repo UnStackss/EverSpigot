@@ -60,12 +60,26 @@ public class SnifferEggBlock extends Block {
         return this.getHatchLevel(state) == 2;
     }
 
+    // Paper start - Call BlockFadeEvent
+    private void rescheduleTick(ServerLevel world, BlockPos pos) {
+        int baseDelay = hatchBoost(world, pos) ? BOOSTED_HATCH_TIME_TICKS : REGULAR_HATCH_TIME_TICKS;
+        world.scheduleTick(pos, this, (baseDelay / 3) + world.random.nextInt(RANDOM_HATCH_OFFSET_TICKS));
+        // reschedule to avoid being stuck here and behave like the other calls (see #onPlace)
+    }
+    // Paper end - Call BlockFadeEvent
+
     @Override
     public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
         if (!this.isReadyToHatch(state)) {
             world.playSound(null, pos, SoundEvents.SNIFFER_EGG_CRACK, SoundSource.BLOCKS, 0.7F, 0.9F + random.nextFloat() * 0.2F);
             world.setBlock(pos, state.setValue(HATCH, Integer.valueOf(this.getHatchLevel(state) + 1)), 2);
         } else {
+            // Paper start - Call BlockFadeEvent
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, state.getFluidState().createLegacyBlock()).isCancelled()) {
+                this.rescheduleTick(world, pos);
+                return;
+            }
+            // Paper end - Call BlockFadeEvent
             world.playSound(null, pos, SoundEvents.SNIFFER_EGG_HATCH, SoundSource.BLOCKS, 0.7F, 0.9F + random.nextFloat() * 0.2F);
             world.destroyBlock(pos, false);
             Sniffer sniffer = EntityType.SNIFFER.create(world);

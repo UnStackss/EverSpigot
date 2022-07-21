@@ -103,7 +103,7 @@ public class ScaffoldingBlock extends Block implements SimpleWaterloggedBlock {
         int i = ScaffoldingBlock.getDistance(world, pos);
         BlockState iblockdata1 = (BlockState) ((BlockState) state.setValue(ScaffoldingBlock.DISTANCE, i)).setValue(ScaffoldingBlock.BOTTOM, this.isBottom(world, pos, i));
 
-        if ((Integer) iblockdata1.getValue(ScaffoldingBlock.DISTANCE) == 7 && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.AIR.defaultBlockState()).isCancelled()) { // CraftBukkit - BlockFadeEvent
+        if ((Integer) iblockdata1.getValue(ScaffoldingBlock.DISTANCE) == 7 && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, iblockdata1.getFluidState().createLegacyBlock()).isCancelled()) { // CraftBukkit - BlockFadeEvent // Paper - fix wrong block state
             if ((Integer) state.getValue(ScaffoldingBlock.DISTANCE) == 7) {
                 FallingBlockEntity.fall(world, pos, iblockdata1);
             } else {

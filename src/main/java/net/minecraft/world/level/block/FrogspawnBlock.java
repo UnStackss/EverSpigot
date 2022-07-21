@@ -92,6 +92,11 @@ public class FrogspawnBlock extends Block {
     }
 
     private void hatchFrogspawn(ServerLevel world, BlockPos pos, RandomSource random) {
+        // Paper start - Call BlockFadeEvent
+        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.AIR.defaultBlockState()).isCancelled()) {
+            return;
+        }
+        // Paper end - Call BlockFadeEvent
         this.destroyBlock(world, pos);
         world.playSound(null, pos, SoundEvents.FROGSPAWN_HATCH, SoundSource.BLOCKS, 1.0F, 1.0F);
         this.spawnTadpoles(world, pos, random);
