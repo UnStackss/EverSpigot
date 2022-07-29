@@ -339,7 +339,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     }
 
     private static boolean isInWorldBoundsHorizontal(BlockPos pos) {
-        return pos.getX() >= -30000000 && pos.getZ() >= -30000000 && pos.getX() < 30000000 && pos.getZ() < 30000000;
+        return pos.getX() >= -30000000 && pos.getZ() >= -30000000 && pos.getX() < 30000000 && pos.getZ() < 30000000; // Diff on change warnUnsafeChunk()
     }
 
     private static boolean isOutsideSpawnableHeight(int y) {
