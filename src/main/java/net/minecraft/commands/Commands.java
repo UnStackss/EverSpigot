@@ -386,7 +386,7 @@ public class Commands {
             if (commandsyntaxexception.getInput() != null && commandsyntaxexception.getCursor() >= 0) {
                 int i = Math.min(commandsyntaxexception.getInput().length(), commandsyntaxexception.getCursor());
                 MutableComponent ichatmutablecomponent = Component.empty().withStyle(ChatFormatting.GRAY).withStyle((chatmodifier) -> {
-                    return chatmodifier.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, label)); // CraftBukkit
+                    return chatmodifier.withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + label)); // CraftBukkit // Paper
                 });
 
                 if (i > 10) {
