@@ -100,7 +100,7 @@ public final class DummyServer {
             final Thread currentThread = Thread.currentThread();
             when(instance.isPrimaryThread()).thenAnswer(ignored -> Thread.currentThread().equals(currentThread));
 
-            final org.bukkit.plugin.PluginManager pluginManager = new  io.papermc.paper.plugin.manager.PaperPluginManagerImpl(instance, new org.bukkit.command.SimpleCommandMap(instance), null);
+            final org.bukkit.plugin.PluginManager pluginManager = new  io.papermc.paper.plugin.manager.PaperPluginManagerImpl(instance, new org.bukkit.command.SimpleCommandMap(instance, new java.util.HashMap<>()), null); // Paper
             when(instance.getPluginManager()).thenReturn(pluginManager);
             // paper end - testing additions
 

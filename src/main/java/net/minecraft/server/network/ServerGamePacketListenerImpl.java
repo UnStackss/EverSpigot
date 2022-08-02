@@ -2407,33 +2407,20 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         }
     }
 
+    @Deprecated // Paper
     public void handleCommand(String s) { // Paper - private -> public
-        org.spigotmc.AsyncCatcher.catchOp("Command Dispatched Async: " + s); // Paper - Add async catcher
-        co.aikar.timings.MinecraftTimings.playerCommandTimer.startTiming(); // Paper
-        if ( org.spigotmc.SpigotConfig.logCommands ) // Spigot
-        this.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + s);
-
-        CraftPlayer player = this.getCraftPlayer();
-
-        PlayerCommandPreprocessEvent event = new PlayerCommandPreprocessEvent(player, s, new LazyPlayerSet(this.server));
-        this.cserver.getPluginManager().callEvent(event);
-
-        if (event.isCancelled()) {
-            co.aikar.timings.MinecraftTimings.playerCommandTimer.stopTiming(); // Paper
-            return;
+        // Paper start - Remove all this old duplicated logic
+        if (s.startsWith("/")) {
+            s = s.substring(1);
         }
-
-        try {
-            if (this.cserver.dispatchCommand(event.getPlayer(), event.getMessage().substring(1))) {
-                return;
-            }
-        } catch (org.bukkit.command.CommandException ex) {
-            player.sendMessage(org.bukkit.ChatColor.RED + "An internal error occurred while attempting to perform this command");
-            java.util.logging.Logger.getLogger(ServerGamePacketListenerImpl.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-            return;
-        } finally {
-            co.aikar.timings.MinecraftTimings.playerCommandTimer.stopTiming(); // Paper
-        }
+        /*
+        It should be noted that this represents the "legacy" command execution path.
+        Api can call commands even if there is no additional context provided.
+        This method should ONLY be used if you need to execute a command WITHOUT
+        an actual player's input.
+        */
+        this.performUnsignedChatCommand(s);
+        // Paper end
     }
     // CraftBukkit end
 

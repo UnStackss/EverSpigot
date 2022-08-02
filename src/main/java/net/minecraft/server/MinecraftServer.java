@@ -306,7 +306,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     public static int currentTick; // Paper - improve tick loop
     public java.util.Queue<Runnable> processQueue = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
     public int autosavePeriod;
-    public Commands vanillaCommandDispatcher;
+    // Paper - don't store the vanilla dispatcher
     private boolean forceTicks;
     // CraftBukkit end
     // Spigot start
@@ -393,7 +393,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         // CraftBukkit start
         this.options = options;
         this.worldLoader = worldLoader;
-        this.vanillaCommandDispatcher = worldstem.dataPackResources().commands; // CraftBukkit
         // Paper start - Handled by TerminalConsoleAppender
         // Try to see if we're actually running in a terminal, disable jline if not
         /*
@@ -678,6 +677,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
 
         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
         if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
+        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below
+        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - call commands event for regular plugins
+        ((org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap()).initializeCommands();
         this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
         this.connection.acceptConnections();
     }
@@ -2181,9 +2183,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
                 return new MinecraftServer.ReloadableResources(resourcemanager, datapackresources);
             });
         }).thenAcceptAsync((minecraftserver_reloadableresources) -> {
+            io.papermc.paper.command.brigadier.PaperBrigadier.moveBukkitCommands(this.resources.managers().getCommands(), minecraftserver_reloadableresources.managers().commands); // Paper
             this.resources.close();
             this.resources = minecraftserver_reloadableresources;
-            this.server.syncCommands(); // SPIGOT-5884: Lost on reload
             this.packRepository.setSelected(dataPacks);
             WorldDataConfiguration worlddataconfiguration = new WorldDataConfiguration(MinecraftServer.getSelectedPacks(this.packRepository, true), this.worldData.enabledFeatures());
 
@@ -2194,8 +2196,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.getPlayerList().reloadResources();
             this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
             this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
-            org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
-            new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
+            org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings, they can be defined by datapacks so refresh it here
+            // Paper start - brigadier command API
+            io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
+            io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
+            final org.bukkit.craftbukkit.help.SimpleHelpMap helpMap = (org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap();
+            helpMap.clear();
+            helpMap.initializeGeneralTopics();
+            helpMap.initializeCommands();
+            this.server.syncCommands(); // Refresh commands after event
+            // Paper end
+            new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - fire after everything has been reloaded
         }, this);
 
         if (this.isSameThread()) {

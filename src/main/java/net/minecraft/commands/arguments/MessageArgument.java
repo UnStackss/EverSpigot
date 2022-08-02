@@ -40,6 +40,11 @@ public class MessageArgument implements SignedArgument<MessageArgument.Message> 
 
     public static void resolveChatMessage(CommandContext<CommandSourceStack> context, String name, Consumer<PlayerChatMessage> callback) throws CommandSyntaxException {
         MessageArgument.Message message = context.getArgument(name, MessageArgument.Message.class);
+    // Paper start
+        resolveChatMessage(message, context, name, callback);
+    }
+    public static void resolveChatMessage(MessageArgument.Message message, CommandContext<CommandSourceStack> context, String name, Consumer<PlayerChatMessage> callback) throws CommandSyntaxException {
+    // Paper end
         CommandSourceStack commandSourceStack = context.getSource();
         Component component = message.resolveComponent(commandSourceStack);
         CommandSigningContext commandSigningContext = commandSourceStack.getSigningContext();

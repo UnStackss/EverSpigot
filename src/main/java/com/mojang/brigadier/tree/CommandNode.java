@@ -35,6 +35,8 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     private final boolean forks;
     private Command<S> command;
     public CommandNode<CommandSourceStack> clientNode; // Paper - Brigadier API
+    public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> unwrappedCached = null; // Paper - Brigadier Command API
+    public CommandNode<io.papermc.paper.command.brigadier.CommandSourceStack> wrappedCached = null; // Paper - Brigadier Command API
     // CraftBukkit start
     public void removeCommand(String name) {
         this.children.remove(name);
@@ -203,4 +205,11 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     }
 
     public abstract Collection<String> getExamples();
+    // Paper start - Brigadier Command API
+    public void clearAll() {
+        this.children.clear();
+        this.literals.clear();
+        this.arguments.clear();
+    }
+    // Paper end - Brigadier Command API
 }

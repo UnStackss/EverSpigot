@@ -237,7 +237,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
         com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
-        io.papermc.paper.brigadier.PaperBrigadierProviderImpl.INSTANCE.getClass(); // Paper - init PaperBrigadierProvider
 
         this.setPvpAllowed(dedicatedserverproperties.pvp);
         this.setFlightAllowed(dedicatedserverproperties.allowFlight);

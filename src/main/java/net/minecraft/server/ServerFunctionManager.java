@@ -36,7 +36,7 @@ public class ServerFunctionManager {
     }
 
     public CommandDispatcher<CommandSourceStack> getDispatcher() {
-        return this.server.vanillaCommandDispatcher.getDispatcher(); // CraftBukkit
+        return this.server.getCommands().getDispatcher(); // CraftBukkit // Paper - Don't override command dispatcher
     }
 
     public void tick() {

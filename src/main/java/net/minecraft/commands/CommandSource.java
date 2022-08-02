@@ -26,7 +26,7 @@ public interface CommandSource {
         // CraftBukkit start
         @Override
         public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper) {
-            throw new UnsupportedOperationException("Not supported yet.");
+            return io.papermc.paper.brigadier.NullCommandSender.INSTANCE; // Paper - expose a no-op CommandSender
         }
         // CraftBukkit end
     };

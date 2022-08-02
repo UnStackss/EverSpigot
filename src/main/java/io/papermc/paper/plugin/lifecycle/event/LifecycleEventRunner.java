@@ -9,6 +9,7 @@ import io.papermc.paper.plugin.lifecycle.event.registrar.RegistrarEventImpl;
 import io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent;
 import io.papermc.paper.plugin.lifecycle.event.types.AbstractLifecycleEventType;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEventType;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import io.papermc.paper.plugin.lifecycle.event.types.OwnerAwareLifecycleEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ public class LifecycleEventRunner {
 
     private static final Logger LOGGER = LogUtils.getClassLogger();
     private static final Supplier<Set<LifecycleEventType<?, ?, ?>>> BLOCKS_RELOADING = Suppliers.memoize(() -> Set.of( // lazy due to cyclic initialization
+        LifecycleEvents.COMMANDS
     ));
     public static final LifecycleEventRunner INSTANCE = new LifecycleEventRunner();
 

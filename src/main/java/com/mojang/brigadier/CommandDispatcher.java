@@ -459,7 +459,7 @@ public class CommandDispatcher<S> {
     }
 
     private String getSmartUsage(final CommandNode<S> node, final S source, final boolean optional, final boolean deep) {
-        if (!node.canUse(source)) {
+        if (source != null && !node.canUse(source)) { // Paper
             return null;
         }
 
@@ -473,7 +473,7 @@ public class CommandDispatcher<S> {
                 final String redirect = node.getRedirect() == this.root ? "..." : "-> " + node.getRedirect().getUsageText();
                 return self + CommandDispatcher.ARGUMENT_SEPARATOR + redirect;
             } else {
-                final Collection<CommandNode<S>> children = node.getChildren().stream().filter(c -> c.canUse(source)).collect(Collectors.toList());
+                final Collection<CommandNode<S>> children = node.getChildren().stream().filter(c -> source == null || c.canUse(source)).collect(Collectors.toList()); // Paper
                 if (children.size() == 1) {
                     final String usage = this.getSmartUsage(children.iterator().next(), source, childOptional, childOptional);
                     if (usage != null) {
