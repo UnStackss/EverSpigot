@@ -398,7 +398,7 @@ public class Cat extends TamableAnimal implements VariantHolder<Holder<CatVarian
                         this.usePlayerItem(player, hand, itemstack);
                         FoodProperties foodinfo = (FoodProperties) itemstack.get(DataComponents.FOOD);
 
-                        this.heal(foodinfo != null ? (float) foodinfo.nutrition() : 1.0F);
+                        this.heal(foodinfo != null ? (float) foodinfo.nutrition() : 1.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // Paper - Add missing regain reason
                     }
 
                     return InteractionResult.sidedSuccess(this.level().isClientSide());

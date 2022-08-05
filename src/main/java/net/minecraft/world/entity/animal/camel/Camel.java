@@ -387,7 +387,7 @@ public class Camel extends AbstractHorse implements PlayerRideableJumping, Saddl
             boolean flag = this.getHealth() < this.getMaxHealth();
 
             if (flag) {
-                this.heal(2.0F);
+                this.heal(2.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // Paper - Add missing regain reason
             }
 
             boolean flag1 = this.isTamed() && this.getAge() == 0 && this.canFallInLove();
