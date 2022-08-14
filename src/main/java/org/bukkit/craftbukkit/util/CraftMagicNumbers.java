@@ -578,6 +578,21 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
     // Paper end
 
+    // Paper start - namespaced key biome methods
+    @Override
+    public org.bukkit.NamespacedKey getBiomeKey(org.bukkit.RegionAccessor accessor, int x, int y, int z) {
+        org.bukkit.craftbukkit.CraftRegionAccessor cra = (org.bukkit.craftbukkit.CraftRegionAccessor) accessor;
+        return org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(cra.getHandle().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME).getKey(cra.getHandle().getBiome(new net.minecraft.core.BlockPos(x, y, z)).value()));
+    }
+
+    @Override
+    public void setBiomeKey(org.bukkit.RegionAccessor accessor, int x, int y, int z, org.bukkit.NamespacedKey biomeKey) {
+        org.bukkit.craftbukkit.CraftRegionAccessor cra = (org.bukkit.craftbukkit.CraftRegionAccessor) accessor;
+        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biomeBase = cra.getHandle().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME).getHolderOrThrow(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.BIOME, org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(biomeKey)));
+        cra.setBiome(x, y, z, biomeBase);
+    }
+    // Paper end - namespaced key biome methods
+
     @Override
     public String get(Class<?> aClass, String s) {
         if (aClass == Enchantment.class) {
