@@ -37,7 +37,7 @@ public class SuspiciousStewItem extends Item {
         SuspiciousStewEffects suspiciousStewEffects = stack.getOrDefault(DataComponents.SUSPICIOUS_STEW_EFFECTS, SuspiciousStewEffects.EMPTY);
 
         for (SuspiciousStewEffects.Entry entry : suspiciousStewEffects.effects()) {
-            user.addEffect(entry.createEffectInstance());
+            user.addEffect(entry.createEffectInstance(), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // Paper - Add missing effect cause
         }
 
         return super.finishUsingItem(stack, world, user);

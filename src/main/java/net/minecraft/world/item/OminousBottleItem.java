@@ -36,7 +36,7 @@ public class OminousBottleItem extends Item {
         if (!world.isClientSide) {
             world.playSound(null, user.blockPosition(), SoundEvents.OMINOUS_BOTTLE_DISPOSE, user.getSoundSource(), 1.0F, 1.0F);
             Integer integer = stack.getOrDefault(DataComponents.OMINOUS_BOTTLE_AMPLIFIER, Integer.valueOf(0));
-            user.addEffect(new MobEffectInstance(MobEffects.BAD_OMEN, 120000, integer, false, false, true));
+            user.addEffect(new MobEffectInstance(MobEffects.BAD_OMEN, 120000, integer, false, false, true), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.POTION_DRINK); // Paper - Add missing effect cause
         }
 
         stack.consume(1, user);

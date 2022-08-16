@@ -28,7 +28,7 @@ public class HoneyBottleItem extends Item {
         }
 
         if (!world.isClientSide) {
-            user.removeEffect(MobEffects.POISON);
+            user.removeEffect(MobEffects.POISON, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // Paper - Add missing effect cause
         }
 
         if (stack.isEmpty()) {
