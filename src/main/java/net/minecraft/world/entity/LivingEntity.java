@@ -3158,37 +3158,15 @@ public abstract class LivingEntity extends Entity implements Attackable {
         this.level().getProfiler().pop();
         this.level().getProfiler().push("rangeChecks");
 
-        while (this.getYRot() - this.yRotO < -180.0F) {
-            this.yRotO -= 360.0F;
-        }
+        // Paper start - stop large pitch and yaw changes from crashing the server
+        this.yRotO += Math.round((this.getYRot() - this.yRotO) / 360.0F) * 360.0F;
 
-        while (this.getYRot() - this.yRotO >= 180.0F) {
-            this.yRotO += 360.0F;
-        }
+        this.yBodyRotO += Math.round((this.yBodyRot - this.yBodyRotO) / 360.0F) * 360.0F;
 
-        while (this.yBodyRot - this.yBodyRotO < -180.0F) {
-            this.yBodyRotO -= 360.0F;
-        }
+        this.xRotO += Math.round((this.getXRot() - this.xRotO) / 360.0F) * 360.0F;
 
-        while (this.yBodyRot - this.yBodyRotO >= 180.0F) {
-            this.yBodyRotO += 360.0F;
-        }
-
-        while (this.getXRot() - this.xRotO < -180.0F) {
-            this.xRotO -= 360.0F;
-        }
-
-        while (this.getXRot() - this.xRotO >= 180.0F) {
-            this.xRotO += 360.0F;
-        }
-
-        while (this.yHeadRot - this.yHeadRotO < -180.0F) {
-            this.yHeadRotO -= 360.0F;
-        }
-
-        while (this.yHeadRot - this.yHeadRotO >= 180.0F) {
-            this.yHeadRotO += 360.0F;
-        }
+        this.yHeadRotO += Math.round((this.yHeadRot - this.yHeadRotO) / 360.0F) * 360.0F;
+        // Paper end
 
         this.level().getProfiler().pop();
         this.animStep += f2;

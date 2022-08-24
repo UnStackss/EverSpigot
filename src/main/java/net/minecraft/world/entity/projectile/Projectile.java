@@ -316,13 +316,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
     }
 
     protected static float lerpRotation(float prevRot, float newRot) {
-        while (newRot - prevRot < -180.0F) {
-            prevRot -= 360.0F;
-        }
-
-        while (newRot - prevRot >= 180.0F) {
-            prevRot += 360.0F;
-        }
+        prevRot += Math.round((newRot - prevRot) / 360.0F) * 360.0F; // Paper - stop large look changes from crashing the server
 
         return Mth.lerp(0.2F, prevRot, newRot);
     }
