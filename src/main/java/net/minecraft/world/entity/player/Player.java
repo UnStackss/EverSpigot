@@ -1257,8 +1257,17 @@ public abstract class Player extends LivingEntity {
     }
 
     public void attack(Entity target) {
-        if (target.isAttackable()) {
-            if (!target.skipAttackInteraction(this)) {
+        // Paper start - PlayerAttackEntityEvent
+        boolean willAttack = target.isAttackable() && !target.skipAttackInteraction(this); // Vanilla logic
+        io.papermc.paper.event.player.PrePlayerAttackEntityEvent playerAttackEntityEvent = new io.papermc.paper.event.player.PrePlayerAttackEntityEvent(
+            (org.bukkit.entity.Player) this.getBukkitEntity(),
+            target.getBukkitEntity(),
+            willAttack
+        );
+
+        if (playerAttackEntityEvent.callEvent() && willAttack) { // Logic moved to willAttack local variable.
+            {
+        // Paper end - PlayerAttackEntityEvent
                 float f = this.isAutoSpinAttack() ? this.autoSpinAttackDmg : (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE);
                 ItemStack itemstack = this.getWeaponItem();
                 DamageSource damagesource = this.damageSources().playerAttack(this);
