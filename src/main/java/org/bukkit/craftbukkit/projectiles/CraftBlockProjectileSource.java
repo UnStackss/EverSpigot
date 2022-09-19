@@ -56,6 +56,13 @@ public class CraftBlockProjectileSource implements BlockProjectileSource {
 
     @Override
     public <T extends Projectile> T launchProjectile(Class<? extends T> projectile, Vector velocity) {
+        // Paper start - launchProjectile consumer
+        return this.launchProjectile(projectile, velocity, null);
+    }
+
+    @Override
+    public <T extends Projectile> T launchProjectile(Class<? extends T> projectile, Vector velocity, java.util.function.Consumer<? super T> function) {
+        // Paper end - launchProjectile consumer
         Preconditions.checkArgument(this.getBlock().getType() == Material.DISPENSER, "Block is no longer dispenser");
         // Copied from BlockDispenser.dispense()
         BlockSource sourceblock = new BlockSource((ServerLevel) this.dispenserBlock.getLevel(), this.dispenserBlock.getBlockPos(), this.dispenserBlock.getBlockState(), this.dispenserBlock);
@@ -140,6 +147,11 @@ public class CraftBlockProjectileSource implements BlockProjectileSource {
         if (velocity != null) {
             ((T) launch.getBukkitEntity()).setVelocity(velocity);
         }
+        // Paper start
+        if (function != null) {
+            function.accept((T) launch.getBukkitEntity());
+        }
+        // Paper end
 
         world.addFreshEntity(launch);
         return (T) launch.getBukkitEntity();
