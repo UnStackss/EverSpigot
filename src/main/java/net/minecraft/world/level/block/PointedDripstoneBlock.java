@@ -215,10 +215,13 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
                             if (((PointedDripstoneBlock.FluidInfo) optional.get()).sourceState.is(Blocks.MUD) && fluidtype == Fluids.WATER) {
                                 BlockState iblockdata1 = Blocks.CLAY.defaultBlockState();
 
-                                world.setBlockAndUpdate(((PointedDripstoneBlock.FluidInfo) optional.get()).pos, iblockdata1);
+                                // Paper start - Call BlockFormEvent
+                                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world, ((PointedDripstoneBlock.FluidInfo) optional.get()).pos, iblockdata1)) {
                                 Block.pushEntitiesUp(((PointedDripstoneBlock.FluidInfo) optional.get()).sourceState, iblockdata1, world, ((PointedDripstoneBlock.FluidInfo) optional.get()).pos);
                                 world.gameEvent((Holder) GameEvent.BLOCK_CHANGE, ((PointedDripstoneBlock.FluidInfo) optional.get()).pos, GameEvent.Context.of(iblockdata1));
                                 world.levelEvent(1504, blockposition1, 0);
+                                }
+                                // Paper end - Call BlockFormEvent
                             } else {
                                 BlockPos blockposition2 = PointedDripstoneBlock.findFillableCauldronBelowStalactiteTip(world, blockposition1, fluidtype);
 
