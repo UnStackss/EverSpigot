@@ -1098,4 +1098,12 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         throw new UnsupportedOperationException("Cannot set the hurt direction on a non player");
     }
     // Paper end - hurt direction API
+
+    // Paper start - knockback API
+    @Override
+    public void knockback(final double strength, final double directionX, final double directionZ) {
+        Preconditions.checkArgument(strength > 0, "Knockback strength must be > 0");
+        this.getHandle().knockback(strength, directionX, directionZ);
+    };
+    // Paper end - knockback API
 }
