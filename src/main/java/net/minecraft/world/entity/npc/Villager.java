@@ -921,6 +921,12 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
 
     @Override
     protected void updateTrades() {
+        // Paper start - More vanilla friendly methods to update trades
+        updateTrades(TRADES_PER_LEVEL);
+    }
+
+    public boolean updateTrades(int amount) {
+        // Paper end - More vanilla friendly methods to update trades
         VillagerData villagerdata = this.getVillagerData();
         Int2ObjectMap int2objectmap;
 
@@ -938,9 +944,11 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
             if (avillagertrades_imerchantrecipeoption != null) {
                 MerchantOffers merchantrecipelist = this.getOffers();
 
-                this.addOffersFromItemListings(merchantrecipelist, avillagertrades_imerchantrecipeoption, 2);
+                this.addOffersFromItemListings(merchantrecipelist, avillagertrades_imerchantrecipeoption, amount); // Paper - More vanilla friendly methods to update trades
+                return true; // Paper - More vanilla friendly methods to update trades
             }
         }
+        return false; // Paper - More vanilla friendly methods to update trades
     }
 
     public void gossip(ServerLevel world, Villager villager, long time) {
