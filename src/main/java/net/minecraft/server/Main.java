@@ -167,6 +167,18 @@ public class Main {
                 return;
             }
 
+            // Paper start - Detect headless JRE
+            String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
+            if (awtException != null) {
+                Main.LOGGER.error("You are using a headless JRE distribution.");
+                Main.LOGGER.error("This distribution is missing certain graphic libraries that the Minecraft server needs to function.");
+                Main.LOGGER.error("For instructions on how to install the non-headless JRE, see https://docs.papermc.io/misc/java-install");
+                Main.LOGGER.error("");
+                Main.LOGGER.error(awtException);
+                return;
+            }
+            // Paper end - Detect headless JRE
+
             org.spigotmc.SpigotConfig.disabledAdvancements = spigotConfiguration.getStringList("advancements.disabled"); // Paper - fix SPIGOT-5885, must be set early in init
             // Paper start - fix SPIGOT-5824
             File file;
