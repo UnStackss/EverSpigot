@@ -133,7 +133,7 @@ public class EntitySelectorParser {
         boolean flag;
 
         if (source instanceof SharedSuggestionProvider icompletionprovider) {
-            if (icompletionprovider.hasPermission(2)) {
+            if (source instanceof net.minecraft.commands.CommandSourceStack stack ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector") : icompletionprovider.hasPermission(2)) { // Paper - Fix EntityArgument permissions
                 flag = true;
                 return flag;
             }

@@ -135,7 +135,12 @@ public class EntityArgument implements ArgumentType<EntitySelector> {
             StringReader stringreader = new StringReader(suggestionsbuilder.getInput());
 
             stringreader.setCursor(suggestionsbuilder.getStart());
-            EntitySelectorParser argumentparserselector = new EntitySelectorParser(stringreader, EntitySelectorParser.allowSelectors(icompletionprovider));
+            // Paper start - Fix EntityArgument permissions
+            final boolean permission = object instanceof CommandSourceStack stack
+                    ? stack.bypassSelectorPermissions || stack.hasPermission(2, "minecraft.command.selector")
+                    : icompletionprovider.hasPermission(2);
+            EntitySelectorParser argumentparserselector = new EntitySelectorParser(stringreader, permission);
+            // Paper end - Fix EntityArgument permissions
 
             try {
                 argumentparserselector.parse();
