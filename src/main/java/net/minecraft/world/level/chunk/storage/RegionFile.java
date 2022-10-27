@@ -50,7 +50,7 @@ public class RegionFile implements AutoCloseable {
     protected final RegionBitmap usedSectors;
 
     public RegionFile(RegionStorageInfo storageKey, Path directory, Path path, boolean dsync) throws IOException {
-        this(storageKey, directory, path, RegionFileVersion.getSelected(), dsync);
+        this(storageKey, directory, path, RegionFileVersion.getCompressionFormat(), dsync); // Paper - Configurable region compression format
     }
 
     public RegionFile(RegionStorageInfo storageKey, Path path, Path directory, RegionFileVersion compressionFormat, boolean dsync) throws IOException {
