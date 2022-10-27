@@ -82,7 +82,7 @@ public class Spider extends Monster {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide) {
-            this.setClimbing(this.horizontalCollision);
+            this.setClimbing(this.horizontalCollision && (this.level().paperConfig().entities.behavior.allowSpiderWorldBorderClimbing || !(ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isCollidingWithBorder(this.level().getWorldBorder(), this.getBoundingBox().inflate(ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON)) && this.level().getWorldBorder().isInsideCloseToBorder(this, this.getBoundingBox())))); // Paper - Add config option for spider worldborder climbing (Inflate by +EPSILON as collision will just barely place us outside border)
         }
 
     }
