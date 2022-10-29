@@ -867,6 +867,13 @@ public interface DispenseItemBehavior {
                 this.setSuccess(true);
                 if (iblockdata.is(Blocks.RESPAWN_ANCHOR)) {
                     if ((Integer) iblockdata.getValue(RespawnAnchorBlock.CHARGE) != 4) {
+                        // Paper start - Call missing BlockDispenseEvent
+                        ItemStack result = org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDispenseEvent(pointer, blockposition, stack, this);
+                        if (result != null) {
+                            this.setSuccess(false);
+                            return result;
+                        }
+                        // Paper end - Call missing BlockDispenseEvent
                         RespawnAnchorBlock.charge((Entity) null, worldserver, blockposition, iblockdata);
                         stack.shrink(1);
                     } else {
@@ -944,6 +951,13 @@ public interface DispenseItemBehavior {
                 Optional<BlockState> optional = HoneycombItem.getWaxed(iblockdata);
 
                 if (optional.isPresent()) {
+                    // Paper start - Call missing BlockDispenseEvent
+                    ItemStack result = org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDispenseEvent(pointer, blockposition, stack, this);
+                    if (result != null) {
+                        this.setSuccess(false);
+                        return result;
+                    }
+                    // Paper end - Call missing BlockDispenseEvent
                     worldserver.setBlockAndUpdate(blockposition, (BlockState) optional.get());
                     worldserver.levelEvent(3003, blockposition, 0);
                     stack.shrink(1);
@@ -971,6 +985,12 @@ public interface DispenseItemBehavior {
                     if (!worldserver.getBlockState(blockposition1).is(BlockTags.CONVERTABLE_TO_MUD)) {
                         return this.defaultDispenseItemBehavior.dispense(pointer, stack);
                     } else {
+                        // Paper start - Call missing BlockDispenseEvent
+                        ItemStack result = org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDispenseEvent(pointer, blockposition1, stack, this);
+                        if (result != null) {
+                            return result;
+                        }
+                        // Paper end - Call missing BlockDispenseEvent
                         if (!worldserver.isClientSide) {
                             for (int k = 0; k < 5; ++k) {
                                 worldserver.sendParticles(ParticleTypes.SPLASH, (double) blockposition.getX() + worldserver.random.nextDouble(), (double) (blockposition.getY() + 1), (double) blockposition.getZ() + worldserver.random.nextDouble(), 1, 0.0D, 0.0D, 0.0D, 1.0D);
