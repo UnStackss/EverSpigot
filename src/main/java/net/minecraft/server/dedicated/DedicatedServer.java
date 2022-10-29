@@ -319,6 +319,12 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         }
     }
 
+    // Paper start
+    public java.io.File getPluginsFolder() {
+        return (java.io.File) this.options.valueOf("plugins");
+    }
+    // Paper end
+
     @Override
     public boolean isSpawningAnimals() {
         return this.getProperties().spawnAnimals && super.isSpawningAnimals();

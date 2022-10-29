@@ -643,6 +643,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         }
 
         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
+        if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
         this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
         this.connection.acceptConnections();
     }
@@ -916,6 +917,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             this.server.disablePlugins();
         }
         // CraftBukkit end
+        if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.shutdown(); // Paper - Plugin remapping
         this.getConnection().stop();
         this.isSaving = true;
         if (this.playerList != null) {
