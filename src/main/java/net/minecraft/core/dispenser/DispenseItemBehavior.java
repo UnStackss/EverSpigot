@@ -239,7 +239,7 @@ public interface DispenseItemBehavior {
                         // Chain to handler for new item
                         ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
                         DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-                        if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != ArmorItem.DISPENSE_ITEM_BEHAVIOR) {
+                        if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != this) { // Paper - fix possible StackOverflowError
                             idispensebehavior.dispense(pointer, eventStack);
                             return stack;
                         }
@@ -295,7 +295,7 @@ public interface DispenseItemBehavior {
                     // Chain to handler for new item
                     ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
                     DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-                    if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != ArmorItem.DISPENSE_ITEM_BEHAVIOR) {
+                    if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != this) { // Paper - fix possible StackOverflowError
                         idispensebehavior.dispense(pointer, eventStack);
                         return stack;
                     }
@@ -369,7 +369,7 @@ public interface DispenseItemBehavior {
                     // Chain to handler for new item
                     ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
                     DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-                    if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != ArmorItem.DISPENSE_ITEM_BEHAVIOR) {
+                    if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != this) { // Paper - fix possible StackOverflowError
                         idispensebehavior.dispense(pointer, eventStack);
                         return stack;
                     }
@@ -690,7 +690,7 @@ public interface DispenseItemBehavior {
         OptionalDispenseItemBehavior dispensebehaviormaybe1 = new OptionalDispenseItemBehavior() {
             @Override
             protected ItemStack execute(BlockSource pointer, ItemStack stack) {
-                this.setSuccess(ArmorItem.dispenseArmor(pointer, stack));
+                this.setSuccess(ArmorItem.dispenseArmor(pointer, stack, this)); // Paper - fix possible StackOverflowError
                 return stack;
             }
         };
@@ -744,7 +744,7 @@ public interface DispenseItemBehavior {
                     stack.shrink(1);
                     this.setSuccess(true);
                 } else {
-                    this.setSuccess(ArmorItem.dispenseArmor(pointer, stack));
+                    this.setSuccess(ArmorItem.dispenseArmor(pointer, stack, this)); // Paper - fix possible StackOverflowError
                 }
 
                 return stack;
@@ -790,7 +790,7 @@ public interface DispenseItemBehavior {
                     stack.shrink(1);
                     this.setSuccess(true);
                 } else {
-                    this.setSuccess(ArmorItem.dispenseArmor(pointer, stack));
+                    this.setSuccess(ArmorItem.dispenseArmor(pointer, stack, this)); // Paper - fix possible StackOverflowError
                 }
 
                 return stack;
@@ -918,7 +918,7 @@ public interface DispenseItemBehavior {
                         // Chain to handler for new item
                         ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
                         DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-                        if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != ArmorItem.DISPENSE_ITEM_BEHAVIOR) {
+                        if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != this) { // Paper - fix possible StackOverflowError
                             idispensebehavior.dispense(pointer, eventStack);
                             return stack;
                         }

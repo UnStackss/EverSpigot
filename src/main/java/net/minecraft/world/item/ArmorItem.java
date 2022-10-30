@@ -39,14 +39,20 @@ public class ArmorItem extends Item implements Equipable {
     public static final DispenseItemBehavior DISPENSE_ITEM_BEHAVIOR = new DefaultDispenseItemBehavior() {
         @Override
         protected ItemStack execute(BlockSource pointer, ItemStack stack) {
-            return ArmorItem.dispenseArmor(pointer, stack) ? stack : super.execute(pointer, stack);
+            return ArmorItem.dispenseArmor(pointer, stack, this) ? stack : super.execute(pointer, stack); // Paper - fix possible StackOverflowError
         }
     };
     protected final ArmorItem.Type type;
     protected final Holder<ArmorMaterial> material;
     private final Supplier<ItemAttributeModifiers> defaultModifiers;
 
+    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper
     public static boolean dispenseArmor(BlockSource pointer, ItemStack armor) {
+        // Paper start
+        return dispenseArmor(pointer, armor, null);
+    }
+    public static boolean dispenseArmor(BlockSource pointer, ItemStack armor, @javax.annotation.Nullable DispenseItemBehavior currentBehavior) {
+        // Paper end
         BlockPos blockposition = pointer.pos().relative((Direction) pointer.state().getValue(DispenserBlock.FACING));
         List<LivingEntity> list = pointer.level().getEntitiesOfClass(LivingEntity.class, new AABB(blockposition), EntitySelector.NO_SPECTATORS.and(new EntitySelector.MobCanWearArmorEntitySelector(armor)));
 
@@ -77,7 +83,7 @@ public class ArmorItem extends Item implements Equipable {
                 // Chain to handler for new item
                 ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
                 DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-                if (idispensebehavior != DispenseItemBehavior.NOOP && idispensebehavior != ArmorItem.DISPENSE_ITEM_BEHAVIOR) {
+                if (idispensebehavior != DispenseItemBehavior.NOOP && (currentBehavior == null || idispensebehavior != currentBehavior)) { // Paper - fix possible StackOverflowError
                     idispensebehavior.dispense(pointer, eventStack);
                     return true;
                 }
