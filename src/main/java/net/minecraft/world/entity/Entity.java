@@ -3193,6 +3193,10 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             pluginManager.callEvent(entityCombustEvent);
             if (!entityCombustEvent.isCancelled()) {
                 this.igniteForSeconds(entityCombustEvent.getDuration(), false);
+            // Paper start - fix EntityCombustEvent cancellation
+            } else {
+                this.setRemainingFireTicks(this.remainingFireTicks - 1);
+            // Paper end - fix EntityCombustEvent cancellation
             }
             // CraftBukkit end
         }
