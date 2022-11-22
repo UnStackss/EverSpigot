@@ -269,7 +269,7 @@ public class ZombieVillager extends Zombie implements VillagerDataHolder {
             entityvillager.finalizeSpawn(world, world.getCurrentDifficultyAt(entityvillager.blockPosition()), MobSpawnType.CONVERSION, (SpawnGroupData) null);
             entityvillager.refreshBrain(world);
             if (this.conversionStarter != null) {
-                Player entityhuman = world.getPlayerByUUID(this.conversionStarter);
+            Player entityhuman = world.getGlobalPlayerByUUID(this.conversionStarter); // Paper - check global player list where appropriate
 
                 if (entityhuman instanceof ServerPlayer) {
                     CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger((ServerPlayer) entityhuman, this, entityvillager);

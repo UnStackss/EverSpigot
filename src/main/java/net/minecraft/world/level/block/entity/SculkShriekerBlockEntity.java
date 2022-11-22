@@ -105,6 +105,13 @@ public class SculkShriekerBlockEntity extends BlockEntity implements GameEventLi
 
     @Nullable
     public static ServerPlayer tryGetPlayer(@Nullable Entity entity) {
+        // Paper start - check global player list where appropriate; ensure level is the same for sculk events
+        final ServerPlayer player = tryGetPlayer0(entity);
+        return player != null && player.level() == entity.level() ? player : null;
+    }
+    @Nullable
+    private static ServerPlayer tryGetPlayer0(@Nullable Entity entity) {
+        // Paper end - check global player list where appropriate
         if (entity instanceof ServerPlayer) {
             return (ServerPlayer)entity;
         } else {

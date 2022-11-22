@@ -3723,7 +3723,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     public void onItemPickup(ItemEntity item) {
-        Entity entity = item.getOwner();
+        Entity entity = item.thrower != null ? this.level().getGlobalPlayerByUUID(item.thrower) : null; // Paper - check global player list where appropriate
 
         if (entity instanceof ServerPlayer) {
             CriteriaTriggers.THROWN_ITEM_PICKED_UP_BY_ENTITY.trigger((ServerPlayer) entity, item.getItem(), this);
