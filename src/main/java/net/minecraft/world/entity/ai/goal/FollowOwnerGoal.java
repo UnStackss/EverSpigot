@@ -72,7 +72,7 @@ public class FollowOwnerGoal extends Goal {
     public void tick() {
         boolean bl = this.tamable.shouldTryTeleportToOwner();
         if (!bl) {
-            this.tamable.getLookControl().setLookAt(this.owner, 10.0F, (float)this.tamable.getMaxHeadXRot());
+            if (this.tamable.distanceToSqr(this.owner) <= 16 * 16) this.tamable.getLookControl().setLookAt(this.owner, 10.0F, (float)this.tamable.getMaxHeadXRot()); // Paper - Limit pet look distance
         }
 
         if (--this.timeToRecalcPath <= 0) {
