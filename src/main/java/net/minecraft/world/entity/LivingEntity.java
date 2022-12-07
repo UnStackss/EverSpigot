@@ -3879,6 +3879,11 @@ public abstract class LivingEntity extends Entity implements Attackable {
         return ((Byte) this.entityData.get(LivingEntity.DATA_LIVING_ENTITY_FLAGS) & 2) > 0 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
     }
 
+    // Paper start - Properly cancel usable items
+    public void resyncUsingItem(ServerPlayer serverPlayer) {
+        this.resendPossiblyDesyncedDataValues(java.util.List.of(DATA_LIVING_ENTITY_FLAGS), serverPlayer);
+    }
+    // Paper end - Properly cancel usable items
     private void updatingUsingItem() {
         if (this.isUsingItem()) {
             if (ItemStack.isSameItem(this.getItemInHand(this.getUsedItemHand()), this.useItem)) {

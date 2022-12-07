@@ -50,7 +50,7 @@ public class SynchedEntityData {
         }
     }
 
-    private <T> SynchedEntityData.DataItem<T> getItem(EntityDataAccessor<T> key) {
+    public <T> SynchedEntityData.DataItem<T> getItem(EntityDataAccessor<T> key) { // Paper - public
         return (SynchedEntityData.DataItem<T>) this.itemsById[key.id()]; // CraftBukkit - decompile error
     }
 
@@ -150,6 +150,20 @@ public class SynchedEntityData {
             to.setValue((T) from.value); // CraftBukkit - decompile error
         }
     }
+
+    // Paper start
+    // We need to pack all as we cannot rely on "non default values" or "dirty" ones.
+    // Because these values can possibly be desynced on the client.
+    @Nullable
+    public List<SynchedEntityData.DataValue<?>> packAll() {
+        final List<SynchedEntityData.DataValue<?>> list = new ArrayList<>();
+        for (final DataItem<?> dataItem : this.itemsById) {
+            list.add(dataItem.value());
+        }
+
+        return list;
+    }
+    // Paper end
 
     public static class DataItem<T> {
 

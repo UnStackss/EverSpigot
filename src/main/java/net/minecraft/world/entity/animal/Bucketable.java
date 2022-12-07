@@ -108,8 +108,7 @@ public interface Bucketable {
             itemstack1 = CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
             if (playerBucketFishEvent.isCancelled()) {
                 ((ServerPlayer) player).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
-                entity.getBukkitEntity().update((ServerPlayer) player); // We need to play out these packets as the client assumes the fish is gone
-                entity.refreshEntityData((ServerPlayer) player); // Need to send data such as the display name to client
+                entity.resendPossiblyDesyncedEntityData((ServerPlayer) player); // Paper
                 return Optional.of(InteractionResult.FAIL);
             }
             entity.playSound(((Bucketable) entity).getPickupSound(), 1.0F, 1.0F);

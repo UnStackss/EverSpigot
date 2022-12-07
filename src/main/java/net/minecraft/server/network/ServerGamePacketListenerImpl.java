@@ -1948,6 +1948,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             }
 
             if (cancelled) {
+                this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
                 this.player.getBukkitEntity().updateInventory(); // SPIGOT-2524
                 return;
             }
@@ -2717,7 +2718,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
                             // Entity in bucket - SPIGOT-4048 and SPIGOT-6859a
                             if ((entity instanceof Bucketable && entity instanceof LivingEntity && origItem != null && origItem.asItem() == Items.WATER_BUCKET) && (event.isCancelled() || ServerGamePacketListenerImpl.this.player.getInventory().getSelected() == null || ServerGamePacketListenerImpl.this.player.getInventory().getSelected().getItem() != origItem)) {
-                                entity.getBukkitEntity().update(ServerGamePacketListenerImpl.this.player);
+                                entity.resendPossiblyDesyncedEntityData(ServerGamePacketListenerImpl.this.player); // Paper - The entire mob gets deleted, so resend it
                                 ServerGamePacketListenerImpl.this.player.containerMenu.sendAllDataToRemote();
                             }
 
