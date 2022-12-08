@@ -2057,7 +2057,9 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     private void performUnsignedChatCommand(String command) {
         // CraftBukkit start
         String command1 = "/" + command;
+        if (org.spigotmc.SpigotConfig.logCommands) { // Paper - Add missing SpigotConfig logCommands check
         ServerGamePacketListenerImpl.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command1);
+        }
 
         PlayerCommandPreprocessEvent event = new PlayerCommandPreprocessEvent(this.getCraftPlayer(), command1, new LazyPlayerSet(this.server));
         this.cserver.getPluginManager().callEvent(event);
@@ -2097,7 +2099,9 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     private void performSignedChatCommand(ServerboundChatCommandSignedPacket packet, LastSeenMessages lastSeenMessages) {
         // CraftBukkit start
         String command = "/" + packet.command();
+        if (org.spigotmc.SpigotConfig.logCommands) { // Paper - Add missing SpigotConfig logCommands check
         ServerGamePacketListenerImpl.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + command);
+        } // Paper - Add missing SpigotConfig logCommands check
 
         PlayerCommandPreprocessEvent event = new PlayerCommandPreprocessEvent(this.getCraftPlayer(), command, new LazyPlayerSet(this.server));
         this.cserver.getPluginManager().callEvent(event);
