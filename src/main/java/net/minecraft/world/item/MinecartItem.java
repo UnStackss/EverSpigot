@@ -66,7 +66,7 @@ public class MinecartItem extends Item {
 
             // CraftBukkit start
             // EntityMinecartAbstract entityminecartabstract = EntityMinecartAbstract.createMinecart(worldserver, d0, d1 + d3, d2, ((ItemMinecart) itemstack.getItem()).type);
-            ItemStack itemstack1 = stack.split(1);
+            ItemStack itemstack1 = stack.copyWithCount(1); // Paper - shrink below and single item in event
             org.bukkit.block.Block block2 = CraftBlock.at(worldserver, pointer.pos());
             CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
 
@@ -76,12 +76,13 @@ public class MinecartItem extends Item {
             }
 
             if (event.isCancelled()) {
-                stack.grow(1);
+                // stack.grow(1); // Paper - shrink below
                 return stack;
             }
 
+            boolean shrink = true; // Paper
             if (!event.getItem().equals(craftItem)) {
-                stack.grow(1);
+                shrink = false; // Paper - shrink below
                 // Chain to handler for new item
                 ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
                 DispenseItemBehavior idispensebehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
@@ -94,8 +95,7 @@ public class MinecartItem extends Item {
             itemstack1 = CraftItemStack.asNMSCopy(event.getItem());
             AbstractMinecart entityminecartabstract = AbstractMinecart.createMinecart(worldserver, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), ((MinecartItem) itemstack1.getItem()).type, itemstack1, (Player) null);
 
-            if (!worldserver.addFreshEntity(entityminecartabstract)) stack.grow(1);
-            // itemstack.shrink(1); // CraftBukkit - handled during event processing
+            if (worldserver.addFreshEntity(entityminecartabstract) && shrink) stack.shrink(1); // Paper - actually handle here
             // CraftBukkit end
             return stack;
         }

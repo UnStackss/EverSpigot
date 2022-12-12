@@ -38,7 +38,7 @@ public class ShearsDispenseItemBehavior extends OptionalDispenseItemBehavior {
         ServerLevel worldserver = pointer.level();
         // CraftBukkit start
         org.bukkit.block.Block bukkitBlock = CraftBlock.at(worldserver, pointer.pos());
-        CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack);
+        CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack); // Paper - ignore stack size on damageable items
 
         BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
         if (!DispenserBlock.eventFired) {
