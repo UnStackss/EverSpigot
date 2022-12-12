@@ -57,7 +57,12 @@ public class ShulkerBoxDispenseBehavior extends OptionalDispenseItemBehavior {
             // CraftBukkit end
 
             try {
-                this.setSuccess(((BlockItem) item).place(new DirectionalPlaceContext(pointer.level(), blockposition, enumdirection, stack, enumdirection1)).consumesAction());
+                // Paper start - track changed items in the dispense event
+                this.setSuccess(((BlockItem) item).place(new DirectionalPlaceContext(pointer.level(), blockposition, enumdirection, CraftItemStack.asNMSCopy(event.getItem()), enumdirection1)).consumesAction());
+                if (this.isSuccess()) {
+                    stack.shrink(1); // vanilla shrink is in the place function above, manually handle it here
+                }
+                // Paper end - track changed items in the dispense event
             } catch (Exception exception) {
                 ShulkerBoxDispenseBehavior.LOGGER.error("Error trying to place shulker box at {}", blockposition, exception);
             }
