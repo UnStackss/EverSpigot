@@ -69,6 +69,7 @@ public class ServerAdvancementManager extends SimpleJsonResourceReloadListener {
         AdvancementTree advancementtree = new AdvancementTree();
 
         advancementtree.addAll(this.advancements.values());
+        LOGGER.info("Loaded {} advancements", advancementtree.nodes().size()); // Paper - Improve logging and errors; moved from AdvancementTree#addAll
         Iterator iterator = advancementtree.roots().iterator();
 
         while (iterator.hasNext()) {

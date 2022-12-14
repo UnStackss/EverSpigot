@@ -3398,7 +3398,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
                     this.resetPlayerChatState(remotechatsession_a.validate(this.player.getGameProfile(), signaturevalidator));
                 } catch (ProfilePublicKey.ValidationException profilepublickey_b) {
-                    ServerGamePacketListenerImpl.LOGGER.error("Failed to validate profile key: {}", profilepublickey_b.getMessage());
+                    // ServerGamePacketListenerImpl.LOGGER.error("Failed to validate profile key: {}", profilepublickey_b.getMessage()); // Paper - Improve logging and errors
                     this.disconnect(profilepublickey_b.getComponent(), profilepublickey_b.kickCause); // Paper - kick event causes
                 }
 

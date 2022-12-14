@@ -282,6 +282,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
             DedicatedServer.LOGGER.warn("**** FAILED TO BIND TO PORT!");
             DedicatedServer.LOGGER.warn("The exception was: {}", ioexception.toString());
             DedicatedServer.LOGGER.warn("Perhaps a server is already running on that port?");
+            if (true) throw new IllegalStateException("Failed to bind to port", ioexception); // Paper - Propagate failed to bind to port error
             return false;
         }
 

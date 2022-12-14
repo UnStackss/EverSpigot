@@ -79,7 +79,7 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
         this.byType = LinkedHashMultimap.create(builder.build());
         this.byName = Maps.newHashMap(com_google_common_collect_immutablemap_builder.build());
         // CraftBukkit end
-        RecipeManager.LOGGER.info("Loaded {} recipes", this.byType.size());
+        RecipeManager.LOGGER.info("Loaded {} recipes", this.byName.size()); // Paper - Improve logging and errors; log correct number of recipes
     }
 
     // CraftBukkit start
