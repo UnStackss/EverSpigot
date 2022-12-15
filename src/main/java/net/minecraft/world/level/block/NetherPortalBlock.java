@@ -110,8 +110,9 @@ public class NetherPortalBlock extends Block implements Portal {
         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (entity.canUsePortal(false)) {
             // CraftBukkit start - Entity in portal
-            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
+            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), org.bukkit.PortalType.NETHER); // Paper - add portal type
             world.getCraftServer().getPluginManager().callEvent(event);
+            if (event.isCancelled()) return; // Paper - make cancellable
             // CraftBukkit end
             entity.setAsInsidePortal(this, pos);
         }
@@ -143,7 +144,7 @@ public class NetherPortalBlock extends Block implements Portal {
         // Paper end - Add EntityPortalReadyEvent
 
         if (worldserver1 == null) {
-            return new DimensionTransition(PlayerTeleportEvent.TeleportCause.NETHER_PORTAL); // always fire event in case plugins wish to change it
+            return null; // Paper - keep previous behavior of not firing PlayerTeleportEvent if the target world doesn't exist
         } else {
             boolean flag = worldserver1.getTypeKey() == LevelStem.NETHER;
             // CraftBukkit end

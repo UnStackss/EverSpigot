@@ -1340,7 +1340,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
                 }
                 // CraftBukkit start
                 Location enter = this.getBukkitEntity().getLocation();
-                Location exit = (worldserver == null) ? null : CraftLocation.toBukkit(teleportTarget.pos(), worldserver.getWorld(), teleportTarget.yRot(), teleportTarget.xRot());
+                Location exit =/* (worldserver == null) ? null : // Paper - always non-null */CraftLocation.toBukkit(teleportTarget.pos(), worldserver.getWorld(), teleportTarget.yRot(), teleportTarget.xRot());
                 PlayerTeleportEvent tpEvent = new PlayerTeleportEvent(this.getBukkitEntity(), enter, exit, teleportTarget.cause());
                 Bukkit.getServer().getPluginManager().callEvent(tpEvent);
                 if (tpEvent.isCancelled() || tpEvent.getTo() == null) {

@@ -92,6 +92,10 @@ public class EndGatewayBlock extends BaseEntityBlock implements Portal {
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (entity.canUsePortal(false)) {
+            // Paper start - call EntityPortalEnterEvent
+            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), org.bukkit.PortalType.END_GATEWAY); // Paper - add portal type
+            if (!event.callEvent()) return;
+            // Paper end - call EntityPortalEnterEvent
             BlockEntity tileentity = world.getBlockEntity(pos);
 
             if (!world.isClientSide && tileentity instanceof TheEndGatewayBlockEntity) {

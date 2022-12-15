@@ -3527,7 +3527,15 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         org.bukkit.entity.Entity bukkitEntity = entity.getBukkitEntity();
         Location enter = bukkitEntity.getLocation();
 
-        EntityPortalEvent event = new EntityPortalEvent(bukkitEntity, enter, exit, searchRadius, true, creationRadius);
+        // Paper start
+        final org.bukkit.PortalType portalType = switch (cause) {
+            case END_PORTAL -> org.bukkit.PortalType.ENDER;
+            case NETHER_PORTAL -> org.bukkit.PortalType.NETHER;
+            case END_GATEWAY -> org.bukkit.PortalType.END_GATEWAY; // not actually used yet
+            default -> org.bukkit.PortalType.CUSTOM;
+        };
+        EntityPortalEvent event = new EntityPortalEvent(bukkitEntity, enter, exit, searchRadius, true, creationRadius, portalType);
+        // Paper end
         event.getEntity().getServer().getPluginManager().callEvent(event);
         if (event.isCancelled() || event.getTo() == null || event.getTo().getWorld() == null || !entity.isAlive()) {
             return null;

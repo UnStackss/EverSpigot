@@ -66,8 +66,9 @@ public class EndPortalBlock extends BaseEntityBlock implements Portal {
         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (entity.canUsePortal(false) && Shapes.joinIsNotEmpty(Shapes.create(entity.getBoundingBox().move((double) (-pos.getX()), (double) (-pos.getY()), (double) (-pos.getZ()))), state.getShape(world, pos), BooleanOp.AND)) {
             // CraftBukkit start - Entity in portal
-            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
+            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), org.bukkit.PortalType.ENDER); // Paper - add portal type
             world.getCraftServer().getPluginManager().callEvent(event);
+            if (event.isCancelled()) return; // Paper - make cancellable
             // CraftBukkit end
             if (!world.isClientSide && world.dimension() == Level.END && entity instanceof ServerPlayer) {
                 ServerPlayer entityplayer = (ServerPlayer) entity;
@@ -90,7 +91,7 @@ public class EndPortalBlock extends BaseEntityBlock implements Portal {
         ServerLevel worldserver1 = world.getServer().getLevel(resourcekey);
 
         if (worldserver1 == null) {
-            return new DimensionTransition(PlayerTeleportEvent.TeleportCause.END_PORTAL); // CraftBukkit- always fire event in case plugins wish to change it
+            return null; // Paper - keep previous behavior of not firing PlayerTeleportEvent if the target world doesn't exist
         } else {
             boolean flag = resourcekey == Level.END;
             BlockPos blockposition1 = flag ? ServerLevel.END_SPAWN_POINT : worldserver1.getSharedSpawnPos();

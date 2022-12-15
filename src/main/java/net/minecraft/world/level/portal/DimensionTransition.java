@@ -15,9 +15,7 @@ public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, fl
         this(newLevel, pos, speed, yRot, xRot, missingRespawnBlock, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
     }
 
-    public DimensionTransition(PlayerTeleportEvent.TeleportCause cause) {
-        this(null, Vec3.ZERO, Vec3.ZERO, 0.0F, 0.0F, false, DO_NOTHING, cause);
-    }
+    // Paper - remove unused constructor (for safety)
     // CraftBukkit end
 
     public static final DimensionTransition.PostDimensionTransition DO_NOTHING = (entity) -> {
