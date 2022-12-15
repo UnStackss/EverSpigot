@@ -673,8 +673,9 @@ public class Panda extends Animal {
                 this.usePlayerItem(player, hand, itemstack);
                 this.ageUp((int) ((float) (-this.getAge() / 20) * 0.1F), true);
             } else if (!this.level().isClientSide && this.getAge() == 0 && this.canFallInLove()) {
+                final ItemStack breedCopy = itemstack.copy(); // Paper - Fix EntityBreedEvent copying
                 this.usePlayerItem(player, hand, itemstack);
-                this.setInLove(player);
+                this.setInLove(player, breedCopy); // Paper - Fix EntityBreedEvent copying
             } else {
                 if (this.level().isClientSide || this.isSitting() || this.isInWater()) {
                     return InteractionResult.PASS;

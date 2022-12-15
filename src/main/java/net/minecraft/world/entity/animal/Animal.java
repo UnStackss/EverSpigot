@@ -148,8 +148,9 @@ public abstract class Animal extends AgeableMob {
             int i = this.getAge();
 
             if (!this.level().isClientSide && i == 0 && this.canFallInLove()) {
+                final ItemStack breedCopy = itemstack.copy(); // Paper - Fix EntityBreedEvent copying
                 this.usePlayerItem(player, hand, itemstack);
-                this.setInLove(player);
+                this.setInLove(player, breedCopy); // Paper - Fix EntityBreedEvent copying
                 return InteractionResult.SUCCESS;
             }
 
@@ -175,10 +176,18 @@ public abstract class Animal extends AgeableMob {
         return this.inLove <= 0;
     }
 
+    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Fix EntityBreedEvent copying
     public void setInLove(@Nullable Player player) {
+        // Paper start - Fix EntityBreedEvent copying
+        this.setInLove(player, null);
+    }
+    public void setInLove(@Nullable Player player, @Nullable ItemStack breedItemCopy) {
+        if (breedItemCopy != null) this.breedItem = breedItemCopy;
+        // Paper end - Fix EntityBreedEvent copying
         // CraftBukkit start
         EntityEnterLoveModeEvent entityEnterLoveModeEvent = CraftEventFactory.callEntityEnterLoveModeEvent(player, this, 600);
         if (entityEnterLoveModeEvent.isCancelled()) {
+            this.breedItem = null; // Paper - Fix EntityBreedEvent copying; clear if cancelled
             return;
         }
         this.inLove = entityEnterLoveModeEvent.getTicksInLove();
@@ -186,7 +195,7 @@ public abstract class Animal extends AgeableMob {
         if (player != null) {
             this.loveCause = player.getUUID();
         }
-        this.breedItem = player.getInventory().getSelected(); // CraftBukkit
+        // Paper - Fix EntityBreedEvent copying; set breed item in better place
 
         this.level().broadcastEntityEvent(this, (byte) 18);
     }

@@ -393,7 +393,7 @@ public class Camel extends AbstractHorse implements PlayerRideableJumping, Saddl
             boolean flag1 = this.isTamed() && this.getAge() == 0 && this.canFallInLove();
 
             if (flag1) {
-                this.setInLove(player);
+                this.setInLove(player, item.copy()); // Paper - Fix EntityBreedEvent copying
             }
 
             boolean flag2 = this.isBaby();

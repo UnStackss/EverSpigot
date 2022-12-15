@@ -179,7 +179,7 @@ public class Llama extends AbstractChestedHorse implements VariantHolder<Llama.V
             f = 10.0F;
             if (this.isTamed() && this.getAge() == 0 && this.canFallInLove()) {
                 flag = true;
-                this.setInLove(player);
+                this.setInLove(player, item.copy()); // Paper - Fix EntityBreedEvent copying
             }
         }
 

@@ -352,8 +352,8 @@ public class Armadillo extends Animal {
     }
 
     @Override
-    public void setInLove(@Nullable Player player) {
-        super.setInLove(player);
+    public void setInLove(@Nullable Player player, @Nullable ItemStack breedItemCopy) { // Paper
+        super.setInLove(player, breedItemCopy); // Paper
         this.makeSound(SoundEvents.ARMADILLO_EAT);
     }
 
