@@ -441,6 +441,24 @@ public class EndDragonFight {
         this.gateways.clear();
     }
 
+    // Paper start - More DragonBattle API
+    public boolean spawnNewGatewayIfPossible() {
+        if (!this.gateways.isEmpty()) {
+            this.spawnNewGateway();
+            return true;
+        }
+        return false;
+    }
+
+    public List<EndCrystal> getSpikeCrystals() {
+        final List<EndCrystal> endCrystals = new java.util.ArrayList<>();
+        for (final SpikeFeature.EndSpike spike : SpikeFeature.getSpikesForLevel(this.level)) {
+            endCrystals.addAll(this.level.getEntitiesOfClass(EndCrystal.class, spike.getTopBoundingBox()));
+        }
+        return endCrystals;
+    }
+    // Paper end - More DragonBattle API
+
     private void spawnNewGateway() {
         if (!this.gateways.isEmpty()) {
             int i = (Integer) this.gateways.remove(this.gateways.size() - 1);
