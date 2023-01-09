@@ -3436,7 +3436,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         this.signedMessageDecoder = session.createMessageDecoder(this.player.getUUID());
         this.chatMessageChain.append(() -> {
             this.player.setChatSession(session);
-            this.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT), List.of(this.player)));
+            this.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.INITIALIZE_CHAT), List.of(this.player)), this.player); // Paper - Use single player info update packet on join
         });
     }
 

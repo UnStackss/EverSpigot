@@ -361,6 +361,7 @@ public abstract class PlayerList {
         // CraftBukkit start - sendAll above replaced with this loop
         ClientboundPlayerInfoUpdatePacket packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player));
 
+        final List<ServerPlayer> onlinePlayers = Lists.newArrayListWithExpectedSize(this.players.size() - 1); // Paper - Use single player info update packet on join
         for (int i = 0; i < this.players.size(); ++i) {
             ServerPlayer entityplayer1 = (ServerPlayer) this.players.get(i);
 
@@ -368,12 +369,17 @@ public abstract class PlayerList {
                 entityplayer1.connection.send(packet);
             }
 
-            if (!bukkitPlayer.canSee(entityplayer1.getBukkitEntity())) {
+            if (entityplayer1 == player || !bukkitPlayer.canSee(entityplayer1.getBukkitEntity())) { // Paper - Use single player info update packet on join; Don't include joining player
                 continue;
             }
 
-            player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(entityplayer1)));
+            onlinePlayers.add(entityplayer1); // Paper - Use single player info update packet on join
         }
+        // Paper start - Use single player info update packet on join
+        if (!onlinePlayers.isEmpty()) {
+            player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(onlinePlayers));
+        }
+        // Paper end - Use single player info update packet on join
         player.sentListPacket = true;
         player.supressTrackerForLogin = false; // Paper - Fire PlayerJoinEvent when Player is actually ready
         ((ServerLevel)player.level()).getChunkSource().chunkMap.addEntity(player); // Paper - Fire PlayerJoinEvent when Player is actually ready; track entity now
