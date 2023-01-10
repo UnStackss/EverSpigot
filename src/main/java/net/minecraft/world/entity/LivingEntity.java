@@ -1632,7 +1632,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
             this.level().getCraftServer().getPluginManager().callEvent(event);
 
             if (!event.isCancelled()) {
-                if (!itemstack1.isEmpty()) {
+                if (!itemstack1.isEmpty() && itemstack != null) { // Paper - only reduce item if actual totem was found
                     itemstack1.shrink(1);
                 }
                 if (itemstack != null && this instanceof ServerPlayer) {
