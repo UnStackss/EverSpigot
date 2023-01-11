@@ -359,14 +359,22 @@ public abstract class PlayerList {
         // CraftBukkit end
 
         // CraftBukkit start - sendAll above replaced with this loop
-        ClientboundPlayerInfoUpdatePacket packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player));
+        ClientboundPlayerInfoUpdatePacket packet = ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(player)); // Paper - Add Listing API for Player
 
         final List<ServerPlayer> onlinePlayers = Lists.newArrayListWithExpectedSize(this.players.size() - 1); // Paper - Use single player info update packet on join
         for (int i = 0; i < this.players.size(); ++i) {
             ServerPlayer entityplayer1 = (ServerPlayer) this.players.get(i);
 
             if (entityplayer1.getBukkitEntity().canSee(bukkitPlayer)) {
+                // Paper start - Add Listing API for Player
+                if (entityplayer1.getBukkitEntity().isListed(bukkitPlayer)) {
+                // Paper end - Add Listing API for Player
                 entityplayer1.connection.send(packet);
+                // Paper start - Add Listing API for Player
+                } else {
+                    entityplayer1.connection.send(ClientboundPlayerInfoUpdatePacket.createSinglePlayerInitializing(player, false));
+                }
+                // Paper end - Add Listing API for Player
             }
 
             if (entityplayer1 == player || !bukkitPlayer.canSee(entityplayer1.getBukkitEntity())) { // Paper - Use single player info update packet on join; Don't include joining player
@@ -377,7 +385,7 @@ public abstract class PlayerList {
         }
         // Paper start - Use single player info update packet on join
         if (!onlinePlayers.isEmpty()) {
-            player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(onlinePlayers));
+            player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(onlinePlayers, player)); // Paper - Add Listing API for Player
         }
         // Paper end - Use single player info update packet on join
         player.sentListPacket = true;
