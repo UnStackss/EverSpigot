@@ -1163,4 +1163,16 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         this.getHandle().frictionState = state;
     }
     // Paper end - friction API
+
+    // Paper start - body yaw API
+    @Override
+    public float getBodyYaw() {
+        return this.getHandle().getVisualRotationYInDegrees();
+    }
+
+    @Override
+    public void setBodyYaw(final float bodyYaw) {
+        this.getHandle().setYBodyRot(bodyYaw);
+    }
+    // Paper end - body yaw API
 }
