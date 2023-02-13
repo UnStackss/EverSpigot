@@ -22,6 +22,7 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.ow2.asm:asm-tree:9.7")
+    testImplementation("org.junit-pioneer:junit-pioneer:2.2.0") // Paper - CartesianTest
 }
 
 paperweight {
@@ -54,6 +55,12 @@ tasks.jar {
         }
     }
 }
+
+// Paper start - compile tests with -parameters for better junit parameterized test names
+tasks.compileTestJava {
+    options.compilerArgs.add("-parameters")
+}
+// Paper end
 
 publishing {
     publications.create<MavenPublication>("maven") {

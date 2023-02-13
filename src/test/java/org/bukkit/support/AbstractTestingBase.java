@@ -53,6 +53,11 @@ public abstract class AbstractTestingBase {
         MultiPackResourceManager resourceManager = new MultiPackResourceManager(PackType.SERVER_DATA, resourceRepository.getAvailablePacks().stream().map(Pack::open).toList());
         // add tags and loot tables for unit tests
         LayeredRegistryAccess<RegistryLayer> layers = RegistryLayer.createRegistryAccess();
+        // Paper start - load registry here to ensure bukkit object registry are correctly delayed if needed
+        try {
+            Class.forName("org.bukkit.Registry");
+        } catch (ClassNotFoundException ignored) {}
+        // Paper end - load registry here to ensure bukkit object registry are correctly delayed if needed
         layers = WorldLoader.loadAndReplaceLayer(resourceManager, layers, RegistryLayer.WORLDGEN, RegistryDataLoader.WORLDGEN_REGISTRIES);
         REGISTRY_CUSTOM = layers.compositeAccess().freeze();
         // Register vanilla pack
