@@ -2,6 +2,7 @@ package io.papermc.paper.registry;
 
 import io.papermc.paper.adventure.PaperAdventure;
 import io.papermc.paper.registry.entry.RegistryEntry;
+import io.papermc.paper.registry.tag.TagKey;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -56,6 +57,7 @@ import org.checkerframework.framework.qual.DefaultQualifier;
 
 import static io.papermc.paper.registry.entry.RegistryEntry.apiOnly;
 import static io.papermc.paper.registry.entry.RegistryEntry.entry;
+import static io.papermc.paper.registry.entry.RegistryEntry.writable;
 
 @DefaultQualifier(NonNull.class)
 public final class PaperRegistries {
@@ -136,6 +138,15 @@ public final class PaperRegistries {
     @SuppressWarnings({"unchecked", "RedundantCast"})
     public static <M, T> ResourceKey<M> toNms(final TypedKey<T> typedKey) {
         return ResourceKey.create((ResourceKey<? extends Registry<M>>) PaperRegistries.registryToNms(typedKey.registryKey()), PaperAdventure.asVanilla(typedKey.key()));
+    }
+
+    public static <M, T> TagKey<T> fromNms(final net.minecraft.tags.TagKey<M> tagKey) {
+        return TagKey.create(registryFromNms(tagKey.registry()), CraftNamespacedKey.fromMinecraft(tagKey.location()));
+    }
+
+    @SuppressWarnings({"unchecked", "RedundantCast"})
+    public static <M, T> net.minecraft.tags.TagKey<M> toNms(final TagKey<T> tagKey) {
+        return net.minecraft.tags.TagKey.create((ResourceKey<? extends Registry<M>>) registryToNms(tagKey.registryKey()), PaperAdventure.asVanilla(tagKey.key()));
     }
 
     private PaperRegistries() {

@@ -165,11 +165,11 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
     private final Map<NamespacedKey, B> cache = new HashMap<>();
     private final Map<B, NamespacedKey> byValue = new java.util.IdentityHashMap<>(); // Paper - improve Registry
     private final net.minecraft.core.Registry<M> minecraftRegistry;
-    private final BiFunction<NamespacedKey, M, B> minecraftToBukkit;
+    private final BiFunction<? super NamespacedKey, M, B> minecraftToBukkit; // Paper
     private final BiFunction<NamespacedKey, ApiVersion, NamespacedKey> serializationUpdater; // Paper - rename to make it *clear* what it is *only* for
     private boolean init;
 
-    public CraftRegistry(Class<?> bukkitClass, net.minecraft.core.Registry<M> minecraftRegistry, BiFunction<NamespacedKey, M, B> minecraftToBukkit, BiFunction<NamespacedKey, ApiVersion, NamespacedKey> serializationUpdater) { // Paper - relax preload class
+    public CraftRegistry(Class<?> bukkitClass, net.minecraft.core.Registry<M> minecraftRegistry, BiFunction<? super NamespacedKey, M, B> minecraftToBukkit, BiFunction<NamespacedKey, ApiVersion, NamespacedKey> serializationUpdater) { // Paper - relax preload class
         this.bukkitClass = bukkitClass;
         this.minecraftRegistry = minecraftRegistry;
         this.minecraftToBukkit = minecraftToBukkit;
@@ -242,4 +242,17 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
         return this.byValue.get(value);
     }
     // Paper end - improve Registry
+
+    // Paper start - RegistrySet API
+    @Override
+    public boolean hasTag(final io.papermc.paper.registry.tag.TagKey<B> key) {
+        return this.minecraftRegistry.getTag(net.minecraft.tags.TagKey.create(this.minecraftRegistry.key(), io.papermc.paper.adventure.PaperAdventure.asVanilla(key.key()))).isPresent();
+    }
+
+    @Override
+    public io.papermc.paper.registry.tag.Tag<B> getTag(final io.papermc.paper.registry.tag.TagKey<B> key) {
+        final net.minecraft.core.HolderSet.Named<M> namedHolderSet = this.minecraftRegistry.getTag(io.papermc.paper.registry.PaperRegistries.toNms(key)).orElseThrow();
+        return new io.papermc.paper.registry.set.NamedRegistryKeySetImpl<>(key, namedHolderSet);
+    }
+    // Paper end - RegistrySet API
 }

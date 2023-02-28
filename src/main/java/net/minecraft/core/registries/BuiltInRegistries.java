@@ -288,6 +288,17 @@ public class BuiltInRegistries {
         Registries.ENCHANTMENT_PROVIDER_TYPE, EnchantmentProviderTypes::bootstrap
     );
     public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
+    // Paper start - add built-in registry conversions
+    public static final io.papermc.paper.registry.data.util.Conversions BUILT_IN_CONVERSIONS = new io.papermc.paper.registry.data.util.Conversions(new net.minecraft.resources.RegistryOps.RegistryInfoLookup() {
+        @Override
+        public <T> java.util.Optional<net.minecraft.resources.RegistryOps.RegistryInfo<T>> lookup(final ResourceKey<? extends Registry<? extends T>> registryRef) {
+            final Registry<T> registry = net.minecraft.server.RegistryLayer.STATIC_ACCESS.registryOrThrow(registryRef);
+            return java.util.Optional.of(
+                new net.minecraft.resources.RegistryOps.RegistryInfo<>(registry.asLookup(), registry.asTagAddingLookup(), Lifecycle.experimental())
+            );
+        }
+    });
+    // Paper end - add built-in registry conversions
 
     private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> key, BuiltInRegistries.RegistryBootstrap<T> initializer) {
         return internalRegister(key, new MappedRegistry<>(key, Lifecycle.stable(), false), initializer);
@@ -328,6 +339,7 @@ public class BuiltInRegistries {
     }
     public static void bootStrap(Runnable runnable) {
         // Paper end
+        REGISTRY.freeze(); // Paper - freeze main registry early
         createContents();
         runnable.run(); // Paper
         freeze();
@@ -346,6 +358,7 @@ public class BuiltInRegistries {
         REGISTRY.freeze();
 
         for (Registry<?> registry : REGISTRY) {
+            io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.runFreezeListeners(registry.key(), BUILT_IN_CONVERSIONS); // Paper
             registry.freeze();
         }
     }

@@ -441,4 +441,12 @@ public class MappedRegistry<T> implements WritableRegistry<T> {
     public HolderLookup.RegistryLookup<T> asLookup() {
         return this.lookup;
     }
+    // Paper start
+    // used to clear intrusive holders from GameEvent, Item, Block, EntityType, and Fluid from unused instances of those types
+    public void clearIntrusiveHolder(final T instance) {
+        if (this.unregisteredIntrusiveHolders != null) {
+            this.unregisteredIntrusiveHolders.remove(instance);
+        }
+    }
+    // Paper end
 }

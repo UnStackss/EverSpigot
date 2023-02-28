@@ -668,6 +668,21 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
     // Paper end - lifecycle event API
 
+    // Paper start - hack to get tags for non server-backed registries
+    @Override
+    public <A extends Keyed, M> io.papermc.paper.registry.tag.Tag<A> getTag(final io.papermc.paper.registry.tag.TagKey<A> tagKey) { // TODO remove Keyed
+        if (tagKey.registryKey() != io.papermc.paper.registry.RegistryKey.ENTITY_TYPE || tagKey.registryKey() != io.papermc.paper.registry.RegistryKey.FLUID) {
+            throw new UnsupportedOperationException(tagKey.registryKey() + " doesn't have tags");
+        }
+        final net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<M>> nmsKey = io.papermc.paper.registry.PaperRegistries.registryToNms(tagKey.registryKey());
+        final net.minecraft.core.Registry<M> nmsRegistry = org.bukkit.craftbukkit.CraftRegistry.getMinecraftRegistry().registryOrThrow(nmsKey);
+        return nmsRegistry
+            .getTag(io.papermc.paper.registry.PaperRegistries.toNms(tagKey))
+            .map(named -> new io.papermc.paper.registry.set.NamedRegistryKeySetImpl<>(tagKey, named))
+            .orElse(null);
+    }
+    // Paper end - hack to get tags for non server-backed registries
+
     /**
      * This helper class represents the different NBT Tags.
      * <p>

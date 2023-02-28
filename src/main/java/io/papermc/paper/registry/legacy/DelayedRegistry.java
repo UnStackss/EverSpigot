@@ -1,12 +1,13 @@
 package io.papermc.paper.registry.legacy;
 
+import io.papermc.paper.registry.tag.Tag;
+import io.papermc.paper.registry.tag.TagKey;
 import java.util.Iterator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
-import org.bukkit.craftbukkit.CraftRegistry;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -51,5 +52,15 @@ public final class DelayedRegistry<T extends Keyed, R extends Registry<T>> imple
     @Override
     public NamespacedKey getKey(final T value) {
         return this.delegate().getKey(value);
+    }
+
+    @Override
+    public boolean hasTag(final TagKey<T> key) {
+        return this.delegate().hasTag(key);
+    }
+
+    @Override
+    public @NotNull Tag<T> getTag(final TagKey<T> key) {
+        return this.delegate().getTag(key);
     }
 }
