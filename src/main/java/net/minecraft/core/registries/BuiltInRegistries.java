@@ -315,6 +315,7 @@ public class BuiltInRegistries {
         ResourceKey<? extends Registry<T>> key, R registry, BuiltInRegistries.RegistryBootstrap<T> initializer
     ) {
         Bootstrap.checkBootstrapCalled(() -> "registry " + key);
+        io.papermc.paper.registry.PaperRegistryAccess.instance().registerRegistry(registry.key(), registry); // Paper - initialize API registry
         ResourceLocation resourceLocation = key.location();
         LOADERS.put(resourceLocation, () -> initializer.run(registry));
         WRITABLE_REGISTRY.register((ResourceKey)key, registry, RegistrationInfo.BUILT_IN); // Paper - decompile fix

@@ -299,6 +299,7 @@ public class RegistryDataLoader {
 
         RegistryDataLoader.Loader<T> create(Lifecycle lifecycle, Map<ResourceKey<?>, Exception> errors) {
             WritableRegistry<T> writableRegistry = new MappedRegistry<>(this.key, lifecycle);
+            io.papermc.paper.registry.PaperRegistryAccess.instance().registerRegistry(this.key, writableRegistry); // Paper - initialize API registry
             return new RegistryDataLoader.Loader<>(this, writableRegistry, errors);
         }
 

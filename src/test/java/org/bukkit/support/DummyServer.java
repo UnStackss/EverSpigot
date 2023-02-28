@@ -54,10 +54,7 @@ public final class DummyServer {
             when(instance.getLootTable(any())).then(mock -> new CraftLootTable(mock.getArgument(0),
                     AbstractTestingBase.DATA_PACK.fullRegistries().getLootTable(ResourceKey.create(Registries.LOOT_TABLE, CraftNamespacedKey.toMinecraft(mock.getArgument(0))))));
 
-            when(instance.getRegistry(any())).then((Answer<Registry<?>>) mock -> {
-                Class<? extends Keyed> aClass = mock.getArgument(0);
-                return registers.computeIfAbsent(aClass, key -> CraftRegistry.createRegistry(aClass, AbstractTestingBase.REGISTRY_CUSTOM));
-            });
+            // Paper - RegistryAccess
 
             when(instance.getTag(any(), any(), any())).then(mock -> {
                 String registry = mock.getArgument(0);

@@ -60,6 +60,7 @@ public class ReloadableServerRegistries {
         return CompletableFuture.supplyAsync(
             () -> {
                 WritableRegistry<T> writableRegistry = new MappedRegistry<>(type.registryKey(), Lifecycle.experimental());
+                io.papermc.paper.registry.PaperRegistryAccess.instance().registerReloadableRegistry(type.registryKey(), writableRegistry); // Paper - register reloadable registry
                 Map<ResourceLocation, JsonElement> map = new HashMap<>();
                 String string = Registries.elementsDirPath(type.registryKey());
                 SimpleJsonResourceReloadListener.scanDirectory(resourceManager, string, GSON, map);
