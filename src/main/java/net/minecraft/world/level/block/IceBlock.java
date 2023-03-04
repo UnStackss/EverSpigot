@@ -33,8 +33,8 @@ public class IceBlock extends HalfTransparentBlock {
     }
 
     @Override
-    public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool) {
-        super.playerDestroy(world, player, pos, state, blockEntity, tool);
+    public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
+        super.playerDestroy(world, player, pos, state, blockEntity, tool, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion
         // Paper start - Improve Block#breakNaturally API
         this.afterDestroy(world, pos, tool);
     }

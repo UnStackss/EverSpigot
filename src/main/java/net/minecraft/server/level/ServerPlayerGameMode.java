@@ -439,8 +439,8 @@ public class ServerPlayerGameMode {
                     isCorrectTool = flag1; // Paper - Trigger bee_nest_destroyed trigger in the correct place
 
                     itemstack.mineBlock(this.level, iblockdata1, pos, this.player);
-                    if (flag && flag1 && event.isDropItems()) { // CraftBukkit - Check if block should drop items
-                        block.playerDestroy(this.level, this.player, pos, iblockdata1, tileentity, itemstack1);
+                    if (flag && flag1/* && event.isDropItems() */) { // CraftBukkit - Check if block should drop items // Paper - fix drops not preventing stats/food exhaustion
+                        block.playerDestroy(this.level, this.player, pos, iblockdata1, tileentity, itemstack1, event.isDropItems(), false); // Paper - fix drops not preventing stats/food exhaustion
                     }
 
                     // return true; // CraftBukkit

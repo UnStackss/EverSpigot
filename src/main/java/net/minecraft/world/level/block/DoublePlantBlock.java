@@ -96,8 +96,8 @@ public class DoublePlantBlock extends BushBlock {
     }
 
     @Override
-    public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool) {
-        super.playerDestroy(world, player, pos, Blocks.AIR.defaultBlockState(), blockEntity, tool);
+    public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
+        super.playerDestroy(world, player, pos, Blocks.AIR.defaultBlockState(), blockEntity, tool, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion
     }
 
     protected static void preventDropFromBottomPart(Level world, BlockPos pos, BlockState state, Player player) {

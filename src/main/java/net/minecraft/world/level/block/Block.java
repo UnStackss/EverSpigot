@@ -402,10 +402,18 @@ public class Block extends BlockBehaviour implements ItemLike {
         return this.defaultBlockState();
     }
 
+    @io.papermc.paper.annotation.DoNotUse @Deprecated // Paper - fix drops not preventing stats/food exhaustion
     public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool) {
+        // Paper start - fix drops not preventing stats/food exhaustion
+        this.playerDestroy(world, player, pos, state, blockEntity, tool, true, true);
+    }
+    public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack tool, boolean includeDrops, boolean dropExp) {
+        // Paper end - fix drops not preventing stats/food exhaustion
         player.awardStat(Stats.BLOCK_MINED.get(this));
         player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
+        if (includeDrops) { // Paper - fix drops not preventing stats/food exhaustion
         Block.dropResources(state, world, pos, blockEntity, player, tool);
+        } // Paper - fix drops not preventing stats/food exhaustion
     }
 
     public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {}
