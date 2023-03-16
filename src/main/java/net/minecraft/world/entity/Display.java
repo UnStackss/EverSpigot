@@ -892,7 +892,7 @@ public abstract class Display extends Entity {
             b = loadFlag(b, nbt, "default_background", (byte)4);
             Optional<Display.TextDisplay.Align> optional = Display.TextDisplay.Align.CODEC
                 .decode(NbtOps.INSTANCE, nbt.get("alignment"))
-                .resultOrPartial(Util.prefix("Display entity", Display.LOGGER::error))
+                .result() // Paper - Hide text display error on spawn
                 .map(Pair::getFirst);
             if (optional.isPresent()) {
                 b = switch ((Display.TextDisplay.Align)optional.get()) {
