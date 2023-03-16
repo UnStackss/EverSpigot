@@ -63,6 +63,16 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
 
     @Override
     public Location getLocation() {
+        // Paper start - Fix inventories returning null Locations
+        // When the block inventory does not have a tile state that implements getLocation, e. g. composters
+        if (this.bukkitOwner instanceof org.bukkit.inventory.BlockInventoryHolder blockInventoryHolder) {
+            return blockInventoryHolder.getBlock().getLocation();
+        }
+        // When the bukkit owner is a bukkit entity, but does not implement Container itself, e. g. horses
+        if (this.bukkitOwner instanceof org.bukkit.entity.Entity entity) {
+            return entity.getLocation();
+        }
+        // Paper end - Fix inventories returning null Locations
         return null;
     }
 

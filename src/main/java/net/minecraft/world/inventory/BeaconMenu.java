@@ -52,6 +52,12 @@ public class BeaconMenu extends AbstractContainerMenu {
             public int getMaxStackSize() {
                 return 1;
             }
+            // Paper start - Fix inventories returning null Locations
+            @Override
+            public org.bukkit.Location getLocation() {
+                return context.getLocation();
+            }
+            // Paper end - Fix inventories returning null Locations
         };
         checkContainerDataCount(propertyDelegate, 3);
         this.beaconData = propertyDelegate;

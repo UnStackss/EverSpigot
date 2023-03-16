@@ -65,7 +65,7 @@ public class MerchantContainer implements Container {
 
     @Override
     public Location getLocation() {
-        return (this.merchant instanceof Villager) ? ((Villager) this.merchant).getBukkitEntity().getLocation() : null;
+        return (this.merchant instanceof AbstractVillager) ? ((AbstractVillager) this.merchant).getBukkitEntity().getLocation() : null; // Paper - Fix inventories returning null Locations
     }
     // CraftBukkit end
 
