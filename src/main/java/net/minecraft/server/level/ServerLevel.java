@@ -686,7 +686,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
 
         this.handlingTick = false;
         gameprofilerfiller.pop();
-        boolean flag1 = true || !this.players.isEmpty() || !this.getForcedChunks().isEmpty(); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players
+        boolean flag1 = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || !this.players.isEmpty() || !this.getForcedChunks().isEmpty(); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players // Paper - restore this
 
         if (flag1) {
             this.resetEmptyTime();
