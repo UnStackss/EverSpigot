@@ -552,17 +552,18 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
                 // CraftBukkit start
                 iblockdata1.updateIndirectNeighbourShapes(this, blockposition, k, j - 1); // Don't call an event for the old block to limit event spam
                 CraftWorld world = ((ServerLevel) this).getWorld();
+                boolean cancelledUpdates = false; // Paper - Fix block place logic
                 if (world != null && ((ServerLevel)this).hasPhysicsEvent) { // Paper - BlockPhysicsEvent
                     BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()), CraftBlockData.fromData(iblockdata));
                     this.getCraftServer().getPluginManager().callEvent(event);
 
-                    if (event.isCancelled()) {
-                        return;
-                    }
+                    cancelledUpdates = event.isCancelled(); // Paper - Fix block place logic
                 }
                 // CraftBukkit end
+                if (!cancelledUpdates) { // Paper - Fix block place logic
                 iblockdata.updateNeighbourShapes(this, blockposition, k, j - 1);
                 iblockdata.updateIndirectNeighbourShapes(this, blockposition, k, j - 1);
+                } // Paper - Fix block place logic
             }
 
             // CraftBukkit start - SPIGOT-5710
