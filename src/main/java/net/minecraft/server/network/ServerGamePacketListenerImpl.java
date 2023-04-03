@@ -295,6 +295,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     private int knownMovePacketCount;
     @Nullable
     private RemoteChatSession chatSession;
+    private boolean hasLoggedExpiry = false; // Paper - Prevent causing expired keys from impacting new joins
     private SignedMessageChain.Decoder signedMessageDecoder;
     private final LastSeenMessagesValidator lastSeenMessages = new LastSeenMessagesValidator(20);
     private final MessageSignatureCache messageSignatureCache = MessageSignatureCache.createDefault();
@@ -401,6 +402,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             this.player.resetLastActionTime(); // CraftBukkit - SPIGOT-854
             this.disconnect((Component) Component.translatable("multiplayer.disconnect.idling"), org.bukkit.event.player.PlayerKickEvent.Cause.IDLING); // Paper - kick event cause
         }
+
+        // Paper start - Prevent causing expired keys from impacting new joins
+        if (!hasLoggedExpiry && this.chatSession != null && this.chatSession.profilePublicKey().data().hasExpired()) {
+            LOGGER.info("Player profile key for {} has expired!", this.player.getName().getString());
+            hasLoggedExpiry = true;
+        }
+        // Paper end - Prevent causing expired keys from impacting new joins
 
     }
 
@@ -3434,6 +3442,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
     private void resetPlayerChatState(RemoteChatSession session) {
         this.chatSession = session;
+        this.hasLoggedExpiry = false; // Paper - Prevent causing expired keys from impacting new joins
         this.signedMessageDecoder = session.createMessageDecoder(this.player.getUUID());
         this.chatMessageChain.append(() -> {
             this.player.setChatSession(session);
