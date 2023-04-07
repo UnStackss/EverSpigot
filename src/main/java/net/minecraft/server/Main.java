@@ -325,7 +325,9 @@ public class Main {
 
                 /*
                 dedicatedserver1.setPort((Integer) optionset.valueOf(optionspec11));
-                dedicatedserver1.setDemo(optionset.has(optionspec2));
+                */
+                dedicatedserver1.setDemo(optionset.has("demo")); // Paper
+                /*
                 dedicatedserver1.setId((String) optionset.valueOf(optionspec12));
                 */
                 boolean flag2 = !optionset.has("nogui") && !optionset.nonOptionArguments().contains("nogui");
