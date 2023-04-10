@@ -107,6 +107,7 @@ public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock 
                 world.explode((Entity) null, world.damageSources().badRespawnPointExplosion(vec3d), (ExplosionDamageCalculator) null, vec3d, 5.0F, true, Level.ExplosionInteraction.BLOCK);
                 return InteractionResult.SUCCESS;
             } else if ((Boolean) state.getValue(BedBlock.OCCUPIED)) {
+                if (!BedBlock.canSetSpawn(world)) return this.explodeBed(state, world, pos); // Paper - check explode first
                 if (!this.kickVillagerOutOfBed(world, pos)) {
                     player.displayClientMessage(Component.translatable("block.minecraft.bed.occupied"), true);
                 }
@@ -164,8 +165,7 @@ public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock 
     // CraftBukkit end
 
     public static boolean canSetSpawn(Level world) {
-        // CraftBukkit - moved world and biome check into EntityHuman
-        return true || world.dimensionType().bedWorks();
+        return world.dimensionType().bedWorks(); // Paper - actually check if the bed works
     }
 
     private boolean kickVillagerOutOfBed(Level world, BlockPos pos) {
