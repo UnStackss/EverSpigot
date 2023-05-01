@@ -1005,7 +1005,7 @@ public abstract class Player extends LivingEntity {
     protected void blockUsingShield(LivingEntity attacker) {
         super.blockUsingShield(attacker);
         if (attacker.canDisableShield()) {
-            this.disableShield();
+            this.disableShield(attacker); // Paper - Add PlayerShieldDisableEvent
         }
 
     }
@@ -1498,8 +1498,21 @@ public abstract class Player extends LivingEntity {
         this.attack(target);
     }
 
+    @io.papermc.paper.annotation.DoNotUse @Deprecated // Paper - Add PlayerShieldDisableEvent
     public void disableShield() {
-        this.getCooldowns().addCooldown(Items.SHIELD, 100);
+        // Paper start - Add PlayerShieldDisableEvent
+        this.disableShield(null);
+    }
+    public void disableShield(@Nullable LivingEntity attacker) {
+        final org.bukkit.entity.Entity finalAttacker = attacker != null ? attacker.getBukkitEntity() : null;
+        if (finalAttacker != null) {
+            final io.papermc.paper.event.player.PlayerShieldDisableEvent shieldDisableEvent = new io.papermc.paper.event.player.PlayerShieldDisableEvent((org.bukkit.entity.Player) getBukkitEntity(), finalAttacker, 100);
+            if (!shieldDisableEvent.callEvent()) return;
+            this.getCooldowns().addCooldown(Items.SHIELD, shieldDisableEvent.getCooldown());
+        } else {
+            this.getCooldowns().addCooldown(Items.SHIELD, 100);
+        }
+        // Paper end - Add PlayerShieldDisableEvent
         this.stopUsingItem();
         this.level().broadcastEntityEvent(this, (byte) 30);
     }
