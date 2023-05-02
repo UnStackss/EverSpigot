@@ -153,7 +153,26 @@ public class TrapDoorBlock extends HorizontalDirectionalBlock implements SimpleW
                     flag1 = eventRedstone.getNewCurrent() > 0;
                 }
                 // CraftBukkit end
-                if ((Boolean) state.getValue(TrapDoorBlock.OPEN) != flag1) {
+                // Paper start - break redstone on trapdoors early
+                boolean open = (Boolean) state.getValue(TrapDoorBlock.OPEN) != flag1;
+                // note: this must run before any state for this block/its neighborus are written to the world
+                // we allow the redstone event to fire so that plugins can block
+                if (flag1 && open) { // if we are now powered and it caused the trap door to open
+                    // in this case, first check for the redstone on top first
+                    BlockPos abovePos = pos.above();
+                    BlockState above = world.getBlockState(abovePos);
+                    if (above.getBlock() instanceof RedStoneWireBlock) {
+                        world.setBlock(abovePos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_NEIGHBORS);
+                        Block.popResource(world, abovePos, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.REDSTONE));
+                        // now check that this didn't change our state
+                        if (world.getBlockState(pos) != state) {
+                            // our state was changed, so we cannot propagate this update
+                            return;
+                        }
+                    }
+                }
+                if (open) {
+                // Paper end - break redstone on trapdoors early
                     state = (BlockState) state.setValue(TrapDoorBlock.OPEN, flag1);
                     this.playSound((Player) null, world, pos, flag1);
                 }
