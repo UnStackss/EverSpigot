@@ -57,14 +57,31 @@ public abstract class Projectile extends Entity implements TraceableEntity {
             this.ownerUUID = entity.getUUID();
             this.cachedOwner = entity;
         }
-        this.projectileSource = (entity != null && entity.getBukkitEntity() instanceof ProjectileSource) ? (ProjectileSource) entity.getBukkitEntity() : null; // CraftBukkit
-
+        // Paper start - Refresh ProjectileSource for projectiles
+        else {
+            this.ownerUUID = null;
+            this.cachedOwner = null;
+            this.projectileSource = null;
+        }
+        // Paper end - Refresh ProjectileSource for projectiles
+        this.refreshProjectileSource(false); // Paper
     }
+    // Paper start - Refresh ProjectileSource for projectiles
+    public void refreshProjectileSource(boolean fillCache) {
+        if (fillCache) {
+            this.getOwner();
+        }
+        if (this.cachedOwner != null && !this.cachedOwner.isRemoved() && this.projectileSource == null && this.cachedOwner.getBukkitEntity() instanceof ProjectileSource projSource) {
+            this.projectileSource = projSource;
+        }
+    }
+    // Paper end - Refresh ProjectileSource for projectiles
 
     @Nullable
     @Override
     public Entity getOwner() {
         if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {
+            this.refreshProjectileSource(false); // Paper - Refresh ProjectileSource for projectiles
             return this.cachedOwner;
         } else {
             if (this.ownerUUID != null) {
@@ -74,6 +91,7 @@ public abstract class Projectile extends Entity implements TraceableEntity {
                     ServerLevel worldserver = (ServerLevel) world;
 
                     this.cachedOwner = worldserver.getEntity(this.ownerUUID);
+                    this.refreshProjectileSource(false); // Paper - Refresh ProjectileSource for projectiles
                     return this.cachedOwner;
                 }
             }
