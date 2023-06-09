@@ -571,7 +571,11 @@ public final class ItemStack implements DataComponentHolder {
 
                     // SPIGOT-1288 - play sound stripped from ItemBlock
                     if (this.item instanceof BlockItem) {
-                        SoundType soundeffecttype = ((BlockItem) this.item).getBlock().defaultBlockState().getSoundType(); // TODO: not strictly correct, however currently only affects decorated pots
+                        // Paper start - Fix spigot sound playing for BlockItem ItemStacks
+                        BlockPos position = new net.minecraft.world.item.context.BlockPlaceContext(context).getClickedPos();
+                        net.minecraft.world.level.block.state.BlockState blockData = world.getBlockState(position);
+                        SoundType soundeffecttype = blockData.getSoundType();
+                        // Paper end - Fix spigot sound playing for BlockItem ItemStacks
                         world.playSound(entityhuman, blockposition, soundeffecttype.getPlaceSound(), SoundSource.BLOCKS, (soundeffecttype.getVolume() + 1.0F) / 2.0F, soundeffecttype.getPitch() * 0.8F);
                     }
 
