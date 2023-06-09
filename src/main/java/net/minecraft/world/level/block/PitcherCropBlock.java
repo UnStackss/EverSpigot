@@ -133,7 +133,7 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
         int i = Math.min(state.getValue(AGE) + amount, 4);
         if (this.canGrow(world, pos, state, i)) {
             BlockState blockState = state.setValue(AGE, Integer.valueOf(i));
-            world.setBlock(pos, blockState, 2);
+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(world, pos, blockState, 2)) return; // Paper
             if (isDouble(i)) {
                 world.setBlock(pos.above(), blockState.setValue(HALF, DoubleBlockHalf.UPPER), 3);
             }
