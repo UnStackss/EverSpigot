@@ -77,7 +77,7 @@ public class FireworkRocketRecipe extends CustomRecipe {
 
     @Override
     public ItemStack getResultItem(HolderLookup.Provider registriesLookup) {
-        return new ItemStack(Items.FIREWORK_ROCKET);
+        return new ItemStack(Items.FIREWORK_ROCKET, 3); // Paper - Fix incorrect crafting result amount
     }
 
     @Override
