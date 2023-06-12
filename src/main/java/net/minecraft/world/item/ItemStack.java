@@ -550,7 +550,7 @@ public final class ItemStack implements DataComponentHolder {
                         try {
                             if (world.getBlockEntity(SignItem.openSign) instanceof SignBlockEntity tileentitysign) {
                                 if (world.getBlockState(SignItem.openSign).getBlock() instanceof SignBlock blocksign) {
-                                    blocksign.openTextEdit(entityhuman, tileentitysign, true, org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLACE); // Craftbukkit
+                                    blocksign.openTextEdit(entityhuman, tileentitysign, true, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // Paper - Add PlayerOpenSignEvent
                                 }
                             }
                         } finally {
