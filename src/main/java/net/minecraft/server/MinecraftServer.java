@@ -1578,6 +1578,20 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         MinecraftTimings.bukkitSchedulerTimer.startTiming(); // Spigot // Paper
         this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
         MinecraftTimings.bukkitSchedulerTimer.stopTiming(); // Spigot // Paper
+        // Paper start - Folia scheduler API
+        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
+        getAllLevels().forEach(level -> {
+            for (final Entity entity : level.getEntities().getAll()) {
+                if (entity.isRemoved()) {
+                    continue;
+                }
+                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
+                if (bukkit != null) {
+                    bukkit.taskScheduler.executeTick();
+                }
+            }
+        });
+        // Paper end - Folia scheduler API
         io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
         this.profiler.push("commandFunctions");
         MinecraftTimings.commandFunctionsTimer.startTiming(); // Spigot // Paper

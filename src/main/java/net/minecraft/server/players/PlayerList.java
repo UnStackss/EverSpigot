@@ -640,6 +640,7 @@ public abstract class PlayerList {
 
         entityplayer.unRide();
         worldserver.removePlayerImmediately(entityplayer, Entity.RemovalReason.UNLOADED_WITH_PLAYER);
+        entityplayer.retireScheduler(); // Paper - Folia schedulers
         entityplayer.getAdvancements().stopListening();
         this.players.remove(entityplayer);
         this.playersByName.remove(entityplayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot

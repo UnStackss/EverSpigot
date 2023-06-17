@@ -254,10 +254,22 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
     public CraftEntity getBukkitEntity() {
         if (this.bukkitEntity == null) {
-            this.bukkitEntity = CraftEntity.getEntity(this.level.getCraftServer(), this);
+            // Paper start - Folia schedulers
+            synchronized (this) {
+                if (this.bukkitEntity == null) {
+                    return this.bukkitEntity = CraftEntity.getEntity(this.level.getCraftServer(), this);
+                }
+            }
+            // Paper end - Folia schedulers
         }
         return this.bukkitEntity;
     }
+
+    // Paper start
+    public CraftEntity getBukkitEntityRaw() {
+        return this.bukkitEntity;
+    }
+    // Paper end
 
     @Override
     public CommandSender getBukkitSender(CommandSourceStack wrapper) {
@@ -4484,6 +4496,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     public final void setRemoved(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
         CraftEventFactory.callEntityRemoveEvent(this, cause);
         // CraftBukkit end
+        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
         if (this.removalReason == null) {
             this.removalReason = entity_removalreason;
         }
@@ -4494,11 +4507,27 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
 
         this.getPassengers().forEach(Entity::stopRiding);
         this.levelCallback.onRemove(entity_removalreason);
+        // Paper start - Folia schedulers
+        if (!(this instanceof ServerPlayer) && entity_removalreason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
+            // Players need to be special cased, because they are regularly removed from the world
+            this.retireScheduler();
+        }
+        // Paper end - Folia schedulers
     }
 
     public void unsetRemoved() {
         this.removalReason = null;
     }
+
+    // Paper start - Folia schedulers
+    /**
+     * Invoked only when the entity is truly removed from the server, never to be added to any world.
+     */
+    public final void retireScheduler() {
+        // we need to force create the bukkit entity so that the scheduler can be retired...
+        this.getBukkitEntity().taskScheduler.retire();
+    }
+    // Paper end - Folia schedulers
 
     @Override
     public void setLevelCallback(EntityInLevelCallback changeListener) {
