@@ -67,6 +67,7 @@ public class TripWireBlock extends Block {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return this.defaultBlockState(); // Paper - place tripwire without updating
         Level world = ctx.getLevel();
         BlockPos blockposition = ctx.getClickedPos();
 
@@ -75,11 +76,13 @@ public class TripWireBlock extends Block {
 
     @Override
     protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return state; // Paper - prevent tripwire from updating
         return direction.getAxis().isHorizontal() ? (BlockState) state.setValue((Property) TripWireBlock.PROPERTY_BY_DIRECTION.get(direction), this.shouldConnectTo(neighborState, direction)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
     }
 
     @Override
     protected void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
         if (!oldState.is(state.getBlock())) {
             this.updateSource(world, pos, state);
         }
@@ -87,6 +90,7 @@ public class TripWireBlock extends Block {
 
     @Override
     protected void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
         if (!moved && !state.is(newState.getBlock())) {
             this.updateSource(world, pos, (BlockState) state.setValue(TripWireBlock.POWERED, true));
         }
@@ -94,6 +98,7 @@ public class TripWireBlock extends Block {
 
     @Override
     public BlockState playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return state; // Paper - prevent disarming tripwires
         if (!world.isClientSide && !player.getMainHandItem().isEmpty() && player.getMainHandItem().is(Items.SHEARS)) {
             world.setBlock(pos, (BlockState) state.setValue(TripWireBlock.DISARMED, true), 4);
             world.gameEvent((Entity) player, (Holder) GameEvent.SHEAR, pos);
@@ -103,6 +108,7 @@ public class TripWireBlock extends Block {
     }
 
     private void updateSource(Level world, BlockPos pos, BlockState state) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent adjacent tripwires from updating
         Direction[] aenumdirection = new Direction[]{Direction.SOUTH, Direction.WEST};
         int i = aenumdirection.length;
         int j = 0;
@@ -135,6 +141,7 @@ public class TripWireBlock extends Block {
 
     @Override
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwires from detecting collision
         if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(world, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
         if (!world.isClientSide) {
             if (!(Boolean) state.getValue(TripWireBlock.POWERED)) {
@@ -145,6 +152,7 @@ public class TripWireBlock extends Block {
 
     @Override
     protected void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwire pressed check
         if ((Boolean) world.getBlockState(pos).getValue(TripWireBlock.POWERED)) {
             this.checkPressed(world, pos);
         }

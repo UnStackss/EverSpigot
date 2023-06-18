@@ -66,11 +66,13 @@ public class NoteBlock extends Block {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return this.defaultBlockState(); // Paper - place without considering instrument
         return this.setInstrument(ctx.getLevel(), ctx.getClickedPos(), this.defaultBlockState());
     }
 
     @Override
     protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return state; // Paper - prevent noteblock instrument from updating
         boolean flag = direction.getAxis() == Direction.Axis.Y;
 
         return flag ? this.setInstrument(world, pos, state) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
@@ -78,6 +80,7 @@ public class NoteBlock extends Block {
 
     @Override
     protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return; // Paper - prevent noteblock powered-state from updating
         boolean flag1 = world.hasNeighborSignal(pos);
 
         if (flag1 != (Boolean) state.getValue(NoteBlock.POWERED)) {
@@ -116,7 +119,7 @@ public class NoteBlock extends Block {
         if (world.isClientSide) {
             return InteractionResult.SUCCESS;
         } else {
-            state = (BlockState) state.cycle(NoteBlock.NOTE);
+            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) state = (BlockState) state.cycle(NoteBlock.NOTE); // Paper - prevent noteblock note from updating
             world.setBlock(pos, state, 3);
             this.playNote(player, state, world, pos);
             player.awardStat(Stats.TUNE_NOTEBLOCK);
