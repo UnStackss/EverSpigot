@@ -820,6 +820,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
         ParseResults<CommandSourceStack> parseresults = this.server.getCommands().getDispatcher().parse(stringreader, this.player.createCommandSourceStack());
 
         this.server.getCommands().getDispatcher().getCompletionSuggestions(parseresults).thenAccept((suggestions) -> {
+            // Paper start - Don't tab-complete namespaced commands if send-namespaced is false
+            if (!org.spigotmc.SpigotConfig.sendNamespaced && suggestions.getRange().getStart() <= 1) {
+                suggestions.getList().removeIf(suggestion -> suggestion.getText().contains(":"));
+            }
+            // Paper end - Don't tab-complete namespaced commands if send-namespaced is false
             // Paper start - Brigadier API
             com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
             suggestEvent.setCancelled(suggestions.isEmpty());
