@@ -112,7 +112,7 @@ public class ServerEntity {
 
         Entity entity = this.entity;
 
-        if (entity instanceof ItemFrame entityitemframe) {
+        if (!this.trackedPlayers.isEmpty() && entity instanceof ItemFrame entityitemframe) { // Paper - Perf: Only tick item frames if players can see it
             if (true || this.tickCount % 10 == 0) { // CraftBukkit - Moved below, should always enter this block
                 ItemStack itemstack = entityitemframe.getItem();
 
