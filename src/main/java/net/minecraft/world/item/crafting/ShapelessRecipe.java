@@ -19,7 +19,7 @@ import org.bukkit.craftbukkit.inventory.CraftRecipe;
 import org.bukkit.craftbukkit.inventory.CraftShapelessRecipe;
 // CraftBukkit end
 
-public class ShapelessRecipe implements CraftingRecipe {
+public class ShapelessRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<CraftingInput> implements CraftingRecipe { // Paper - improve exact recipe choices
 
     final String group;
     final CraftingBookCategory category;
@@ -31,6 +31,7 @@ public class ShapelessRecipe implements CraftingRecipe {
         this.category = category;
         this.result = result;
         this.ingredients = ingredients;
+        this.checkExactIngredients(); // Paper - improve exact recipe choices
     }
 
     // CraftBukkit start
@@ -75,7 +76,18 @@ public class ShapelessRecipe implements CraftingRecipe {
     }
 
     public boolean matches(CraftingInput input, Level world) {
-        return input.ingredientCount() != this.ingredients.size() ? false : (input.size() == 1 && this.ingredients.size() == 1 ? ((Ingredient) this.ingredients.getFirst()).test(input.getItem(0)) : input.stackedContents().canCraft(this, (IntList) null));
+        // Paper start - unwrap ternary & better exact choice recipes
+        if (input.ingredientCount() != this.ingredients.size()) {
+            return false;
+        }
+        if (input.size() == 1 && this.ingredients.size() == 1) {
+            return this.ingredients.getFirst().test(input.getItem(0));
+        }
+        input.stackedContents().initializeExtras(this, input); // setup stacked contents for this recipe
+        final boolean canCraft = input.stackedContents().canCraft(this, null);
+        input.stackedContents().resetExtras();
+        return canCraft;
+        // Paper end - unwrap ternary & better exact choice recipes
     }
 
     public ItemStack assemble(CraftingInput input, HolderLookup.Provider lookup) {

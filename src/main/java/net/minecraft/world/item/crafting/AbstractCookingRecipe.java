@@ -5,7 +5,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
-public abstract class AbstractCookingRecipe implements Recipe<SingleRecipeInput> {
+public abstract class AbstractCookingRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<SingleRecipeInput> implements Recipe<SingleRecipeInput> { // Paper - improve exact recipe choices
     protected final RecipeType<?> type;
     protected final CookingBookCategory category;
     protected final String group;
@@ -24,6 +24,7 @@ public abstract class AbstractCookingRecipe implements Recipe<SingleRecipeInput>
         this.result = result;
         this.experience = experience;
         this.cookingTime = cookingTime;
+        this.checkExactIngredients(); // Paper - improve exact recipe choices
     }
 
     @Override

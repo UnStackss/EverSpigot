@@ -17,7 +17,7 @@ import org.bukkit.craftbukkit.inventory.CraftShapedRecipe;
 import org.bukkit.inventory.RecipeChoice;
 // CraftBukkit end
 
-public class ShapedRecipe implements CraftingRecipe {
+public class ShapedRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<CraftingInput> implements CraftingRecipe { // Paper - improve exact recipe choices
 
     final ShapedRecipePattern pattern;
     final ItemStack result;
@@ -31,6 +31,7 @@ public class ShapedRecipe implements CraftingRecipe {
         this.pattern = raw;
         this.result = result;
         this.showNotification = showNotification;
+        this.checkExactIngredients(); // Paper - improve exact recipe choices
     }
 
     public ShapedRecipe(String group, CraftingBookCategory category, ShapedRecipePattern raw, ItemStack result) {
