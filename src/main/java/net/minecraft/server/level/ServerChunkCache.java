@@ -369,6 +369,13 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
 
     public void close(boolean save) throws IOException {
         ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.close(save, true); // Paper - rewrite chunk system
+        // Paper start - Write SavedData IO async
+        try {
+            this.dataStorage.close();
+        } catch (final IOException e) {
+            LOGGER.error("Failed to close persistent world data", e);
+        }
+        // Paper end - Write SavedData IO async
     }
 
     // CraftBukkit start - modelled on below

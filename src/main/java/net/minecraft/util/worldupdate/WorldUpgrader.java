@@ -116,7 +116,13 @@ public class WorldUpgrader {
         (new WorldUpgrader.PoiUpgrader(this)).upgrade();
         WorldUpgrader.LOGGER.info("Upgrading blocks");
         (new WorldUpgrader.ChunkUpgrader()).upgrade();
-        this.overworldDataStorage.save();
+        // Paper start - Write SavedData IO async
+        try {
+            this.overworldDataStorage.close();
+        } catch (final IOException e) {
+            LOGGER.error("Failed to close persistent world data", e);
+        }
+        // Paper end - Write SavedData IO async
         i = Util.getMillis() - i;
         WorldUpgrader.LOGGER.info("World optimizaton finished after {} seconds", i / 1000L);
         this.finished = true;
