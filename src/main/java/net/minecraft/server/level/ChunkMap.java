@@ -1524,7 +1524,17 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                 double d0 = (double) Math.min(this.getEffectiveRange(), i * 16);
                 double d1 = vec3d.x * vec3d.x + vec3d.z * vec3d.z;
                 double d2 = d0 * d0;
-                boolean flag = d1 <= d2 && this.entity.broadcastToPlayer(player) && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
+                // Paper start - Configurable entity tracking range by Y
+                boolean flag = d1 <= d2;
+                if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
+                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
+                    if (rangeY != -1) {
+                        double vec3d_dy = player.getY() - this.entity.getY();
+                        flag = vec3d_dy * vec3d_dy <= rangeY * rangeY;
+                    }
+                }
+                flag = flag && this.entity.broadcastToPlayer(player) && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
+                // Paper end - Configurable entity tracking range by Y
 
                 // CraftBukkit start - respect vanish API
                 if (!player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) {
