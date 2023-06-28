@@ -79,7 +79,7 @@ public class BucketItem extends Item implements DispensibleContainerItem {
                         PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) world, user, blockposition, blockposition, movingobjectpositionblock.getDirection(), itemstack, dummyFluid.getItem(), hand);
 
                         if (event.isCancelled()) {
-                            ((ServerPlayer) user).connection.send(new ClientboundBlockUpdatePacket(world, blockposition)); // SPIGOT-5163 (see PlayerInteractManager)
+                            // ((ServerPlayer) user).connection.send(new ClientboundBlockUpdatePacket(world, blockposition)); // SPIGOT-5163 (see PlayerInteractManager) // Paper - Don't resend blocks
                             ((ServerPlayer) user).getBukkitEntity().updateInventory(); // SPIGOT-4541
                             return InteractionResultHolder.fail(itemstack);
                         }
@@ -187,7 +187,7 @@ public class BucketItem extends Item implements DispensibleContainerItem {
             if (flag2 && entityhuman != null) {
                 PlayerBucketEmptyEvent event = CraftEventFactory.callPlayerBucketEmptyEvent((ServerLevel) world, entityhuman, blockposition, clicked, enumdirection, itemstack, enumhand);
                 if (event.isCancelled()) {
-                    ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, blockposition)); // SPIGOT-4238: needed when looking through entity
+                    // ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, blockposition)); // SPIGOT-4238: needed when looking through entity // Paper - Don't resend blocks
                     ((ServerPlayer) entityhuman).getBukkitEntity().updateInventory(); // SPIGOT-4541
                     return false;
                 }

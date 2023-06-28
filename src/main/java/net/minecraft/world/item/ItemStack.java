@@ -500,10 +500,12 @@ public final class ItemStack implements DataComponentHolder {
                     world.preventPoiUpdated = false;
 
                     // Brute force all possible updates
-                    BlockPos placedPos = ((CraftBlock) placeEvent.getBlock()).getPosition();
-                    for (Direction dir : Direction.values()) {
-                        ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
-                    }
+                    // Paper start - Don't resync blocks
+                    // BlockPos placedPos = ((CraftBlock) placeEvent.getBlock()).getPosition();
+                    // for (Direction dir : Direction.values()) {
+                    //     ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
+                    // }
+                    // Paper end - Don't resync blocks
                     SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
                 } else {
                     // Change the stack to its new contents if it hasn't been tampered with.

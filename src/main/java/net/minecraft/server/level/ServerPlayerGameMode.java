@@ -204,7 +204,7 @@ public class ServerPlayerGameMode {
                 PlayerInteractEvent event = CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelected(), InteractionHand.MAIN_HAND);
                 if (event.isCancelled()) {
                     // Let the client know the block still exists
-                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                    // this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos)); // Paper - Don't resync blocks
                     // Update any tile entity data for this block
                     capturedBlockEntity = true; // Paper - Send block entities after destroy prediction
                     return;
@@ -219,7 +219,7 @@ public class ServerPlayerGameMode {
                 // Spigot start - handle debug stick left click for non-creative
                 if (this.player.getMainHandItem().is(net.minecraft.world.item.Items.DEBUG_STICK)
                         && ((net.minecraft.world.item.DebugStickItem) net.minecraft.world.item.Items.DEBUG_STICK).handleInteraction(this.player, this.level.getBlockState(pos), this.level, pos, false, this.player.getMainHandItem())) {
-                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                    // this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos)); // Paper - Don't resync block
                     return;
                 }
                 // Spigot end
@@ -237,15 +237,17 @@ public class ServerPlayerGameMode {
                 // CraftBukkit start - Swings at air do *NOT* exist.
                 if (event.useInteractedBlock() == Event.Result.DENY) {
                     // If we denied a door from opening, we need to send a correcting update to the client, as it already opened the door.
-                    BlockState data = this.level.getBlockState(pos);
-                    if (data.getBlock() instanceof DoorBlock) {
-                        // For some reason *BOTH* the bottom/top part have to be marked updated.
-                        boolean bottom = data.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
-                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
-                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, bottom ? pos.above() : pos.below()));
-                    } else if (data.getBlock() instanceof TrapDoorBlock) {
-                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
-                    }
+                    // Paper start - Don't resync blocks
+                    //BlockState data = this.level.getBlockState(pos);
+                    //if (data.getBlock() instanceof DoorBlock) {
+                    //    // For some reason *BOTH* the bottom/top part have to be marked updated.
+                    //    boolean bottom = data.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
+                    //    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                    //    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, bottom ? pos.above() : pos.below()));
+                    //} else if (data.getBlock() instanceof TrapDoorBlock) {
+                    //    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                    //}
+                    // Paper end - Don't resync blocks
                 } else if (!iblockdata.isAir()) {
                     EnchantmentHelper.onHitBlock(this.level, this.player.getMainHandItem(), this.player, this.player, EquipmentSlot.MAINHAND, Vec3.atCenterOf(pos), iblockdata, (item) -> {
                         this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND);
@@ -257,7 +259,7 @@ public class ServerPlayerGameMode {
                 if (event.useItemInHand() == Event.Result.DENY) {
                     // If we 'insta destroyed' then the client needs to be informed.
                     if (f > 1.0f) {
-                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                        // this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos)); // Paper - Don't resync blocks
                     }
                     return;
                 }
@@ -265,7 +267,7 @@ public class ServerPlayerGameMode {
 
                 if (blockEvent.isCancelled()) {
                     // Let the client know the block still exists
-                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                    // this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos)); // Paper - Don't resync block
                     return;
                 }
 
@@ -356,7 +358,7 @@ public class ServerPlayerGameMode {
 
             // Tell client the block is gone immediately then process events
             // Don't tell the client if its a creative sword break because its not broken!
-            if (this.level.getBlockEntity(pos) == null && !isSwordNoBreak) {
+            if (false && this.level.getBlockEntity(pos) == null && !isSwordNoBreak) { // Paper - Don't resync block
                 ClientboundBlockUpdatePacket packet = new ClientboundBlockUpdatePacket(pos, Blocks.AIR.defaultBlockState());
                 this.player.connection.send(packet);
             }
@@ -382,13 +384,15 @@ public class ServerPlayerGameMode {
                 if (isSwordNoBreak) {
                     return false;
                 }
+                // Paper start - Don't resync blocks
                 // Let the client know the block still exists
-                this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
+                //this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
 
                 // Brute force all possible updates
-                for (Direction dir : Direction.values()) {
-                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos.relative(dir)));
-                }
+                //for (Direction dir : Direction.values()) {
+                //    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos.relative(dir)));
+                //}
+                // Paper end - Don't resync blocks
 
                 // Update any tile entity data for this block
                 if (!captureSentBlockEntities) { // Paper - Send block entities after destroy prediction
@@ -537,16 +541,18 @@ public class ServerPlayerGameMode {
         if (event.useInteractedBlock() == Event.Result.DENY) {
             // If we denied a door from opening, we need to send a correcting update to the client, as it already opened the door.
             if (iblockdata.getBlock() instanceof DoorBlock) {
-                boolean bottom = iblockdata.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
-                player.connection.send(new ClientboundBlockUpdatePacket(world, bottom ? blockposition.above() : blockposition.below()));
+                // Paper start - Don't resync blocks
+                // boolean bottom = iblockdata.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
+                // player.connection.send(new ClientboundBlockUpdatePacket(world, bottom ? blockposition.above() : blockposition.below()));
+                // Paper end - Don't resync blocks
             } else if (iblockdata.getBlock() instanceof CakeBlock) {
                 player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
             } else if (this.interactItemStack.getItem() instanceof DoubleHighBlockItem) {
                 // send a correcting update to the client, as it already placed the upper half of the bisected item
-                player.connection.send(new ClientboundBlockUpdatePacket(world, blockposition.relative(hitResult.getDirection()).above()));
+                //player.connection.send(new ClientboundBlockUpdatePacket(world, blockposition.relative(hitResult.getDirection()).above())); // Paper - Don't resync blocks
 
                 // send a correcting update to the client for the block above as well, this because of replaceable blocks (such as grass, sea grass etc)
-                player.connection.send(new ClientboundBlockUpdatePacket(world, blockposition.above()));
+                //player.connection.send(new ClientboundBlockUpdatePacket(world, blockposition.above())); // Paper - Don't resync blocks
             // Paper start - extend Player Interact cancellation // TODO: consider merging this into the extracted method
             } else if (iblockdata.is(Blocks.JIGSAW) || iblockdata.is(Blocks.STRUCTURE_BLOCK) || iblockdata.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
                 player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
