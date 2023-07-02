@@ -202,9 +202,8 @@ public class TripWireHookBlock extends Block {
                     BlockState iblockdata4 = aiblockdata[l];
 
                     if (iblockdata4 != null) {
+                        if (world.getBlockState(blockposition2).is(Blocks.TRIPWIRE) || io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowTripwireDisarmingExploits) { // Paper - Fix tripwire disarming not working as intended
                         world.setBlock(blockposition2, (BlockState) iblockdata4.trySetValue(TripWireHookBlock.ATTACHED, flag4), 3);
-                        if (!world.getBlockState(blockposition2).isAir()) {
-                            ;
                         }
                     }
                 }
