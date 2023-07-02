@@ -30,7 +30,7 @@ public class FishingRodItem extends Item {
 
         if (user.fishing != null) {
             if (!world.isClientSide) {
-                int i = user.fishing.retrieve(itemstack);
+                int i = user.fishing.retrieve(hand, itemstack); // Paper - Add hand parameter to PlayerFishEvent
 
                 itemstack.hurtAndBreak(i, user, LivingEntity.getSlotForHand(hand));
             }
