@@ -1185,7 +1185,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
     }
 
     protected BlockPos getOnPos(float offset) {
-        if (this.mainSupportingBlockPos.isPresent()) {
+        if (this.mainSupportingBlockPos.isPresent() && this.level().getChunkIfLoadedImmediately(this.mainSupportingBlockPos.get()) != null) { // Paper - ensure no loads
             BlockPos blockposition = (BlockPos) this.mainSupportingBlockPos.get();
 
             if (offset <= 1.0E-5F) {
