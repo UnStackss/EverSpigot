@@ -333,7 +333,22 @@ public class BeaconBlockEntity extends BlockEntity implements MenuProvider, Name
             double d0 = blockEntity != null ? blockEntity.getEffectRange() : (i * 10 + 10); // Paper - Custom beacon ranges
 
             AABB axisalignedbb = (new AABB(blockposition)).inflate(d0).expandTowards(0.0D, (double) world.getHeight(), 0.0D);
-            List<Player> list = world.getEntitiesOfClass(Player.class, axisalignedbb);
+            // Paper start - Perf: optimize player lookup for beacons
+            List<Player> list;
+            if (d0 <= 128.0) {
+                list = world.getEntitiesOfClass(Player.class, axisalignedbb);
+            } else {
+                list = new java.util.ArrayList<>();
+                for (Player player : world.players()) {
+                    if (player.isSpectator()) {
+                        continue;
+                    }
+                    if (player.getBoundingBox().intersects(axisalignedbb)) {
+                        list.add(player);
+                    }
+                }
+            }
+            // Paper end - Perf: optimize player lookup for beacons
 
             return list;
         }
