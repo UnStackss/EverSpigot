@@ -70,8 +70,8 @@ public class CraftMetaBlockState extends CraftMetaItem implements BlockStateMeta
         this.blockEntityTag = te.blockEntityTag;
     }
 
-    CraftMetaBlockState(DataComponentPatch tag, Material material) {
-        super(tag);
+    CraftMetaBlockState(DataComponentPatch tag, Material material, final Set<DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
         this.material = material;
 
         getOrEmpty(tag, CraftMetaBlockState.BLOCK_ENTITY_TAG).ifPresent((nbt) -> {

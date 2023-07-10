@@ -26,8 +26,8 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
         }
     }
 
-    CraftMetaMusicInstrument(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaMusicInstrument(DataComponentPatch tag, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledDcts) { // Paper
+        super(tag, extraHandledDcts); // Paper
 
         getOrEmpty(tag, CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT).ifPresent((instrument) -> {
             this.instrument = org.bukkit.craftbukkit.CraftRegistry.unwrapAndConvertHolder(org.bukkit.Registry.INSTRUMENT, instrument).orElse(null); // Paper - fix upstream not handling inlined instrument
