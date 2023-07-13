@@ -125,7 +125,7 @@ public abstract class WaterFluid extends FlowingFluid {
 
     @Override
     protected float getExplosionResistance() {
-        return 100.0F;
+        return Blocks.WATER.getExplosionResistance(); // Paper - Get explosion resistance from actual block
     }
 
     @Override

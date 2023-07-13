@@ -232,7 +232,7 @@ public abstract class LavaFluid extends FlowingFluid {
 
     @Override
     protected float getExplosionResistance() {
-        return 100.0F;
+        return Blocks.LAVA.getExplosionResistance(); // Paper - Get explosion resistance from actual block
     }
 
     @Override
