@@ -657,6 +657,15 @@ public class EnderDragon extends Mob implements Enemy {
 
     @Override
     public void kill() {
+        // Paper start - Fire entity death event
+        this.silentDeath = true;
+        org.bukkit.event.entity.EntityDeathEvent deathEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityDeathEvent(this, this.damageSources().genericKill());
+        if (deathEvent.isCancelled()) {
+            this.silentDeath = false; // Reset to default if event was cancelled
+            return;
+        }
+        // Paper end - Fire entity death event
+
         this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
         this.gameEvent(GameEvent.ENTITY_DIE);
         if (this.dragonFight != null) {
