@@ -35,8 +35,9 @@ public class GoToWantedItem {
                             if (event.isCancelled()) {
                                 return false;
                             }
-                            if (!(event.getTarget() instanceof ItemEntity)) {
+                            if (!(event.getTarget() instanceof org.bukkit.craftbukkit.entity.CraftItem)) { // Paper - only erase allay memory on non-item targets
                                 memoryaccessor2.erase();
+                                return false; // Paper - only erase allay memory on non-item targets
                             }
 
                             entityitem = (ItemEntity) ((org.bukkit.craftbukkit.entity.CraftEntity) event.getTarget()).getHandle();
