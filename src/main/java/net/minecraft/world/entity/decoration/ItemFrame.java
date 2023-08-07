@@ -50,6 +50,7 @@ public class ItemFrame extends HangingEntity {
     private static final float HEIGHT = 0.75F;
     public float dropChance;
     public boolean fixed;
+    public @Nullable MapId cachedMapId; // Paper - Perf: Cache map ids on item frames
 
     public ItemFrame(EntityType<? extends ItemFrame> type, Level world) {
         super(type, world);
@@ -322,6 +323,7 @@ public class ItemFrame extends HangingEntity {
     }
 
     private void onItemChanged(ItemStack stack) {
+        this.cachedMapId = stack.getComponents().get(net.minecraft.core.component.DataComponents.MAP_ID); // Paper - Perf: Cache map ids on item frames
         if (!stack.isEmpty() && stack.getFrame() != this) {
             stack.setEntityRepresentation(this);
         }

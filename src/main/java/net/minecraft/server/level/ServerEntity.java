@@ -117,7 +117,7 @@ public class ServerEntity {
                 ItemStack itemstack = entityitemframe.getItem();
 
                 if (this.level.paperConfig().maps.itemFrameCursorUpdateInterval > 0 && this.tickCount % this.level.paperConfig().maps.itemFrameCursorUpdateInterval == 0 && itemstack.getItem() instanceof MapItem) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks // Paper - Make item frame map cursor update interval configurable
-                    MapId mapid = (MapId) itemstack.get(DataComponents.MAP_ID);
+                    MapId mapid = entityitemframe.cachedMapId; // Paper - Perf: Cache map ids on item frames
                     MapItemSavedData worldmap = MapItem.getSavedData(mapid, this.level);
 
                     if (worldmap != null) {
