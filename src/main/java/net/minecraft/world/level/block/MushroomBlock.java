@@ -68,6 +68,7 @@ public class MushroomBlock extends BushBlock implements BonemealableBlock {
             }
 
             BlockPos blockposition2 = pos.offset(random.nextInt(3) - 1, random.nextInt(2) - random.nextInt(2), random.nextInt(3) - 1);
+            final BlockPos sourcePos = pos; // Paper - Use correct source for mushroom block spread event
 
             for (int j = 0; j < 4; ++j) {
                 if (world.isEmptyBlock(blockposition2) && state.canSurvive(world, blockposition2)) {
@@ -78,7 +79,7 @@ public class MushroomBlock extends BushBlock implements BonemealableBlock {
             }
 
             if (world.isEmptyBlock(blockposition2) && state.canSurvive(world, blockposition2)) {
-                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(world, pos, blockposition2, state, 2); // CraftBukkit
+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(world, sourcePos, blockposition2, state, 2); // CraftBukkit // Paper - Use correct source for mushroom block spread event
             }
         }
 
