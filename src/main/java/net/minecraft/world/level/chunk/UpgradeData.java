@@ -100,12 +100,36 @@ public class UpgradeData {
         }
     }
 
+    // Paper start - filter out relocated neighbour ticks
+    // The lists are only supposed to contain ticks for the 1 radius neighbours of the chunk
+    private static <T> void filterTickList(int chunkX, int chunkZ, List<SavedTick<T>> ticks) {
+        for (java.util.Iterator<SavedTick<T>> iterator = ticks.iterator(); iterator.hasNext();) {
+            SavedTick<T> tick = iterator.next();
+            BlockPos tickPos = tick.pos();
+            int tickCX = tickPos.getX() >> 4;
+            int tickCZ = tickPos.getZ() >> 4;
+
+            int dist = Math.max(Math.abs(chunkX - tickCX), Math.abs(chunkZ - tickCZ));
+
+            if (dist != 1) {
+                LOGGER.warn("Neighbour tick '" + tick + "' serialized in chunk (" + chunkX + "," + chunkZ + ") is too far (" + tickCX + "," + tickCZ + ")");
+                iterator.remove();
+            }
+        }
+    }
+    // Paper end - filter out relocated neighbour ticks
+
     public void upgrade(LevelChunk chunk) {
         this.upgradeInside(chunk);
 
         for (Direction8 direction8 : DIRECTIONS) {
             upgradeSides(chunk, direction8);
         }
+
+        // Paper start - filter out relocated neighbour ticks
+        filterTickList(chunk.locX, chunk.locZ, this.neighborBlockTicks);
+        filterTickList(chunk.locX, chunk.locZ, this.neighborFluidTicks);
+        // Paper end - filter out relocated neighbour ticks
 
         Level level = chunk.getLevel();
         this.neighborBlockTicks.forEach(tick -> {
