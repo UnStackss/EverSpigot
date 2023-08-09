@@ -140,6 +140,7 @@ public class UpgradeData {
             Fluid fluid = tick.type() == Fluids.EMPTY ? level.getFluidState(tick.pos()).getType() : tick.type();
             level.scheduleTick(tick.pos(), fluid, tick.delay(), tick.priority());
         });
+        UpgradeData.BlockFixers.values(); // Paper - force the class init so that we don't access CHUNKY_FIXERS before all BlockFixers are initialised
         CHUNKY_FIXERS.forEach(logic -> logic.processChunk(level));
     }
 
