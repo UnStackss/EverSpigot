@@ -593,6 +593,14 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
     // Paper end - namespaced key biome methods
 
+    // Paper start - fix custom stats criteria creation
+    @Override
+    public String getStatisticCriteriaKey(org.bukkit.Statistic statistic) {
+        if (statistic.getType() != org.bukkit.Statistic.Type.UNTYPED) return "minecraft.custom:minecraft." + statistic.getKey().getKey();
+        return org.bukkit.craftbukkit.CraftStatistic.getNMSStatistic(statistic).getName();
+    }
+    // Paper end - fix custom stats criteria creation
+
     @Override
     public String get(Class<?> aClass, String s) {
         if (aClass == Enchantment.class) {
