@@ -79,6 +79,7 @@ public class CraftingMenu extends RecipeBookMenu<CraftingInput, CraftingRecipe> 
             CraftingInput craftinginput = craftingInventory.asCraftInput();
             ServerPlayer entityplayer = (ServerPlayer) player;
             ItemStack itemstack = ItemStack.EMPTY;
+            if (recipe == null) recipe = craftingInventory.getCurrentRecipe(); // Paper - Perf: Improve mass crafting; check last recipe used first
             Optional<RecipeHolder<CraftingRecipe>> optional = world.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, craftinginput, world, recipe);
             craftingInventory.setCurrentRecipe(optional.orElse(null)); // CraftBukkit
 

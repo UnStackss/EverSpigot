@@ -27,7 +27,7 @@ public class TransientCraftingContainer implements CraftingContainer {
 
     // CraftBukkit start - add fields
     public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
-    private RecipeHolder<?> currentRecipe;
+    private RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> currentRecipe; // Paper - use correct generic
     public Container resultInventory;
     private Player owner;
     private int maxStack = MAX_STACK;
@@ -72,12 +72,12 @@ public class TransientCraftingContainer implements CraftingContainer {
     }
 
     @Override
-    public RecipeHolder<?> getCurrentRecipe() {
+    public RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> getCurrentRecipe() { // Paper - use correct generic
         return this.currentRecipe;
     }
 
     @Override
-    public void setCurrentRecipe(RecipeHolder<?> currentRecipe) {
+    public void setCurrentRecipe(RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> currentRecipe) { // Paper - use correct generic
         this.currentRecipe = currentRecipe;
     }
 

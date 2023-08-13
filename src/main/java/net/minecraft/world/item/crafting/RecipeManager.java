@@ -111,13 +111,20 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
     }
 
     public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(RecipeType<T> type, I input, Level world, @Nullable RecipeHolder<T> recipe) {
-        // CraftBukkit start
-        List<RecipeHolder<T>> list = this.byType(type).stream().filter((recipeholder1) -> {
-            return recipeholder1.value().matches(input, world);
-        }).toList();
-        Optional<RecipeHolder<T>> recipe1 = (list.isEmpty() || input.isEmpty()) ? Optional.empty() : (recipe != null && recipe.value().matches(input, world) ? Optional.of(recipe) : Optional.of(list.getLast())); // CraftBukkit - SPIGOT-4638: last recipe gets priority
-        return recipe1;
-        // CraftBukkit end
+        // Paper start - fix upstream's complete screw up of checking last used recipe
+        if (input.isEmpty()) {
+            return Optional.empty();
+        } else if (recipe != null && recipe.value().matches(input, world)) {
+            return Optional.of(recipe);
+        } else {
+            // CraftBukkit start
+            List<RecipeHolder<T>> list = this.byType(type).stream().filter((recipeholder1) -> {
+                return recipeholder1.value().matches(input, world);
+            }).toList();
+            return list.isEmpty() ? Optional.empty() : Optional.of(list.getLast()); // CraftBukkit - SPIGOT-4638: last recipe gets priority
+            // CraftBukkit end
+        }
+        // Paper end
     }
 
     public <I extends RecipeInput, T extends Recipe<I>> List<RecipeHolder<T>> getAllRecipesFor(RecipeType<T> type) {
@@ -137,7 +144,12 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
     }
 
     public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> type, I input, Level world) {
-        Optional<RecipeHolder<T>> optional = this.getRecipeFor(type, input, world);
+        // Paper start - Perf: improve performance of mass crafts
+        return this.getRemainingItemsFor(type, input, world, null);
+    }
+    public <I extends RecipeInput, T extends Recipe<I>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> type, I input, Level world, @Nullable RecipeHolder<T> previousRecipe) {
+        Optional<RecipeHolder<T>> optional = this.getRecipeFor(type, input, world, previousRecipe);
+        // Paper end - Perf: improve performance of mass crafts
 
         if (optional.isPresent()) {
             return ((RecipeHolder) optional.get()).value().getRemainingItems(input);

@@ -18,11 +18,11 @@ public interface CraftingContainer extends Container, StackedContentsCompatible 
     List<ItemStack> getItems();
 
     // CraftBukkit start
-    default RecipeHolder<?> getCurrentRecipe() {
+    default RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> getCurrentRecipe() { // Paper - use correct generic
         return null;
     }
 
-    default void setCurrentRecipe(RecipeHolder<?> recipe) {
+    default void setCurrentRecipe(RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> recipe) { // Paper - use correct generic
     }
     // CraftBukkit end
 

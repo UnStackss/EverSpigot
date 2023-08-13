@@ -63,7 +63,7 @@ public class ResultSlot extends Slot {
         CraftingInput craftingInput = positioned.input();
         int i = positioned.left();
         int j = positioned.top();
-        NonNullList<ItemStack> nonNullList = player.level().getRecipeManager().getRemainingItemsFor(RecipeType.CRAFTING, craftingInput, player.level());
+        NonNullList<ItemStack> nonNullList = player.level().getRecipeManager().getRemainingItemsFor(RecipeType.CRAFTING, craftingInput, player.level(), this.craftSlots.getCurrentRecipe()); // Paper - Perf: Improve mass crafting; check last recipe used first
 
         for (int k = 0; k < craftingInput.height(); k++) {
             for (int l = 0; l < craftingInput.width(); l++) {
