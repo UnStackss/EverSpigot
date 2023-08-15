@@ -560,6 +560,12 @@ public class EndDragonFight {
     }
 
     public boolean tryRespawn() { // CraftBukkit - return boolean
+        // Paper start - Perf: Do crystal-portal proximity check before entity lookup
+        return this.tryRespawn(null);
+    }
+
+    public boolean tryRespawn(@Nullable BlockPos placedEndCrystalPos) { // placedEndCrystalPos is null if the tryRespawn() call was not caused by a placed end crystal
+        // Paper end - Perf: Do crystal-portal proximity check before entity lookup
         if (this.dragonKilled && this.respawnStage == null) {
             BlockPos blockposition = this.portalLocation;
 
@@ -576,6 +582,22 @@ public class EndDragonFight {
 
                 blockposition = this.portalLocation;
             }
+
+            // Paper start - Perf: Do crystal-portal proximity check before entity lookup
+            if (placedEndCrystalPos != null) {
+                // The end crystal must be 0 or 1 higher than the portal origin
+                int dy = placedEndCrystalPos.getY() - blockposition.getY();
+                if (dy != 0 && dy != 1) {
+                    return false;
+                }
+                // The end crystal must be within a distance of 1 in one planar direction, and 3 in the other
+                int dx = placedEndCrystalPos.getX() - blockposition.getX();
+                int dz = placedEndCrystalPos.getZ() - blockposition.getZ();
+                if (!((dx >= -1 && dx <= 1 && dz >= -3 && dz <= 3) || (dx >= -3 && dx <= 3 && dz >= -1 && dz <= 1))) {
+                    return false;
+                }
+            }
+            // Paper end - Perf: Do crystal-portal proximity check before entity lookup
 
             List<EndCrystal> list = Lists.newArrayList();
             BlockPos blockposition1 = blockposition.above(1);

@@ -30,7 +30,7 @@ public class EndCrystalItem extends Item {
         if (!iblockdata.is(Blocks.OBSIDIAN) && !iblockdata.is(Blocks.BEDROCK)) {
             return InteractionResult.FAIL;
         } else {
-            BlockPos blockposition1 = blockposition.above();
+            BlockPos blockposition1 = blockposition.above(); final BlockPos aboveBlockPosition = blockposition1; // Paper - OBFHELPER
 
             if (!world.isEmptyBlock(blockposition1)) {
                 return InteractionResult.FAIL;
@@ -58,7 +58,7 @@ public class EndCrystalItem extends Item {
                         EndDragonFight enderdragonbattle = ((ServerLevel) world).getDragonFight();
 
                         if (enderdragonbattle != null) {
-                            enderdragonbattle.tryRespawn();
+                            enderdragonbattle.tryRespawn(aboveBlockPosition); // Paper - Perf: Do crystal-portal proximity check before entity lookup
                         }
                     }
 
