@@ -265,12 +265,15 @@ public abstract class ChunkGenerator {
         int i1 = placement.spacing();
 
         for (int j1 = -radius; j1 <= radius; ++j1) {
-            boolean flag1 = j1 == -radius || j1 == radius;
+            // Paper start - Perf: iterate over border chunks instead of entire square chunk area
+            boolean flag1 = j1 == -radius || j1 == radius; final boolean onBorderAlongZAxis = flag1; // Paper - OBFHELPER
 
-            for (int k1 = -radius; k1 <= radius; ++k1) {
-                boolean flag2 = k1 == -radius || k1 == radius;
+            for (int k1 = -radius; k1 <= radius; k1 += onBorderAlongZAxis ? 1 : radius * 2) {
+                // boolean flag2 = k1 == -radius || k1 == radius;
 
-                if (flag1 || flag2) {
+                // if (flag1 || flag2) {
+                if (true) {
+                    // Paper end - Perf: iterate over border chunks instead of entire square chunk area
                     int l1 = centerChunkX + i1 * j1;
                     int i2 = centerChunkZ + i1 * k1;
                     ChunkPos chunkcoordintpair = placement.getPotentialStructureChunk(seed, l1, i2);
