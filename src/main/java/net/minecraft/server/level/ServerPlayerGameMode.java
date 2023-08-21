@@ -261,7 +261,7 @@ public class ServerPlayerGameMode {
                     }
                     return;
                 }
-                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, pos, this.player.getInventory().getSelected(), f >= 1.0f);
+                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, pos, direction, this.player.getInventory().getSelected(), f >= 1.0f); // Paper - Add BlockFace to BlockDamageEvent
 
                 if (blockEvent.isCancelled()) {
                     // Let the client know the block still exists
