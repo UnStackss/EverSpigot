@@ -234,6 +234,7 @@ public class Goat extends Animal {
             PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, hand);
 
             if (event.isCancelled()) {
+                player.containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
                 return InteractionResult.PASS;
             }
             // CraftBukkit end

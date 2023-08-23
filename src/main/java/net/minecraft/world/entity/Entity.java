@@ -2638,8 +2638,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                 if (!this.level().isClientSide()) {
                     // CraftBukkit start - fire PlayerLeashEntityEvent
                     if (CraftEventFactory.callPlayerLeashEntityEvent(this, player, player, hand).isCancelled()) {
-                        ((ServerPlayer) player).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
+                        // ((ServerPlayer) player).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item // Paper - Fix inventory desync
                         ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
+                        player.containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
                         return InteractionResult.PASS;
                     }
                     // CraftBukkit end

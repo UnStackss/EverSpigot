@@ -400,6 +400,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player {
 
     // Use method to resend items in hands in case of client desync, because the item use got cancelled.
     // For example, when cancelling the leash event
+    @Deprecated // Paper - this shouldn't be used, use the regular sendAllDataToRemote call to resync all
     public void resendItemInHands() {
         this.containerMenu.findSlot(this.getInventory(), this.getInventory().selected).ifPresent(s -> {
             this.containerSynchronizer.sendSlotChange(this.containerMenu, s, this.getMainHandItem());

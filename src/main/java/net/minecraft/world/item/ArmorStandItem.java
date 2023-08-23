@@ -55,6 +55,7 @@ public class ArmorStandItem extends Item {
                     entityarmorstand.moveTo(entityarmorstand.getX(), entityarmorstand.getY(), entityarmorstand.getZ(), f, 0.0F);
                     // CraftBukkit start
                     if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(context, entityarmorstand).isCancelled()) {
+                        if (context.getPlayer() != null) context.getPlayer().containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
                         return InteractionResult.FAIL;
                     }
                     // CraftBukkit end

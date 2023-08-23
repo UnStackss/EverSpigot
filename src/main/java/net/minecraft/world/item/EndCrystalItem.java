@@ -49,6 +49,7 @@ public class EndCrystalItem extends Item {
                         entityendercrystal.setShowBottom(false);
                         // CraftBukkit start
                         if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(context, entityendercrystal).isCancelled()) {
+                            if (context.getPlayer() != null) context.getPlayer().containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
                             return InteractionResult.FAIL;
                         }
                         // CraftBukkit end

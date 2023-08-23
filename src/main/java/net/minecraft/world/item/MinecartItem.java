@@ -137,6 +137,7 @@ public class MinecartItem extends Item {
 
                 // CraftBukkit start
                 if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPlaceEvent(context, entityminecartabstract).isCancelled()) {
+                    if (context.getPlayer() != null) context.getPlayer().containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
                     return InteractionResult.FAIL;
                 }
                 // CraftBukkit end

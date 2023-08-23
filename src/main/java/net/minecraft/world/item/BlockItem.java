@@ -114,7 +114,7 @@ public class BlockItem extends Item {
                             if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
                                 blockstate.update(true, false);
 
-                                if (this instanceof SolidBucketItem) {
+                                if (true) { // Paper - if the event is called here, the inventory should be updated
                                     ((ServerPlayer) entityhuman).getBukkitEntity().updateInventory(); // SPIGOT-4541
                                 }
                                 return InteractionResult.FAIL;
