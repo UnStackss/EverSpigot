@@ -254,8 +254,8 @@ public abstract class AbstractSkeleton extends Monster implements RangedAttackMo
     // Paper end - shouldBurnInDay API
 
     @Override
-    public void setItemSlot(EquipmentSlot slot, ItemStack stack) {
-        super.setItemSlot(slot, stack);
+    public void setItemSlot(EquipmentSlot slot, ItemStack stack, boolean silent) { // Paper - Fix silent equipment change
+        super.setItemSlot(slot, stack, silent); // Paper - Fix silent equipment change
         if (!this.level().isClientSide) {
             this.reassessWeaponGoal();
         }
