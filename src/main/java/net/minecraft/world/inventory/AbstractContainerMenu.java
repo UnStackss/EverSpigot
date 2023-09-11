@@ -423,6 +423,7 @@ public abstract class AbstractContainerMenu {
                     this.resetQuickCraft();
                 }
             } else if (this.quickcraftStatus == 1) {
+                if (slotIndex < 0) return; // Paper - Add slot sanity checks to container clicks
                 slot = (Slot) this.slots.get(slotIndex);
                 itemstack = this.getCarried();
                 if (AbstractContainerMenu.canItemQuickReplace(slot, itemstack, true) && slot.mayPlace(itemstack) && (this.quickcraftType == 2 || itemstack.getCount() > this.quickcraftSlots.size()) && this.canDragTo(slot)) {
@@ -597,6 +598,7 @@ public abstract class AbstractContainerMenu {
                 int j2;
 
                 if (actionType == ClickType.SWAP && (button >= 0 && button < 9 || button == 40)) {
+                    if (slotIndex < 0) return; // Paper - Add slot sanity checks to container clicks
                     ItemStack itemstack4 = playerinventory.getItem(button);
 
                     slot = (Slot) this.slots.get(slotIndex);

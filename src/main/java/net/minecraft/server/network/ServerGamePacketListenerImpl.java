@@ -2986,6 +2986,12 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                             break;
                         case SWAP:
                             if ((packet.getButtonNum() >= 0 && packet.getButtonNum() < 9) || packet.getButtonNum() == 40) {
+                                // Paper start - Add slot sanity checks to container clicks
+                                if (packet.getSlotNum() < 0) {
+                                    action = InventoryAction.NOTHING;
+                                    break;
+                                }
+                                // Paper end - Add slot sanity checks to container clicks
                                 click = (packet.getButtonNum() == 40) ? ClickType.SWAP_OFFHAND : ClickType.NUMBER_KEY;
                                 Slot clickedSlot = this.player.containerMenu.getSlot(packet.getSlotNum());
                                 if (clickedSlot.mayPickup(this.player)) {
