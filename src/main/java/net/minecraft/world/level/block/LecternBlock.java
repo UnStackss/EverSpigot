@@ -179,6 +179,16 @@ public class LecternBlock extends BaseEntityBlock {
     }
 
     private static void changePowered(Level world, BlockPos pos, BlockState state, boolean powered) {
+        // Paper start - call BlockRedstoneEvents for lecterns
+        final int currentRedstoneLevel = state.getValue(LecternBlock.POWERED) ? 15 : 0, targetRedstoneLevel = powered ? 15 : 0;
+        if (currentRedstoneLevel != targetRedstoneLevel) {
+            final org.bukkit.event.block.BlockRedstoneEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(world, pos, currentRedstoneLevel, targetRedstoneLevel);
+
+            if (event.getNewCurrent() != targetRedstoneLevel) {
+                return;
+            }
+        }
+        // Paper end - call BlockRedstoneEvents for lecterns
         world.setBlock(pos, (BlockState) state.setValue(LecternBlock.POWERED, powered), 3);
         LecternBlock.updateBelow(world, pos, state);
     }
