@@ -50,7 +50,7 @@ public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
                 com.destroystokyo.paper.event.server.PaperServerListPingEvent event; // Paper
 
                 if (i == 0) {
-                    LegacyQueryHandler.LOGGER.debug("Ping: (<1.3.x) from {}", socketaddress);
+                    LegacyQueryHandler.LOGGER.debug("Ping: (<1.3.x) from {}", net.minecraft.server.MinecraftServer.getServer().logIPs() ? socketaddress: "<ip address withheld>"); // Paper - Respect logIPs option
 
                     // Paper start - Call PaperServerListPingEvent and use results
                     event = com.destroystokyo.paper.network.PaperLegacyStatusClient.processRequest(net.minecraft.server.MinecraftServer.getServer(), (java.net.InetSocketAddress) socketaddress, 39, null);
@@ -83,7 +83,7 @@ public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
                         // LegacyQueryHandler.LOGGER.debug("Ping: (1.6) from {}", socketaddress);
                         // Paper end
                     } else {
-                        LegacyQueryHandler.LOGGER.debug("Ping: (1.4-1.5.x) from {}", socketaddress);
+                        LegacyQueryHandler.LOGGER.debug("Ping: (1.4-1.5.x) from {}", net.minecraft.server.MinecraftServer.getServer().logIPs() ? socketaddress: "<ip address withheld>"); // Paper - Respect logIPs option
                     }
 
                     if (s == null) {
@@ -207,7 +207,7 @@ public class LegacyQueryHandler extends ChannelInboundHandlerAdapter {
         buf.release();
         this.buf = null;
 
-        LOGGER.debug("Ping: (1.6) from {}", ctx.channel().remoteAddress());
+        LOGGER.debug("Ping: (1.6) from {}", net.minecraft.server.MinecraftServer.getServer().logIPs() ? ctx.channel().remoteAddress(): "<ip address withheld>"); // Paper - Respect logIPs option
 
         java.net.InetSocketAddress virtualHost = com.destroystokyo.paper.network.PaperNetworkClient.prepareVirtualHost(host, port);
         com.destroystokyo.paper.event.server.PaperServerListPingEvent event = com.destroystokyo.paper.network.PaperLegacyStatusClient.processRequest(
