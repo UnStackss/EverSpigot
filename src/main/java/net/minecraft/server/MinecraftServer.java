@@ -322,6 +322,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
 
     public volatile Thread shutdownThread; // Paper
     public volatile boolean abnormalExit = false; // Paper
+    public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
 
     public static <S extends MinecraftServer> S spin(Function<Thread, S> serverFactory) {
         AtomicReference<S> atomicreference = new AtomicReference();
@@ -1765,6 +1766,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             worldserver.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
             worldserver.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
             net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = worldserver.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
+            worldserver.updateLagCompensationTick(); // Paper - lag compensation
 
             this.profiler.push(() -> {
                 String s = String.valueOf(worldserver);

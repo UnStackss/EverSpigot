@@ -129,7 +129,7 @@ public class ServerPlayerGameMode {
     }
 
     public void tick() {
-        this.gameTicks = MinecraftServer.currentTick; // CraftBukkit;
+        this.gameTicks = (int)this.level.getLagCompensationTick(); // CraftBukkit; // Paper - lag compensation
         BlockState iblockdata;
 
         if (this.hasDelayedDestroy) {

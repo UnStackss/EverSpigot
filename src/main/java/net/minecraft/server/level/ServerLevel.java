@@ -485,6 +485,17 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
         return this.entityTickingChunks;
     }
     // Paper end - rewrite chunk system
+    // Paper start - lag compensation
+    private long lagCompensationTick = net.minecraft.server.MinecraftServer.SERVER_INIT;
+
+    public long getLagCompensationTick() {
+        return this.lagCompensationTick;
+    }
+
+    public void updateLagCompensationTick() {
+        this.lagCompensationTick = (System.nanoTime() - net.minecraft.server.MinecraftServer.SERVER_INIT) / (java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(50L));
+    }
+    // Paper end - lag compensation
 
     // Add env and gen to constructor, IWorldDataServer -> WorldDataServer
     public ServerLevel(MinecraftServer minecraftserver, Executor executor, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PrimaryLevelData iworlddataserver, ResourceKey<Level> resourcekey, LevelStem worlddimension, ChunkProgressListener worldloadlistener, boolean flag, long i, List<CustomSpawner> list, boolean flag1, @Nullable RandomSequences randomsequences, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider) {
