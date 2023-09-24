@@ -1662,13 +1662,24 @@ public class ServerLevel extends Level implements WorldGenLevel {
     @Nullable
     @Override
     public MapItemSavedData getMapData(MapId id) {
-        // CraftBukkit start
-        MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), id.key());
-        if (worldmap != null) {
-            worldmap.id = id;
+        // Paper start - Call missing map initialize event and set id
+        final DimensionDataStorage storage = this.getServer().overworld().getDataStorage();
+
+        final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(id.key());
+        if (existing == null && !storage.cache.containsKey(id.key())) {
+            final MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), id.key());
+            storage.cache.put(id.key(), worldmap);
+            if (worldmap != null) {
+                worldmap.id = id;
+                new MapInitializeEvent(worldmap.mapView).callEvent();
+                return worldmap;
+            }
+        } else if (existing instanceof MapItemSavedData mapItemSavedData) {
+            mapItemSavedData.id = id;
         }
-        return worldmap;
-        // CraftBukkit end
+
+        return existing instanceof MapItemSavedData data ? data : null;
+        // Paper end - Call missing map initialize event and set id
     }
 
     @Override
