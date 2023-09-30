@@ -47,6 +47,7 @@ public class LightningBolt extends Entity {
     private ServerPlayer cause;
     private final Set<Entity> hitEntities = Sets.newHashSet();
     private int blocksSetOnFire;
+    public boolean isEffect; // Paper - Properly handle lightning effects api
 
     public LightningBolt(EntityType<? extends LightningBolt> type, Level world) {
         super(type, world);
@@ -87,7 +88,7 @@ public class LightningBolt extends Entity {
     @Override
     public void tick() {
         super.tick();
-        if (this.life == 2) {
+        if (!this.isEffect && this.life == 2) { // Paper - Properly handle lightning effects api
             if (this.level().isClientSide()) {
                 this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0F, 0.8F + this.random.nextFloat() * 0.2F, false);
                 this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER, 2.0F, 0.5F + this.random.nextFloat() * 0.2F, false);
@@ -134,7 +135,7 @@ public class LightningBolt extends Entity {
             }
         }
 
-        if (this.life >= 0 && !this.visualOnly) { // CraftBukkit - add !this.visualOnly
+        if (this.life >= 0 && !this.isEffect) { // CraftBukkit - add !this.visualOnly // Paper - Properly handle lightning effects api
             if (!(this.level() instanceof ServerLevel)) {
                 this.level().setSkyFlashTime(2);
             } else if (!this.visualOnly) {
@@ -163,7 +164,7 @@ public class LightningBolt extends Entity {
     }
 
     private void spawnFire(int spreadAttempts) {
-        if (!this.visualOnly && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
+        if (!this.visualOnly && !this.isEffect && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) { // Paper - Properly handle lightning effects api
             BlockPos blockposition = this.blockPosition();
             BlockState iblockdata = BaseFireBlock.getState(this.level(), blockposition);
 
