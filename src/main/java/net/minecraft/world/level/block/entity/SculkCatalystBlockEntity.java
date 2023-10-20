@@ -35,8 +35,15 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
     public SculkCatalystBlockEntity(BlockPos pos, BlockState state) {
         super(BlockEntityType.SCULK_CATALYST, pos, state);
         this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(state, new BlockPositionSource(pos));
-        this.catalystListener.level = this.level; // CraftBukkit
     }
+
+    // Paper start - Fix NPE in SculkBloomEvent world access
+    @Override
+    public void setLevel(Level level) {
+        super.setLevel(level);
+        this.catalystListener.sculkSpreader.level = level;
+    }
+    // Paper end - Fix NPE in SculkBloomEvent world access
 
     public static void serverTick(Level world, BlockPos pos, BlockState state, SculkCatalystBlockEntity blockEntity) {
         org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = blockEntity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
@@ -67,13 +74,12 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
         final SculkSpreader sculkSpreader;
         private final BlockState blockState;
         private final PositionSource positionSource;
-        private Level level; // CraftBukkit
 
         public CatalystListener(BlockState state, PositionSource positionSource) {
             this.blockState = state;
             this.positionSource = positionSource;
             this.sculkSpreader = SculkSpreader.createLevelSpreader();
-            this.sculkSpreader.level = this.level; // CraftBukkit
+            // this.sculkSpreader.level = this.level; // CraftBukkit // Paper - Fix NPE in SculkBloomEvent world access
         }
 
         @Override
