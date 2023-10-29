@@ -3749,7 +3749,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
     public void take(Entity item, int count) {
         if (!item.isRemoved() && !this.level().isClientSide && (item instanceof ItemEntity || item instanceof AbstractArrow || item instanceof ExperienceOrb)) {
-            ((ServerLevel) this.level()).getChunkSource().broadcast(item, new ClientboundTakeItemEntityPacket(item.getId(), this.getId(), count));
+            ((ServerLevel) this.level()).getChunkSource().broadcastAndSend(this, new ClientboundTakeItemEntityPacket(item.getId(), this.getId(), count)); // Paper - broadcast with collector as source
         }
 
     }
