@@ -274,7 +274,7 @@ public class ThrownPotion extends ThrowableItemProjectile implements ItemSupplie
         boolean noEffects = potioncontents.hasEffects(); // Paper - Fix potions splash events
         // CraftBukkit start
         org.bukkit.event.entity.LingeringPotionSplashEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLingeringPotionSplashEvent(this, position, entityareaeffectcloud);
-        if (!(event.isCancelled() || entityareaeffectcloud.isRemoved() || (noEffects && !entityareaeffectcloud.potionContents.hasEffects()))) { // Paper - don't spawn area effect cloud if the effects were empty and not changed during the event handling
+        if (!(event.isCancelled() || entityareaeffectcloud.isRemoved() || (!event.allowsEmptyCreation() && (noEffects && !entityareaeffectcloud.potionContents.hasEffects())))) { // Paper - don't spawn area effect cloud if the effects were empty and not changed during the event handling
             this.level().addFreshEntity(entityareaeffectcloud);
         } else {
             entityareaeffectcloud.discard(null); // CraftBukkit - add Bukkit remove cause
