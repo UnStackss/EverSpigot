@@ -42,14 +42,14 @@ public abstract class SimpleCriterionTrigger<T extends SimpleCriterionTrigger.Si
         PlayerAdvancements playerAdvancements = player.getAdvancements();
         Set<CriterionTrigger.Listener<T>> set = (Set) playerAdvancements.criterionData.get(this); // Paper - fix AdvancementDataPlayer leak
         if (set != null && !set.isEmpty()) {
-            LootContext lootContext = EntityPredicate.createContext(player, player);
+            LootContext lootContext = null; // EntityPredicate.createContext(player, player); // Paper - Perf: lazily create LootContext for criterions
             List<CriterionTrigger.Listener<T>> list = null;
 
             for (CriterionTrigger.Listener<T> listener : set) {
                 T simpleInstance = listener.trigger();
                 if (predicate.test(simpleInstance)) {
                     Optional<ContextAwarePredicate> optional = simpleInstance.player();
-                    if (optional.isEmpty() || optional.get().matches(lootContext)) {
+                    if (optional.isEmpty() || optional.get().matches(lootContext = (lootContext == null ? EntityPredicate.createContext(player, player) : lootContext))) { // Paper - Perf: lazily create LootContext for criterions
                         if (list == null) {
                             list = Lists.newArrayList();
                         }
