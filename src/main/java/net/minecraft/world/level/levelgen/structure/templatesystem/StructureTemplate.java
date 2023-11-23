@@ -525,7 +525,7 @@ public class StructureTemplate {
     private static Optional<Entity> createEntityIgnoreException(ServerLevelAccessor world, CompoundTag nbt) {
         // CraftBukkit start
         // try {
-            return EntityType.create(nbt, world.getLevel());
+            return EntityType.create(nbt, world.getLevel(), true); // Paper - Don't fire sync event during generation
         // } catch (Exception exception) {
             // return Optional.empty();
         // }

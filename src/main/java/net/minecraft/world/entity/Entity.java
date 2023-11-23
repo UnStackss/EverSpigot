@@ -624,7 +624,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
         if (pose == this.getPose()) {
             return;
         }
-        this.level.getCraftServer().getPluginManager().callEvent(new EntityPoseChangeEvent(this.getBukkitEntity(), Pose.values()[pose.ordinal()]));
+        // Paper start - Don't fire sync event during generation
+        if (!this.generation) {
+            this.level.getCraftServer().getPluginManager().callEvent(new EntityPoseChangeEvent(this.getBukkitEntity(), Pose.values()[pose.ordinal()]));
+        }
+        // Paper end - Don't fire sync event during generation
         // CraftBukkit end
         this.entityData.set(Entity.DATA_POSE, pose);
     }

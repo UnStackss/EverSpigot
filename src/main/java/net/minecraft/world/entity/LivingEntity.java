@@ -1138,6 +1138,11 @@ public abstract class LivingEntity extends Entity implements Attackable {
     }
 
     public boolean addEffect(MobEffectInstance mobeffect, @Nullable Entity entity, EntityPotionEffectEvent.Cause cause) {
+        // Paper start - Don't fire sync event during generation
+        return this.addEffect(mobeffect, entity, cause, true);
+    }
+    public boolean addEffect(MobEffectInstance mobeffect, @Nullable Entity entity, EntityPotionEffectEvent.Cause cause, boolean fireEvent) {
+        // Paper end - Don't fire sync event during generation
         // org.spigotmc.AsyncCatcher.catchOp("effect add"); // Spigot // Paper - move to API
         if (this.isTickingEffects) {
             this.effectsToProcess.add(new ProcessableEffect(mobeffect, cause));
@@ -1157,10 +1162,13 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 override = new MobEffectInstance(mobeffect1).update(mobeffect);
             }
 
+            if (fireEvent) { // Paper - Don't fire sync event during generation
             EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, mobeffect1, mobeffect, cause, override);
+            override = event.isOverride(); // Paper - Don't fire sync event during generation
             if (event.isCancelled()) {
                 return false;
             }
+            } // Paper - Don't fire sync event during generation
             // CraftBukkit end
 
             if (mobeffect1 == null) {
@@ -1169,7 +1177,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 flag = true;
                 mobeffect.onEffectAdded(this);
                 // CraftBukkit start
-            } else if (event.isOverride()) {
+            } else if (override) { // Paper - Don't fire sync event during generation
                 mobeffect1.update(mobeffect);
                 this.onEffectUpdated(mobeffect1, true, entity);
                 // CraftBukkit end

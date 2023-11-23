@@ -1224,6 +1224,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
     // CraftBukkit start
     private boolean addEntity(Entity entity, CreatureSpawnEvent.SpawnReason spawnReason) {
         org.spigotmc.AsyncCatcher.catchOp("entity add"); // Spigot
+        entity.generation = false; // Paper - Don't fire sync event during generation; Reset flag if it was added during a ServerLevel generation process
         // Paper start - extra debug info
         if (entity.valid) {
             MinecraftServer.LOGGER.error("Attempted Double World add on {}", entity, new Throwable());

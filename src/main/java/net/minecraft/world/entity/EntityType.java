@@ -592,9 +592,15 @@ public class EntityType<T extends Entity> implements FeatureElement, EntityTypeT
     }
 
     public static Optional<Entity> create(CompoundTag nbt, Level world) {
+        // Paper start - Don't fire sync event during generation
+        return create(nbt, world, false);
+    }
+    public static Optional<Entity> create(CompoundTag nbt, Level world, boolean generation) {
+        // Paper end - Don't fire sync event during generation
         return Util.ifElse(EntityType.by(nbt).map((entitytypes) -> {
             return entitytypes.create(world);
         }), (entity) -> {
+            if (generation) entity.generation = true; // Paper - Don't fire sync event during generation
             entity.load(nbt);
         }, () -> {
             EntityType.LOGGER.warn("Skipping Entity with id {}", nbt.getString("id"));
