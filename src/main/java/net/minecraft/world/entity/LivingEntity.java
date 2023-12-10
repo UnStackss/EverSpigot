@@ -4229,7 +4229,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                     if (!(this instanceof ServerPlayer)) {
                         EntityTeleportEvent teleport = new EntityTeleportEvent(this.getBukkitEntity(), new Location(this.level().getWorld(), d3, d4, d5), new Location(this.level().getWorld(), d0, d6, d2));
                         this.level().getCraftServer().getPluginManager().callEvent(teleport);
-                        if (!teleport.isCancelled()) {
+                        if (!teleport.isCancelled() && teleport.getTo() != null) { // Paper
                             Location to = teleport.getTo();
                             this.teleportTo(to.getX(), to.getY(), to.getZ());
                         } else {

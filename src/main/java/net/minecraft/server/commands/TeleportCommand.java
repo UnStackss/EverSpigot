@@ -169,9 +169,10 @@ public class TeleportCommand {
                 Location to = new Location(world.getWorld(), x, y, z, f2, f3);
                 EntityTeleportEvent event = new EntityTeleportEvent(target.getBukkitEntity(), target.getBukkitEntity().getLocation(), to);
                 world.getCraftServer().getPluginManager().callEvent(event);
-                if (event.isCancelled()) {
+                if (event.isCancelled() || event.getTo() == null) { // Paper
                     return;
                 }
+                to = event.getTo(); // Paper - actually track new location
 
                 x = to.getX();
                 y = to.getY();

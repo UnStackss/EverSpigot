@@ -415,7 +415,7 @@ public class Shulker extends AbstractGolem implements VariantHolder<Optional<Dye
                     if (enumdirection != null) {
                         // CraftBukkit start
                         EntityTeleportEvent teleportEvent = CraftEventFactory.callEntityTeleportEvent(this, blockposition1.getX(), blockposition1.getY(), blockposition1.getZ());
-                        if (teleportEvent.isCancelled()) {
+                        if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
                             return false;
                         } else {
                             blockposition1 = CraftLocation.toBlockPosition(teleportEvent.getTo());

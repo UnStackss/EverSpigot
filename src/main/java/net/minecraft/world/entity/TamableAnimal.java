@@ -303,7 +303,7 @@ public abstract class TamableAnimal extends Animal implements OwnableEntity {
         } else {
             // CraftBukkit start
             EntityTeleportEvent event = CraftEventFactory.callEntityTeleportEvent(this, (double) x + 0.5D, (double) y, (double) z + 0.5D);
-            if (event.isCancelled()) {
+            if (event.isCancelled() || event.getTo() == null) { // Paper - prevent NP on null event to location
                 return false;
             }
             Location to = event.getTo();
