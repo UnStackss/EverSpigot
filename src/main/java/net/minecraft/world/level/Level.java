@@ -617,7 +617,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             if (drop) {
                 BlockEntity tileentity = iblockdata.hasBlockEntity() ? this.getBlockEntity(pos) : null;
 
-                Block.dropResources(iblockdata, this, pos, tileentity, breakingEntity, ItemStack.EMPTY);
+                Block.dropResources(iblockdata, this, pos, tileentity, breakingEntity, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
+                iblockdata.getBlock().popExperience((ServerLevel) this, pos, xp, breakingEntity); // Paper - Properly handle xp dropping; custom amount
             }
 
             boolean flag1 = this.setBlock(pos, fluid.createLegacyBlock(), 3, maxUpdateDepth);

@@ -1119,6 +1119,7 @@ public abstract class BlockBehaviour implements FeatureElement {
 
         public void spawnAfterBreak(ServerLevel world, BlockPos pos, ItemStack tool, boolean dropExperience) {
             this.getBlock().spawnAfterBreak(this.asState(), world, pos, tool, dropExperience);
+            if (dropExperience) {getBlock().popExperience(world, pos, this.getBlock().getExpDrop(asState(), world, pos, tool, true));} // Paper - Properly handle xp dropping
         }
 
         public List<ItemStack> getDrops(LootParams.Builder builder) {

@@ -312,23 +312,31 @@ public class Block extends BlockBehaviour implements ItemLike {
             for (ItemStack drop : Block.getDrops(state, serverLevel, pos, blockEntity)) {
                 items.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(drop));
             }
+            Block block = state.getBlock(); // Paper - Properly handle xp dropping
             io.papermc.paper.event.block.BlockBreakBlockEvent event = new io.papermc.paper.event.block.BlockBreakBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, pos), org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, source), items);
+            event.setExpToDrop(block.getExpDrop(state, serverLevel, pos, net.minecraft.world.item.ItemStack.EMPTY, true)); // Paper - Properly handle xp dropping
             event.callEvent();
             for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
                 popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
             }
-            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, true);
+            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
+            block.popExperience(serverLevel, pos, event.getExpToDrop()); // Paper - Properly handle xp dropping
         }
         return true;
     }
     // Paper end - Add BlockBreakBlockEvent
 
     public static void dropResources(BlockState state, Level world, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity entity, ItemStack tool) {
+    // Paper start - Properly handle xp dropping
+        dropResources(state, world, pos, blockEntity, entity, tool, true);
+    }
+    public static void dropResources(BlockState state, Level world, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity entity, ItemStack tool, boolean dropExperience) {
+    // Paper end - Properly handle xp dropping
         if (world instanceof ServerLevel) {
             Block.getDrops(state, (ServerLevel) world, pos, blockEntity, entity, tool).forEach((itemstack1) -> {
                 Block.popResource(world, pos, itemstack1);
             });
-            state.spawnAfterBreak((ServerLevel) world, pos, tool, true);
+            state.spawnAfterBreak((ServerLevel) world, pos, tool, dropExperience); // Paper - Properly handle xp dropping
         }
 
     }
@@ -412,7 +420,7 @@ public class Block extends BlockBehaviour implements ItemLike {
         player.awardStat(Stats.BLOCK_MINED.get(this));
         player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
         if (includeDrops) { // Paper - fix drops not preventing stats/food exhaustion
-        Block.dropResources(state, world, pos, blockEntity, player, tool);
+        Block.dropResources(state, world, pos, blockEntity, player, tool, dropExp); // Paper - Properly handle xp dropping
         } // Paper - fix drops not preventing stats/food exhaustion
     }
 
