@@ -405,7 +405,13 @@ public interface DispenseItemBehavior {
                 int y = blockposition.getY();
                 int z = blockposition.getZ();
                 BlockState iblockdata = worldserver.getBlockState(blockposition);
-                if (iblockdata.isAir() || iblockdata.canBeReplaced() || (dispensiblecontaineritem instanceof BucketItem && iblockdata.getBlock() instanceof LiquidBlockContainer && ((LiquidBlockContainer) iblockdata.getBlock()).canPlaceLiquid((Player) null, worldserver, blockposition, iblockdata, ((BucketItem) dispensiblecontaineritem).content))) {
+                // Paper start - correctly check if the bucket place will succeed
+                /* Taken from SolidBucketItem#emptyContents */
+                boolean willEmptyContentsSolidBucketItem = dispensiblecontaineritem instanceof net.minecraft.world.item.SolidBucketItem && worldserver.isInWorldBounds(blockposition) && iblockdata.isAir();
+                /* Taken from BucketItem#emptyContents */
+                boolean willEmptyBucketItem = dispensiblecontaineritem instanceof final BucketItem bucketItem && bucketItem.content instanceof net.minecraft.world.level.material.FlowingFluid && (iblockdata.isAir() || iblockdata.canBeReplaced(bucketItem.content) || (iblockdata.getBlock() instanceof LiquidBlockContainer liquidBlockContainer && liquidBlockContainer.canPlaceLiquid(null, worldserver, blockposition, iblockdata, bucketItem.content)));
+                if (willEmptyContentsSolidBucketItem || willEmptyBucketItem) {
+                // Paper end - correctly check if the bucket place will succeed
                     org.bukkit.block.Block block = CraftBlock.at(worldserver, pointer.pos());
                     CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack);
 
