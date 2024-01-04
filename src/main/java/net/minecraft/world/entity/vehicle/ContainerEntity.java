@@ -73,7 +73,7 @@ public interface ContainerEntity extends Container, MenuProvider {
     default void readChestVehicleSaveData(CompoundTag nbt, HolderLookup.Provider registriesLookup) {
         this.clearItemStacks();
         if (nbt.contains("LootTable", 8)) {
-            this.setLootTable(ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(nbt.getString("LootTable"))));
+            this.setLootTable(net.minecraft.Optionull.map(ResourceLocation.tryParse(nbt.getString("LootTable")), rl -> ResourceKey.create(Registries.LOOT_TABLE, rl))); // Paper - Validate ResourceLocation
             // Paper start - LootTable API
             if (this.getLootTable() != null) {
                 this.lootableData().loadNbt(nbt);

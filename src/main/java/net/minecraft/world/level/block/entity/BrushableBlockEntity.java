@@ -202,7 +202,7 @@ public class BrushableBlockEntity extends BlockEntity {
 
     private boolean tryLoadLootTable(CompoundTag nbt) {
         if (nbt.contains("LootTable", 8)) {
-            this.lootTable = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(nbt.getString("LootTable")));
+            this.lootTable = net.minecraft.Optionull.map(ResourceLocation.tryParse(nbt.getString("LootTable")), rl -> ResourceKey.create(Registries.LOOT_TABLE, rl)); // Paper - Validate ResourceLocation
             this.lootTableSeed = nbt.getLong("LootTableSeed");
             return true;
         } else {

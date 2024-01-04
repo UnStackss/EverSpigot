@@ -149,8 +149,10 @@ public final class NbtUtils {
         if (!nbt.contains("Name", 8)) {
             return Blocks.AIR.defaultBlockState();
         } else {
-            ResourceLocation resourceLocation = ResourceLocation.parse(nbt.getString("Name"));
-            Optional<? extends Holder<Block>> optional = blockLookup.get(ResourceKey.create(Registries.BLOCK, resourceLocation));
+            // Paper start - Validate resource location
+            ResourceLocation resourceLocation = ResourceLocation.tryParse(nbt.getString("Name"));
+            Optional<? extends Holder<Block>> optional = resourceLocation != null ? blockLookup.get(ResourceKey.create(Registries.BLOCK, resourceLocation)) : Optional.empty();
+            // Paper end - Validate resource location
             if (optional.isEmpty()) {
                 return Blocks.AIR.defaultBlockState();
             } else {

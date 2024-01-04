@@ -41,6 +41,13 @@ public final class ResourceLocation implements Comparable<ResourceLocation> {
 
         assert isValidPath(path);
 
+        // Paper start - Validate ResourceLocation
+        // Check for the max network string length (capped at Short.MAX_VALUE) as well as the max bytes of a StringTag (length written as an unsigned short)
+        final String resourceLocation = namespace + ":" + path;
+        if (resourceLocation.length() > Short.MAX_VALUE || io.netty.buffer.ByteBufUtil.utf8MaxBytes(resourceLocation) > 2 * Short.MAX_VALUE + 1) {
+            throw new ResourceLocationException("Resource location too long: " + resourceLocation);
+        }
+        // Paper end - Validate ResourceLocation
         this.namespace = namespace;
         this.path = path;
     }

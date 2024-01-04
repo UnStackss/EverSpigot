@@ -295,7 +295,12 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
         while (iterator.hasNext()) {
             String s = (String) iterator.next();
 
-            this.recipesUsed.put(ResourceLocation.parse(s), nbttagcompound1.getInt(s));
+            // Paper start - Validate ResourceLocation
+            final ResourceLocation resourceLocation = ResourceLocation.tryParse(s);
+            if (resourceLocation != null) {
+            this.recipesUsed.put(resourceLocation, nbttagcompound1.getInt(s));
+            }
+            // Paper end - Validate ResourceLocation
         }
 
         // Paper start - cook speed multiplier API

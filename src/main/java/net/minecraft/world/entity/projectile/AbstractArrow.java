@@ -649,7 +649,7 @@ public abstract class AbstractArrow extends Projectile {
         this.setCritArrow(nbt.getBoolean("crit"));
         this.setPierceLevel(nbt.getByte("PierceLevel"));
         if (nbt.contains("SoundEvent", 8)) {
-            this.soundEvent = (SoundEvent) BuiltInRegistries.SOUND_EVENT.getOptional(ResourceLocation.parse(nbt.getString("SoundEvent"))).orElse(this.getDefaultHitGroundSoundEvent());
+            this.soundEvent = (SoundEvent) BuiltInRegistries.SOUND_EVENT.getOptional(ResourceLocation.tryParse(nbt.getString("SoundEvent"))).orElse(this.getDefaultHitGroundSoundEvent()); // Paper - Validate resource location
         }
 
         if (nbt.contains("item", 10)) {

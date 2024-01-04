@@ -603,7 +603,7 @@ public abstract class Mob extends LivingEntity implements EquipmentUser, Leashab
         this.leashData = this.readLeashData(nbt);
         this.setLeftHanded(nbt.getBoolean("LeftHanded"));
         if (nbt.contains("DeathLootTable", 8)) {
-            this.lootTable = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(nbt.getString("DeathLootTable")));
+            this.lootTable = net.minecraft.Optionull.map(ResourceLocation.tryParse(nbt.getString("DeathLootTable")), rl -> ResourceKey.create(Registries.LOOT_TABLE, rl)); // Paper - Validate ResourceLocation
             this.lootTableSeed = nbt.getLong("DeathLootTableSeed");
         }
 
