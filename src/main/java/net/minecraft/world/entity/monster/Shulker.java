@@ -491,6 +491,11 @@ public class Shulker extends AbstractGolem implements VariantHolder<Optional<Dye
                 if (entityshulker != null) {
                     entityshulker.setVariant(this.getVariant());
                     entityshulker.moveTo(vec3d);
+                    // Paper start - Shulker duplicate event
+                    if (!new io.papermc.paper.event.entity.ShulkerDuplicateEvent((org.bukkit.entity.Shulker) entityshulker.getBukkitEntity(), (org.bukkit.entity.Shulker) this.getBukkitEntity()).callEvent()) {
+                        return;
+                    }
+                    // Paper end - Shulker duplicate event
                     this.level().addFreshEntity(entityshulker, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
                 }
 
