@@ -120,6 +120,16 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
                 + ", this can happen if a plugin creates its own registry entry with out properly registering it.");
     }
 
+    // Paper start - fixup upstream being dum
+    public static <T extends org.bukkit.Keyed, M> java.util.Optional<T> unwrapAndConvertHolder(final io.papermc.paper.registry.RegistryKey<T> registryKey, final Holder<M> value) {
+        return unwrapAndConvertHolder(io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(registryKey), value);
+    }
+
+    public static <T extends org.bukkit.Keyed, M> java.util.Optional<T> unwrapAndConvertHolder(final Registry<T> registry, final Holder<M> value) {
+        return value.unwrapKey().map(key -> registry.get(CraftNamespacedKey.fromMinecraft(key.location())));
+    }
+    // Paper end - fixup upstream being dum
+
     // Paper - move to PaperRegistries
 
     // Paper - NOTE: As long as all uses of the method below relate to *serialization* via ConfigurationSerializable, it's fine
