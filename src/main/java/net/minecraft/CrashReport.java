@@ -253,7 +253,7 @@ public class CrashReport {
     }
 
     public static void preload() {
-        MemoryReserve.allocate();
+        // MemoryReserve.allocate(); // Paper - Disable memory reserve allocating
         (new CrashReport("Don't panic!", new Throwable())).getFriendlyReport(ReportType.CRASH);
     }
 }
