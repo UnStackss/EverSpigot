@@ -766,6 +766,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             return;
         }
         // Paper end - Don't suggest if tab-complete is disabled
+        // Paper start
+        final int index;
+        if (packet.getCommand().length() > 64 && ((index = packet.getCommand().indexOf(' ')) == -1 || index >= 64)) {
+            this.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
+            return;
+        }
+        // Paper end
         // Paper start - AsyncTabCompleteEvent
         TAB_COMPLETE_EXECUTOR.execute(() -> this.handleCustomCommandSuggestions0(packet));
     }
@@ -818,6 +825,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
     private void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader stringreader) {
         // Paper end - AsyncTabCompleteEvent
         ParseResults<CommandSourceStack> parseresults = this.server.getCommands().getDispatcher().parse(stringreader, this.player.createCommandSourceStack());
+        // Paper start - Handle non-recoverable exceptions
+        if (!parseresults.getExceptions().isEmpty()
+            && parseresults.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
+            this.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
+            return;
+        }
+        // Paper end - Handle non-recoverable exceptions
 
         this.server.getCommands().getDispatcher().getCompletionSuggestions(parseresults).thenAccept((suggestions) -> {
             // Paper start - Don't tab-complete namespaced commands if send-namespaced is false

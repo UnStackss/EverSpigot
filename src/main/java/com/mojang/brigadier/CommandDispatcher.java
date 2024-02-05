@@ -304,9 +304,15 @@ public class CommandDispatcher<S> {
             }
             final CommandContextBuilder<S> context = contextSoFar.copy();
             final StringReader reader = new StringReader(originalReader);
+            boolean stop = false; // Paper - Handle non-recoverable exceptions
             try {
                 try {
                     child.parse(reader, context);
+                    // Paper start - Handle non-recoverable exceptions
+                } catch (final io.papermc.paper.brigadier.TagParseCommandSyntaxException e) {
+                    stop = true;
+                    throw e;
+                    // Paper end - Handle non-recoverable exceptions
                 } catch (final RuntimeException ex) {
                     throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherParseException().createWithContext(reader, ex.getMessage());
                 }
@@ -321,6 +327,7 @@ public class CommandDispatcher<S> {
                 }
                 errors.put(child, ex);
                 reader.setCursor(cursor);
+                if (stop) return new ParseResults<>(contextSoFar, originalReader, errors); // Paper - Handle non-recoverable exceptions
                 continue;
             }
 
