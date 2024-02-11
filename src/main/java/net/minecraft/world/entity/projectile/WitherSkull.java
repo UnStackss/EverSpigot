@@ -77,7 +77,7 @@ public class WitherSkull extends AbstractHurtingProjectile {
                     }
                 }
             } else {
-                flag = entity.hurt(this.damageSources().magic(), 5.0F);
+                flag = entity.hurt(this.damageSources().magic().customCausingEntity(this), 5.0F); // Paper - Fire EntityDamageByEntityEvent for unowned wither skulls
             }
 
             if (flag && entity instanceof LivingEntity entityliving) {
