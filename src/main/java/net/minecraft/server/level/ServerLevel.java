@@ -501,9 +501,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
         if (!this.isDebug() && flag) {
             j = this.getGameTime();
             gameprofilerfiller.push("blockTicks");
-            this.blockTicks.tick(j, 65536, this::tickBlock);
+            this.blockTicks.tick(j, paperConfig().environment.maxBlockTicks, this::tickBlock); // Paper - configurable max block ticks
             gameprofilerfiller.popPush("fluidTicks");
-            this.fluidTicks.tick(j, 65536, this::tickFluid);
+            this.fluidTicks.tick(j, paperConfig().environment.maxFluidTicks, this::tickFluid); // Paper - configurable max fluid ticks
             gameprofilerfiller.pop();
         }
         this.timings.scheduledBlocks.stopTiming(); // Paper
