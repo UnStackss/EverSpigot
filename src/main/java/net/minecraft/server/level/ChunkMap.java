@@ -1269,6 +1269,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                         this.serverEntity.addPairing(player);
                         }
                         // Paper end - entity tracking events
+                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
                     }
                 } else if (this.seenBy.remove(player.connection)) {
                     this.serverEntity.removePairing(player);

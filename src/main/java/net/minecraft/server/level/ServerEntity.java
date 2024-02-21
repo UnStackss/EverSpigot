@@ -96,6 +96,13 @@ public class ServerEntity {
         this.trackedDataValues = entity.getEntityData().getNonDefaultValues();
     }
 
+    // Paper start - fix desync when a player is added to the tracker
+    private boolean forceStateResync;
+    public void onPlayerAdd() {
+        this.forceStateResync = true;
+    }
+    // Paper end - fix desync when a player is added to the tracker
+
     public void sendChanges() {
         // Paper start - optimise collisions
         if (((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)this.entity).moonrise$isHardColliding()) {
@@ -145,7 +152,7 @@ public class ServerEntity {
             }
         }
 
-        if (this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) {
+        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
             int i;
             int j;
 
@@ -185,7 +192,7 @@ public class ServerEntity {
                 long i1 = this.positionCodec.encodeZ(vec3d);
                 boolean flag6 = k < -32768L || k > 32767L || l < -32768L || l > 32767L || i1 < -32768L || i1 > 32767L;
 
-                if (!flag6 && this.teleportDelay <= 400 && !this.wasRiding && this.wasOnGround == this.entity.onGround()) {
+                if (!this.forceStateResync && !flag6 && this.teleportDelay <= 400 && !this.wasRiding && this.wasOnGround == this.entity.onGround()) { // Paper - fix desync when a player is added to the tracker
                     if ((!flag2 || !flag3) && !(this.entity instanceof AbstractArrow)) {
                         if (flag2) {
                             packet1 = new ClientboundMoveEntityPacket.Pos(this.entity.getId(), (short) ((int) k), (short) ((int) l), (short) ((int) i1), this.entity.onGround());
@@ -249,6 +256,7 @@ public class ServerEntity {
             }
 
             this.entity.hasImpulse = false;
+            this.forceStateResync = false; // Paper - fix desync when a player is added to the tracker
         }
 
         ++this.tickCount;
