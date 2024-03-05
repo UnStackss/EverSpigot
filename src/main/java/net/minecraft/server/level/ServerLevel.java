@@ -1320,6 +1320,17 @@ public class ServerLevel extends Level implements WorldGenLevel {
         if (entity instanceof Player) entityhuman = (Player) entity;
         // CraftBukkit end
 
+        // Paper start - Add BlockBreakProgressUpdateEvent
+        // If a plugin is using this method to send destroy packets for a client-side only entity id, no block progress occurred on the server.
+        // Hence, do not call the event.
+        if (entity != null) {
+            float progressFloat = Mth.clamp(progress, 0, 10) / 10.0f;
+            org.bukkit.craftbukkit.block.CraftBlock bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(this, pos);
+            new io.papermc.paper.event.block.BlockBreakProgressUpdateEvent(bukkitBlock, progressFloat, entity.getBukkitEntity())
+                .callEvent();
+        }
+        // Paper end - Add BlockBreakProgressUpdateEvent
+
         while (iterator.hasNext()) {
             ServerPlayer entityplayer = (ServerPlayer) iterator.next();
 
