@@ -334,7 +334,7 @@ public class Turtle extends Animal {
 
     @Override
     public void thunderHit(ServerLevel world, LightningBolt lightning) {
-        this.hurt(this.damageSources().lightningBolt().customEntityDamager(lightning), Float.MAX_VALUE); // CraftBukkit
+        this.hurt(this.damageSources().lightningBolt().customEventDamager(lightning), Float.MAX_VALUE); // CraftBukkit // Paper - fix DamageSource API
     }
 
     @Override

@@ -89,7 +89,7 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
                             // entity.changeDimension(new DimensionTransition(worldserver, this.position(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING)); // CraftBukkit - moved up
                             entity.resetFallDistance();
                             entityplayer.resetCurrentImpulseContext();
-                            entity.hurt(this.damageSources().fall().customEntityDamager(this), 5.0F); // CraftBukkit
+                            entity.hurt(this.damageSources().fall().customEventDamager(this), 5.0F); // CraftBukkit // Paper - fix DamageSource API
                             this.playSound(worldserver, this.position());
                         }
                     } else {

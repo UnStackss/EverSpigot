@@ -271,7 +271,7 @@ public class Creeper extends Monster implements PowerableMob {
             if (!event.isCancelled()) {
             // CraftBukkit end
             this.dead = true;
-            this.level().explode(this, net.minecraft.world.level.Explosion.getDefaultDamageSource(this.level(), this).customCausingEntityDamager(this.entityIgniter), null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit
+            this.level().explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit // Paper - fix DamageSource API (revert to vanilla, no, just no, don't change this)
             this.spawnLingeringCloud();
             this.triggerOnDeathMobEffects(Entity.RemovalReason.KILLED);
             this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause

@@ -264,13 +264,7 @@ public class DamageSources {
     }
 
     public DamageSource explosion(@Nullable Entity source, @Nullable Entity attacker) {
-        // CraftBukkit start
-        return this.explosion(source, attacker, attacker != null && source != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION);
-    }
-
-    public DamageSource explosion(@Nullable Entity entity, @Nullable Entity entity1, ResourceKey<DamageType> resourceKey) {
-        return this.source(resourceKey, entity, entity1);
-        // CraftBukkit end
+        return this.source(attacker != null && source != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION, source, attacker); // Paper - revert to vanilla
     }
 
     public DamageSource sonicBoom(Entity attacker) {

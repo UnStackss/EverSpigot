@@ -96,7 +96,7 @@ public abstract class BlockAttachedEntity extends Entity {
         } else {
             if (!this.isRemoved() && !this.level().isClientSide) {
                 // CraftBukkit start - fire break events
-                Entity damager = (source.isDirect()) ? source.getDirectEntity() : source.getEntity();
+                Entity damager = (!source.isDirect() && source.getEntity() != null) ? source.getEntity() : source.getDirectEntity(); // Paper - fix DamageSource API
                 HangingBreakEvent event;
                 if (damager != null) {
                     event = new HangingBreakByEntityEvent((Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), source.is(DamageTypeTags.IS_EXPLOSION) ? HangingBreakEvent.RemoveCause.EXPLOSION : HangingBreakEvent.RemoveCause.ENTITY);

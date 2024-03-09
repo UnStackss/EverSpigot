@@ -3262,7 +3262,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
             return;
         }
 
-        if (!this.hurt(this.damageSources().lightningBolt().customEntityDamager(lightning), 5.0F)) {
+        if (!this.hurt(this.damageSources().lightningBolt().customEventDamager(lightning), 5.0F)) { // Paper - fix DamageSource API
             return;
         }
         // CraftBukkit end

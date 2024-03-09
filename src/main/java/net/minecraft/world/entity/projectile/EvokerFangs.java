@@ -135,7 +135,7 @@ public class EvokerFangs extends Entity implements TraceableEntity {
 
         if (target.isAlive() && !target.isInvulnerable() && target != entityliving1) {
             if (entityliving1 == null) {
-                target.hurt(this.damageSources().magic().customEntityDamager(this), 6.0F); // CraftBukkit
+                target.hurt(this.damageSources().magic().customEventDamager(this), 6.0F); // CraftBukkit // Paper - fix DamageSource API
             } else {
                 if (entityliving1.isAlliedTo((Entity) target)) {
                     return;
