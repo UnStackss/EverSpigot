@@ -90,6 +90,7 @@ public class MinecraftServerGui extends JComponent {
         this.setLayout(new BorderLayout());
 
         try {
+            this.add(this.buildOnboardingPanel(), "North"); // Paper - Add onboarding message for initial server start
             this.add(this.buildChatPanel(), "Center");
             this.add(this.buildInfoPanel(), "West");
         } catch (Exception exception) {
@@ -114,6 +115,39 @@ public class MinecraftServerGui extends JComponent {
         jpanel.setBorder(new TitledBorder(new EtchedBorder(), "Stats"));
         return jpanel;
     }
+
+    // Paper start - Add onboarding message for initial server start
+    private JComponent buildOnboardingPanel() {
+        String onboardingLink = "https://docs.papermc.io/paper/next-steps";
+        JPanel jPanel = new JPanel();
+
+        javax.swing.JLabel jLabel = new javax.swing.JLabel("If you need help setting up your server you can visit:");
+        jLabel.setFont(MinecraftServerGui.MONOSPACED);
+
+        javax.swing.JLabel link = new javax.swing.JLabel("<html><u> " + onboardingLink + "</u></html>");
+        link.setFont(MinecraftServerGui.MONOSPACED);
+        link.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        link.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(final java.awt.event.MouseEvent e) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create(onboardingLink));
+                } catch (java.io.IOException exception) {
+                    LOGGER.error("Unable to find a default browser. Please manually visit the website: " + onboardingLink, exception);
+                } catch (UnsupportedOperationException exception) {
+                    LOGGER.error("This platform does not support the BROWSE action. Please manually visit the website: " + onboardingLink, exception);
+                } catch (SecurityException exception) {
+                    LOGGER.error("This action has been denied by the security manager. Please manually visit the website: " + onboardingLink, exception);
+                }
+            }
+        });
+
+        jPanel.add(jLabel);
+        jPanel.add(link);
+
+        return jPanel;
+    }
+    // Paper end - Add onboarding message for initial server start
 
     private JComponent buildPlayerPanel() {
         JList<?> jlist = new PlayerListComponent(this.server);

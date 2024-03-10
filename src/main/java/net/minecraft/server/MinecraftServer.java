@@ -1136,6 +1136,16 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             long tickSection = Util.getNanos();
             long currentTime;
             // Paper end - further improve server tick loop
+            // Paper start - Add onboarding message for initial server start
+            if (io.papermc.paper.configuration.GlobalConfiguration.isFirstStart) {
+                LOGGER.info("*************************************************************************************");
+                LOGGER.info("This is the first time you're starting this server.");
+                LOGGER.info("It's recommended you read our 'Getting Started' documentation for guidance.");
+                LOGGER.info("View this and more helpful information here: https://docs.papermc.io/paper/next-steps");
+                LOGGER.info("*************************************************************************************");
+            }
+            // Paper end - Add onboarding message for initial server start
+
             while (this.running) {
                 long i;
 
