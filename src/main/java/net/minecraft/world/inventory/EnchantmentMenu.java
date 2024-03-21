@@ -232,7 +232,7 @@ public class EnchantmentMenu extends AbstractContainerMenu {
                 return false;
             } else if (this.costs[id] > 0 && !itemstack.isEmpty() && (player.experienceLevel >= j && player.experienceLevel >= this.costs[id] || player.getAbilities().instabuild)) {
                 this.access.execute((world, blockposition) -> {
-                    ItemStack itemstack2 = itemstack;
+                    ItemStack itemstack2 = itemstack; // Paper - diff on change
                     List<EnchantmentInstance> list = this.getEnchantmentList(world.registryAccess(), itemstack, id, this.costs[id]);
 
                     // CraftBukkit start
@@ -255,10 +255,16 @@ public class EnchantmentMenu extends AbstractContainerMenu {
                             return;
                         }
                         // CraftBukkit end
-                        if (itemstack.is(Items.BOOK)) {
-                            itemstack2 = itemstack.transmuteCopy(Items.ENCHANTED_BOOK);
+                        // Paper start
+                        itemstack2 = org.bukkit.craftbukkit.inventory.CraftItemStack.getOrCloneOnMutation(item, event.getItem());
+                        if (itemstack2 != itemstack) {
                             this.enchantSlots.setItem(0, itemstack2);
                         }
+                        if (itemstack2.is(Items.BOOK)) {
+                            itemstack2 = itemstack2.transmuteCopy(Items.ENCHANTED_BOOK);
+                            this.enchantSlots.setItem(0, itemstack2);
+                        }
+                        // Paper end
 
                         // CraftBukkit start
                         for (Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : event.getEnchantsToAdd().entrySet()) {
