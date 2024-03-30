@@ -961,9 +961,14 @@ public class LevelChunk extends ChunkAccess {
                         if (this.blockEntity.getType().isValid(iblockdata)) {
                             this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), iblockdata, this.blockEntity);
                             this.loggedInvalidBlockState = false;
-                        } else if (!this.loggedInvalidBlockState) {
-                            this.loggedInvalidBlockState = true;
-                            LevelChunk.LOGGER.warn("Block entity {} @ {} state {} invalid for ticking:", new Object[]{LogUtils.defer(this::getType), LogUtils.defer(this::getPos), iblockdata});
+                        // Paper start - Remove the Block Entity if it's invalid
+                        } else {
+                            LevelChunk.this.removeBlockEntity(this.getPos());
+                            if (!this.loggedInvalidBlockState) {
+                                this.loggedInvalidBlockState = true;
+                                LevelChunk.LOGGER.warn("Block entity {} @ {} state {} invalid for ticking:", new Object[]{LogUtils.defer(this::getType), LogUtils.defer(this::getPos), iblockdata});
+                            }
+                            // Paper end - Remove the Block Entity if it's invalid
                         }
 
                         gameprofilerfiller.pop();
