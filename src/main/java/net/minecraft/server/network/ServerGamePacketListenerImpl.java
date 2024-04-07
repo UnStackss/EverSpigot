@@ -3108,6 +3108,19 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                             }
                         }
 
+                        // Paper start - cartography item event
+                        if (packet.getSlotNum() == net.minecraft.world.inventory.CartographyTableMenu.RESULT_SLOT && top instanceof org.bukkit.inventory.CartographyInventory cartographyInventory) {
+                            org.bukkit.inventory.ItemStack result = cartographyInventory.getResult();
+                            if (result != null && !result.isEmpty()) {
+                                if (click == ClickType.NUMBER_KEY) {
+                                    event = new io.papermc.paper.event.player.CartographyItemEvent(inventory, type, packet.getSlotNum(), click, action, packet.getButtonNum());
+                                } else {
+                                    event = new io.papermc.paper.event.player.CartographyItemEvent(inventory, type, packet.getSlotNum(), click, action);
+                                }
+                            }
+                        }
+                        // Paper end - cartography item event
+
                         event.setCancelled(cancelled);
                         AbstractContainerMenu oldContainer = this.player.containerMenu; // SPIGOT-1224
                         this.cserver.getPluginManager().callEvent(event);
