@@ -1078,5 +1078,10 @@ public final class RegionizedPlayerChunkLoader {
 
             // now all tickets should be removed, which is all of our external state
         }
+
+        // For external checks
+        public it.unimi.dsi.fastutil.longs.LongOpenHashSet getSentChunksRaw() {
+            return this.sentChunks;
+        }
     }
 }

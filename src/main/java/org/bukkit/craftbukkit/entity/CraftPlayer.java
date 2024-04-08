@@ -3484,6 +3484,35 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
     // Paper end
 
+    // Paper start - Add chunk view API
+    @Override
+    public Set<java.lang.Long> getSentChunkKeys() {
+        org.spigotmc.AsyncCatcher.catchOp("accessing sent chunks");
+        return it.unimi.dsi.fastutil.longs.LongSets.unmodifiable(
+            this.getHandle().moonrise$getChunkLoader().getSentChunksRaw().clone()
+        );
+    }
+
+    @Override
+    public Set<org.bukkit.Chunk> getSentChunks() {
+        org.spigotmc.AsyncCatcher.catchOp("accessing sent chunks");
+        final it.unimi.dsi.fastutil.longs.LongOpenHashSet rawChunkKeys = this.getHandle().moonrise$getChunkLoader().getSentChunksRaw();
+        final it.unimi.dsi.fastutil.objects.ObjectOpenHashSet<org.bukkit.Chunk> chunks = new it.unimi.dsi.fastutil.objects.ObjectOpenHashSet<>(rawChunkKeys.size());
+        final org.bukkit.World world = this.getWorld();
+
+        final it.unimi.dsi.fastutil.longs.LongIterator iter = this.getHandle().moonrise$getChunkLoader().getSentChunksRaw().longIterator();
+        while (iter.hasNext()) chunks.add(world.getChunkAt(iter.nextLong(), false));
+
+        return it.unimi.dsi.fastutil.objects.ObjectSets.unmodifiable(chunks);
+    }
+
+    @Override
+    public boolean isChunkSent(final long chunkKey) {
+        org.spigotmc.AsyncCatcher.catchOp("accessing sent chunks");
+        return this.getHandle().moonrise$getChunkLoader().getSentChunksRaw().contains(chunkKey);
+    }
+    // Paper end
+
     public Player.Spigot spigot()
     {
         return this.spigot;
