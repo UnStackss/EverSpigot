@@ -138,6 +138,13 @@ public class ServerConnectionListener {
 
                                         Connection connection = (Connection) channel.pipeline().get("packet_handler");
                                         connection.address = socketaddr;
+
+                                        // Paper start - Add API to get player's proxy address
+                                        final String proxyAddress = message.destinationAddress();
+                                        final int proxyPort = message.destinationPort();
+
+                                        connection.haProxyAddress = new java.net.InetSocketAddress(proxyAddress, proxyPort);
+                                        // Paper end - Add API to get player's proxy address
                                     }
                                 } else {
                                     super.channelRead(ctx, msg);

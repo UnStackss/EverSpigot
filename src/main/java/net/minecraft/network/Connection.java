@@ -153,6 +153,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
         this.stopReadingPackets = true;
     }
     // Paper end - packet limiter
+    @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
 
     public Connection(PacketFlow side) {
         this.receiving = side;
