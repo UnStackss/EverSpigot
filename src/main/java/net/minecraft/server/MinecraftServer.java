@@ -2093,7 +2093,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
     @Override
     public void executeIfPossible(Runnable runnable) {
         if (this.isStopped()) {
-            throw new RejectedExecutionException("Server already shutting down");
+            throw new io.papermc.paper.util.ServerStopRejectedExecutionException("Server already shutting down"); // Paper - do not prematurely disconnect players on stop
         } else {
             super.executeIfPossible(runnable);
         }

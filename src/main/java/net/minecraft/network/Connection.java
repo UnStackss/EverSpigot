@@ -285,6 +285,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
                         Connection.genericsFtw(packet, packetlistener);
                     } catch (RunningOnDifferentThreadException cancelledpackethandleexception) {
                         ;
+                    } catch (io.papermc.paper.util.ServerStopRejectedExecutionException ignored) { // Paper - do not prematurely disconnect players on stop
                     } catch (RejectedExecutionException rejectedexecutionexception) {
                         this.disconnect((Component) Component.translatable("multiplayer.disconnect.server_shutdown"));
                     } catch (ClassCastException classcastexception) {
