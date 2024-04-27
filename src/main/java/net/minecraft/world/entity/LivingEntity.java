@@ -2349,7 +2349,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 this.hurtCurrentlyUsedShield((float) -event.getDamage(DamageModifier.BLOCKING));
                 Entity entity = damagesource.getDirectEntity();
 
-                if (entity instanceof LivingEntity) {
+                if (!damagesource.is(DamageTypeTags.IS_PROJECTILE) && entity instanceof LivingEntity) { // Paper - Fix shield disable inconsistency
                     this.blockUsingShield((LivingEntity) entity);
                 }
             }
