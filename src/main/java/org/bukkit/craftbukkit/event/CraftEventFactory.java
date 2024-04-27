@@ -1228,7 +1228,7 @@ public class CraftEventFactory {
             modifiers.put(DamageModifier.FREEZING, freezingModifier);
             modifierFunctions.put(DamageModifier.FREEZING, freezing);
         }
-        if (source.is(DamageTypes.FALLING_BLOCK) || source.is(DamageTypes.FALLING_ANVIL)) {
+        if (source.is(DamageTypeTags.DAMAGES_HELMET)) { // Paper
             modifiers.put(DamageModifier.HARD_HAT, hardHatModifier);
             modifierFunctions.put(DamageModifier.HARD_HAT, hardHat);
         }
