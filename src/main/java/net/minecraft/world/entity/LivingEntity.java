@@ -1425,7 +1425,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
             }
 
             this.noActionTime = 0;
-            float f1 = amount;
+            float f1 = amount; final float originalAmount = f1; // Paper - revert to vanilla #hurt - OBFHELPER
             boolean flag = amount > 0.0F && this.isDamageSourceBlocked(source); // Copied from below
             float f2 = 0.0F;
 
@@ -1479,6 +1479,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 if (!this.actuallyHurt(source, (float) event.getFinalDamage() - this.lastHurt, event)) {
                     return false;
                 }
+                if (this instanceof ServerPlayer && event.getDamage() == 0 && originalAmount == 0) return false; // Paper - revert to vanilla damage - players are not affected by damage that is 0 - skip damage if the vanilla damage is 0 and was not modified by plugins in the event.
                 // CraftBukkit end
                 this.lastHurt = amount;
                 flag1 = false;
@@ -1487,6 +1488,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 if (!this.actuallyHurt(source, (float) event.getFinalDamage(), event)) {
                     return false;
                 }
+                if (this instanceof ServerPlayer && event.getDamage() == 0 && originalAmount == 0) return false; // Paper - revert to vanilla damage - players are not affected by damage that is 0 - skip damage if the vanilla damage is 0 and was not modified by plugins in the event.
                 this.lastHurt = amount;
                 this.invulnerableTime = this.invulnerableDuration; // CraftBukkit - restore use of maxNoDamageTicks
                 // this.actuallyHurt(damagesource, f);
@@ -2411,12 +2413,12 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
                     return true;
                 } else {
-                    return originalDamage > 0;
+                    return true; // Paper - return false ONLY if event was cancelled
                 }
                 // CraftBukkit end
             }
         }
-        return false; // CraftBukkit
+        return true; // CraftBukkit // Paper - return false ONLY if event was cancelled
     }
 
     public CombatTracker getCombatTracker() {
