@@ -93,7 +93,7 @@ public class DeprecatedItemMetaCustomValueTest extends AbstractTestingBase {
     public void testNBTTagStoring() {
         CraftMetaItem itemMeta = this.createComplexItemMeta();
 
-        CraftMetaItem.Applicator compound = new CraftMetaItem.Applicator();
+        CraftMetaItem.Applicator compound = new CraftMetaItem.Applicator() {}; // Paper
         itemMeta.applyToItem(compound);
 
         assertEquals(itemMeta, new CraftMetaItem(compound.build(), null)); // Paper

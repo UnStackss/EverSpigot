@@ -1275,6 +1275,11 @@ public final class ItemStack implements DataComponentHolder {
     public void setItem(Item item) {
         this.bukkitStack = null; // Paper
         this.item = item;
+        // Paper start - change base component prototype
+        final DataComponentPatch patch = this.getComponentsPatch();
+        this.components = new PatchedDataComponentMap(this.item.components());
+        this.applyComponents(patch);
+        // Paper end - change base component prototype
     }
     // CraftBukkit end
 

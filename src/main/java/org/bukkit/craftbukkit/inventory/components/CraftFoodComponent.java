@@ -114,6 +114,7 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public void setEatSeconds(float eatSeconds) {
+        Preconditions.checkArgument(eatSeconds > 0, "Eat seconds must be positive"); // Paper - validate eat_seconds
         this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), eatSeconds, this.handle.usingConvertsTo(), this.handle.effects());
     }
 
@@ -124,6 +125,7 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public void setUsingConvertsTo(ItemStack item) {
+        Preconditions.checkArgument(item == null || !item.isEmpty(), "Item cannot be empty"); // Paper - validate using_converts_to
         this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), this.handle.canAlwaysEat(), this.handle.eatSeconds(), Optional.ofNullable(item).map(CraftItemStack::asNMSCopy), this.handle.effects());
     }
 
@@ -139,6 +141,7 @@ public final class CraftFoodComponent implements FoodComponent {
 
     @Override
     public FoodEffect addEffect(PotionEffect effect, float probability) {
+        Preconditions.checkArgument(0 <= probability && probability <= 1, "Probability cannot be outside range [0,1]"); // Paper
         List<FoodProperties.PossibleEffect> effects = new ArrayList<>(this.handle.effects());
 
         FoodProperties.PossibleEffect newEffect = new net.minecraft.world.food.FoodProperties.PossibleEffect(CraftPotionUtil.fromBukkit(effect), probability);

@@ -135,6 +135,19 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
         return nbt;
     }
 
+    // Paper start - properly save blockentity itemstacks
+    public CompoundTag getSnapshotCustomNbtOnly() {
+        this.applyTo(this.snapshot);
+        final CompoundTag nbt = this.snapshot.saveCustomOnly(this.getRegistryAccess());
+        this.snapshot.removeComponentsFromTag(nbt);
+        if (!nbt.isEmpty()) {
+            // have to include the "id" if it's going to have block entity data
+            this.snapshot.saveId(nbt);
+        }
+        return nbt;
+    }
+    // Paper end
+
     // copies the data of the given tile entity to this block state
     protected void load(T tileEntity) {
         if (tileEntity != null && tileEntity != this.snapshot) {

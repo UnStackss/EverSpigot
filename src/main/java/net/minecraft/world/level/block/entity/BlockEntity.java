@@ -152,6 +152,11 @@ public abstract class BlockEntity {
         CompoundTag nbttagcompound = new CompoundTag();
 
         this.saveAdditional(nbttagcompound, registryLookup);
+        // Paper start - store PDC here as well
+        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
+            nbttagcompound.put("PublicBukkitValues", this.persistentDataContainer.toTagCompound());
+        }
+        // Paper end
         return nbttagcompound;
     }
 
