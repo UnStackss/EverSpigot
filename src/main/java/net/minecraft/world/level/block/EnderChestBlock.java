@@ -83,7 +83,7 @@ public class EnderChestBlock extends AbstractChestBlock<EnderChestBlockEntity> i
         BlockEntity blockEntity = world.getBlockEntity(pos);
         if (playerEnderChestContainer != null && blockEntity instanceof EnderChestBlockEntity) {
             BlockPos blockPos = pos.above();
-            if (world.getBlockState(blockPos).isRedstoneConductor(world, blockPos)) {
+            if (world.getBlockState(blockPos).isRedstoneConductor(world, blockPos)) { // Paper - diff on change; make sure that EnderChest#isBlocked uses the same logic
                 return InteractionResult.sidedSuccess(world.isClientSide);
             } else if (world.isClientSide) {
                 return InteractionResult.SUCCESS;
