@@ -411,6 +411,15 @@ public class FishingHook extends Projectile {
                     this.fishAngle = Mth.nextFloat(this.random, this.minLureAngle, this.maxLureAngle);
                     this.timeUntilHooked = Mth.nextInt(this.random, this.minLureTime, this.maxLureTime);
                     // CraftBukkit end
+                    // Paper start - Add missing fishing event state
+                    if (this.getPlayerOwner() != null) {
+                        PlayerFishEvent playerFishEvent = new PlayerFishEvent((Player) this.getPlayerOwner().getBukkitEntity(), null, (FishHook) this.getBukkitEntity(), PlayerFishEvent.State.LURED);
+                        if (!playerFishEvent.callEvent()) {
+                            this.timeUntilHooked = 0;
+                            return;
+                        }
+                    }
+                    // Paper end - Add missing fishing event state
                 }
             } else {
                 // CraftBukkit start - logic to modify fishing wait time
