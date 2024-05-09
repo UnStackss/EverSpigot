@@ -144,7 +144,13 @@ public final class DataComponentPatch {
         }
 
         private static <T> void encodeComponent(RegistryFriendlyByteBuf buf, DataComponentType<T> type, Object value) {
+            // Paper start - codec errors of random anonymous classes are useless
+            try {
             type.streamCodec().encode(buf, (T) value); // CraftBukkit - decompile error
+            } catch (final Exception e) {
+                throw new RuntimeException("Error encoding component " + type, e);
+            }
+            // Paper end - codec errors of random anonymous classes are useless
         }
     };
     private static final String REMOVED_PREFIX = "!";
