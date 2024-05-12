@@ -104,6 +104,14 @@ public final class DummyServer {
             when(instance.getPluginManager()).thenReturn(pluginManager);
             // paper end - testing additions
 
+            // Paper start - add test for recipe conversion
+            when(instance.recipeIterator()).thenAnswer(ignored -> {
+                return com.google.common.collect.Iterators.transform(
+                    AbstractTestingBase.DATA_PACK.getRecipeManager().byType.entries().iterator(),
+                    input -> input.getValue().toBukkitRecipe());
+            });
+            // Paper end - add test for recipe conversion
+
             Bukkit.setServer(instance);
         } catch (Throwable t) {
             throw new Error(t);

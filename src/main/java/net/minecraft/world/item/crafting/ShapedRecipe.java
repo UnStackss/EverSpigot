@@ -90,7 +90,7 @@ public class ShapedRecipe extends io.papermc.paper.inventory.recipe.RecipeBookEx
         char c = 'a';
         for (Ingredient list : this.pattern.ingredients()) {
             RecipeChoice choice = CraftRecipe.toBukkit(list);
-            if (choice != null) {
+            if (choice != RecipeChoice.empty()) { // Paper
                 recipe.setIngredient(c, choice);
             }
 
