@@ -504,11 +504,13 @@ public class FishingHook extends Projectile {
                 if (playerFishEvent.isCancelled()) {
                     return 0;
                 }
+                if (this.hookedIn != null) { // Paper - re-check to see if there is a hooked entity
                 // CraftBukkit end
                 this.pullEntity(this.hookedIn);
                 CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer) entityhuman, usedItem, this, Collections.emptyList());
                 this.level().broadcastEntityEvent(this, (byte) 31);
                 i = this.hookedIn instanceof ItemEntity ? 3 : 5;
+                } // Paper - re-check to see if there is a hooked entity
             } else if (this.nibble > 0) {
                 LootParams lootparams = (new LootParams.Builder((ServerLevel) this.level())).withParameter(LootContextParams.ORIGIN, this.position()).withParameter(LootContextParams.TOOL, usedItem).withParameter(LootContextParams.THIS_ENTITY, this).withLuck((float) this.luck + entityhuman.getLuck()).create(LootContextParamSets.FISHING);
                 LootTable loottable = this.level().getServer().reloadableRegistries().getLootTable(BuiltInLootTables.FISHING);
