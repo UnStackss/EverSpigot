@@ -683,6 +683,13 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
     // Paper end - hack to get tags for non server-backed registries
 
+    // Paper start - proxy ItemStack
+    @Override
+    public org.bukkit.inventory.ItemStack createEmptyStack() {
+        return CraftItemStack.asCraftMirror(null);
+    }
+    // Paper end - proxy ItemStack
+
     /**
      * This helper class represents the different NBT Tags.
      * <p>
