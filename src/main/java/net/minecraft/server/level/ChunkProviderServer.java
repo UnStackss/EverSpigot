@@ -341,7 +341,7 @@ public class ChunkProviderServer extends IChunkProvider {
     public void tick(BooleanSupplier booleansupplier, boolean flag) {
         this.level.getProfiler().push("purge");
         this.level.timings.doChunkMap.startTiming(); // Spigot
-        if (this.level.tickRateManager().runsNormally() || !flag) {
+        if (this.level.tickRateManager().runsNormally() || !flag || this.level.spigotConfig.unloadFrozenChunks) { // Spigot
             this.distanceManager.purgeStaleTickets();
         }
 
