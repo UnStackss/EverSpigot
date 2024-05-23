@@ -494,9 +494,11 @@ public final class ItemStack implements DataComponentHolder {
                     world.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
                     // revert back all captured blocks
                     world.preventPoiUpdated = true; // CraftBukkit - SPIGOT-5710
+                    world.isBlockPlaceCancelled = true; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
                     for (BlockState blockstate : blocks) {
                         blockstate.update(true, false);
                     }
+                    world.isBlockPlaceCancelled = false; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
                     world.preventPoiUpdated = false;
 
                     // Brute force all possible updates

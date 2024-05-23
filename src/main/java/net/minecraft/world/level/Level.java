@@ -151,6 +151,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
     public boolean captureBlockStates = false;
     public boolean captureTreeGeneration = false;
+    public boolean isBlockPlaceCancelled = false; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
     public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
     public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
     public List<ItemEntity> captureDrops;

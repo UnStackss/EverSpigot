@@ -345,7 +345,7 @@ public class LevelChunk extends ChunkAccess {
 
                 boolean flag3 = iblockdata1.hasBlockEntity();
 
-                if (!this.level.isClientSide) {
+                if (!this.level.isClientSide && !this.level.isBlockPlaceCancelled) { // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
                     iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
                 } else if (!iblockdata1.is(block) && flag3) {
                     this.removeBlockEntity(blockposition);
