@@ -2997,14 +2997,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                                 Slot clickedSlot = this.player.containerMenu.getSlot(packet.getSlotNum());
                                 if (clickedSlot.mayPickup(this.player)) {
                                     ItemStack hotbar = this.player.getInventory().getItem(packet.getButtonNum());
-                                    boolean canCleanSwap = hotbar.isEmpty() || (clickedSlot.container == this.player.getInventory() && clickedSlot.mayPlace(hotbar)); // the slot will accept the hotbar item
-                                    if (clickedSlot.hasItem()) {
-                                        if (canCleanSwap) {
-                                            action = InventoryAction.HOTBAR_SWAP;
-                                        } else {
-                                            action = InventoryAction.HOTBAR_MOVE_AND_READD;
-                                        }
-                                    } else if (!clickedSlot.hasItem() && !hotbar.isEmpty() && clickedSlot.mayPlace(hotbar)) {
+                                    if ((!hotbar.isEmpty() && clickedSlot.mayPlace(hotbar)) || (hotbar.isEmpty() && clickedSlot.hasItem())) { // Paper - modernify this logic (no such thing as a "hotbar move and readd"
                                         action = InventoryAction.HOTBAR_SWAP;
                                     } else {
                                         action = InventoryAction.NOTHING;
