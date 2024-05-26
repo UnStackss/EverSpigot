@@ -431,7 +431,7 @@ public abstract class AbstractContainerMenu {
                 }
             } else if (this.quickcraftStatus == 2) {
                 if (!this.quickcraftSlots.isEmpty()) {
-                    if (false && this.quickcraftSlots.size() == 1) { // CraftBukkit - treat everything as a drag since we are unable to easily call InventoryClickEvent instead
+                    if (this.quickcraftSlots.size() == 1) { // Paper - Fix CraftBukkit drag system
                         k = ((Slot) this.quickcraftSlots.iterator().next()).index;
                         this.resetQuickCraft();
                         this.doClick(k, this.quickcraftType, ClickType.PICKUP, player);

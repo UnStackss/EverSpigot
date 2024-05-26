@@ -3127,6 +3127,25 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                             }
                             break;
                         case QUICK_CRAFT:
+                            // Paper start - Fix CraftBukkit drag system
+                            AbstractContainerMenu containerMenu = this.player.containerMenu;
+                            int currentStatus = this.player.containerMenu.quickcraftStatus;
+                            int newStatus = AbstractContainerMenu.getQuickcraftHeader(packet.getButtonNum());
+                            if ((currentStatus != 1 || newStatus != 2 && currentStatus != newStatus)) {
+                            } else if (containerMenu.getCarried().isEmpty()) {
+                            } else if (newStatus == 0) {
+                            } else if (newStatus == 1) {
+                            } else if (newStatus == 2) {
+                                if (!this.player.containerMenu.quickcraftSlots.isEmpty()) {
+                                    if (this.player.containerMenu.quickcraftSlots.size() == 1) {
+                                        int index = containerMenu.quickcraftSlots.iterator().next().index;
+                                        containerMenu.resetQuickCraft();
+                                        this.handleContainerClick(new ServerboundContainerClickPacket(packet.getContainerId(), packet.getStateId(), index, containerMenu.quickcraftType, net.minecraft.world.inventory.ClickType.PICKUP, packet.getCarriedItem(), packet.getChangedSlots()));
+                                        return;
+                                    }
+                                }
+                            }
+                            // Paper end - Fix CraftBukkit drag system
                             this.player.containerMenu.clicked(packet.getSlotNum(), packet.getButtonNum(), packet.getClickType(), this.player);
                             break;
                         case PICKUP_ALL:
