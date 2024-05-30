@@ -218,7 +218,8 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
                     if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.ERRONEOUS_STATE; // Paper - Add API for quit reason
                     if (flag) {
                         Connection.LOGGER.debug("Failed to sent packet", throwable);
-                        if (this.getSending() == PacketFlow.CLIENTBOUND) {
+                        boolean doesDisconnectExist = this.packetListener.protocol() != ConnectionProtocol.STATUS && this.packetListener.protocol() != ConnectionProtocol.HANDSHAKING; // Paper
+                        if (this.getSending() == PacketFlow.CLIENTBOUND && doesDisconnectExist) { // Paper
                             Packet<?> packet = this.sendLoginDisconnect ? new ClientboundLoginDisconnectPacket(ichatmutablecomponent) : new ClientboundDisconnectPacket(ichatmutablecomponent);
 
                             this.send((Packet) packet, PacketSendListener.thenRun(() -> {
