@@ -177,6 +177,7 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
     @Nullable
     public Packet<ClientGamePacketListener> getUpdatePacket(@NotNull Location location) {
         T vanillaTileEntitiy = (T) BlockEntity.loadStatic(CraftLocation.toBlockPosition(location), this.getHandle(), this.getSnapshotNBT(), this.getRegistryAccess());
+        vanillaTileEntitiy.setLevel(((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle()); // Paper - set level. Required for accessing RegistryAccess
         return ClientboundBlockEntityDataPacket.create(vanillaTileEntitiy);
     }
 

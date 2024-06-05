@@ -1118,6 +1118,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     public void sendBlockUpdate(@NotNull Location location, @NotNull TileState tileState) throws IllegalArgumentException {
         Preconditions.checkArgument(location != null, "Location can not be null");
         Preconditions.checkArgument(tileState != null, "TileState can not be null");
+        Preconditions.checkArgument(location.getWorld() != null, "Location must have a world"); // Paper
 
         if (this.getHandle().connection == null) return;
 
