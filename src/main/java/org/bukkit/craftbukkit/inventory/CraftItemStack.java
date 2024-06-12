@@ -484,4 +484,63 @@ public final class CraftItemStack extends ItemStack {
         return mirrored;
     }
     // Paper end
+
+    // Paper start - pdc
+    private net.minecraft.nbt.CompoundTag getPdcTag() {
+        if (this.handle == null) {
+            return new net.minecraft.nbt.CompoundTag();
+        }
+        final net.minecraft.world.item.component.CustomData customData = this.handle.getOrDefault(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY);
+        // getUnsafe is OK here because we are only ever *reading* the data so immutability is preserved
+        //noinspection deprecation
+        return customData.getUnsafe().getCompound("PublicBukkitValues");
+    }
+
+    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
+    private final io.papermc.paper.persistence.PaperPersistentDataContainerView pdcView = new io.papermc.paper.persistence.PaperPersistentDataContainerView(REGISTRY) {
+
+        @Override
+        public net.minecraft.nbt.CompoundTag toTagCompound() {
+            return CraftItemStack.this.getPdcTag();
+        }
+
+        @Override
+        public net.minecraft.nbt.Tag getTag(final String key) {
+            return CraftItemStack.this.getPdcTag().get(key);
+        }
+
+        @Override
+        public java.util.Set<org.bukkit.NamespacedKey> getKeys() {
+            java.util.Set<org.bukkit.NamespacedKey> keys = new java.util.HashSet<>();
+            CraftItemStack.this.getPdcTag().getAllKeys().forEach(key -> {
+                final String[] keyData = key.split(":", 2);
+                if (keyData.length == 2) {
+                    keys.add(new org.bukkit.NamespacedKey(keyData[0], keyData[1]));
+                }
+            });
+            return java.util.Collections.unmodifiableSet(keys);
+        };
+
+        @Override
+        public boolean isEmpty() {
+            return CraftItemStack.this.getPdcTag().isEmpty();
+        }
+
+        @Override
+        public void copyTo(final org.bukkit.persistence.PersistentDataContainer other, final boolean replace) {
+            Preconditions.checkArgument(other != null, "The target container cannot be null");
+            final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer target = (org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer) other;
+            final net.minecraft.nbt.CompoundTag pdcTag = org.bukkit.craftbukkit.inventory.CraftItemStack.this.getPdcTag();
+            for (final String key : pdcTag.getAllKeys()) {
+                if (replace || !target.getRaw().containsKey(key)) {
+                    target.getRaw().put(key, pdcTag.get(key).copy());
+                }
+            }
+        }
+    };
+    @Override
+    public io.papermc.paper.persistence.PersistentDataContainerView getPersistentDataContainer() {
+        return this.pdcView;
+    }
+    // Paper end - pdc
 }
