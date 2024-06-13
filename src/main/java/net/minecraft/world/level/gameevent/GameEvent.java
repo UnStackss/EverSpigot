@@ -85,7 +85,7 @@ public record GameEvent(int notificationRadius) {
     }
 
     private static Holder.Reference<GameEvent> register(String id, int range) {
-        return Registry.registerForHolder(BuiltInRegistries.GAME_EVENT, ResourceLocation.withDefaultNamespace(id), new GameEvent(range));
+        return io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.registerForHolderWithListeners(BuiltInRegistries.GAME_EVENT, ResourceLocation.withDefaultNamespace(id), new GameEvent(range)); // Paper - run with listeners
     }
 
     public static record Context(@Nullable Entity sourceEntity, @Nullable BlockState affectedState) {
