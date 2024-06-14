@@ -27,7 +27,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
-public enum Direction implements StringRepresentable {
+public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.patches.collisions.util.CollisionDirection { // Paper - optimise collisions
     DOWN(0, 1, -1, "down", Direction.AxisDirection.NEGATIVE, Direction.Axis.Y, new Vec3i(0, -1, 0)),
     UP(1, 0, -1, "up", Direction.AxisDirection.POSITIVE, Direction.Axis.Y, new Vec3i(0, 1, 0)),
     NORTH(2, 3, 2, "north", Direction.AxisDirection.NEGATIVE, Direction.Axis.Z, new Vec3i(0, 0, -1)),
@@ -60,6 +60,46 @@ public enum Direction implements StringRepresentable {
     private final int adjY;
     private final int adjZ;
     // Paper end - Perf: Inline shift direction fields
+    // Paper start - optimise collisions
+    private static final int RANDOM_OFFSET = 2017601568;
+    private Direction opposite;
+    private Quaternionf rotation;
+    private int id;
+    private int stepX;
+    private int stepY;
+    private int stepZ;
+
+    private Quaternionf getRotationUncached() {
+        switch ((Direction)(Object)this) {
+            case DOWN: {
+                return new Quaternionf().rotationX(3.1415927F);
+            }
+            case UP: {
+                return new Quaternionf();
+            }
+            case NORTH: {
+                return new Quaternionf().rotationXYZ(1.5707964F, 0.0F, 3.1415927F);
+            }
+            case SOUTH: {
+                return new Quaternionf().rotationX(1.5707964F);
+            }
+            case WEST: {
+                return new Quaternionf().rotationXYZ(1.5707964F, 0.0F, 1.5707964F);
+            }
+            case EAST: {
+                return new Quaternionf().rotationXYZ(1.5707964F, 0.0F, -1.5707964F);
+            }
+            default: {
+                throw new IllegalStateException();
+            }
+        }
+    }
+
+    @Override
+    public final int moonrise$uniqueId() {
+        return this.id;
+    }
+    // Paper end - optimise collisions
 
     private Direction(
         final int id,
@@ -134,14 +174,13 @@ public enum Direction implements StringRepresentable {
     }
 
     public Quaternionf getRotation() {
-        return switch (this) {
-            case DOWN -> new Quaternionf().rotationX((float) Math.PI);
-            case UP -> new Quaternionf();
-            case NORTH -> new Quaternionf().rotationXYZ((float) (Math.PI / 2), 0.0F, (float) Math.PI);
-            case SOUTH -> new Quaternionf().rotationX((float) (Math.PI / 2));
-            case WEST -> new Quaternionf().rotationXYZ((float) (Math.PI / 2), 0.0F, (float) (Math.PI / 2));
-            case EAST -> new Quaternionf().rotationXYZ((float) (Math.PI / 2), 0.0F, (float) (-Math.PI / 2));
-        };
+        // Paper start - optimise collisions
+        try {
+            return (Quaternionf)this.rotation.clone();
+        } catch (final CloneNotSupportedException ex) {
+            throw new InternalError(ex);
+        }
+        // Paper end - optimise collisions
     }
 
     public int get3DDataValue() {
@@ -165,7 +204,7 @@ public enum Direction implements StringRepresentable {
     }
 
     public Direction getOpposite() {
-        return from3DDataValue(this.oppositeIndex);
+        return this.opposite; // Paper - optimise collisions
     }
 
     public Direction getClockWise(Direction.Axis axis) {
@@ -551,4 +590,17 @@ public enum Direction implements StringRepresentable {
             return this.faces.length;
         }
     }
+
+    // Paper start - optimise collisions
+    static {
+        for (final Direction direction : VALUES) {
+            ((Direction)(Object)direction).opposite = from3DDataValue(((Direction)(Object)direction).oppositeIndex);
+            ((Direction)(Object)direction).rotation = ((Direction)(Object)direction).getRotationUncached();
+            ((Direction)(Object)direction).id = it.unimi.dsi.fastutil.HashCommon.murmurHash3(it.unimi.dsi.fastutil.HashCommon.murmurHash3(direction.ordinal() + RANDOM_OFFSET) + RANDOM_OFFSET);
+            ((Direction)(Object)direction).stepX = ((Direction)(Object)direction).normal.getX();
+            ((Direction)(Object)direction).stepY = ((Direction)(Object)direction).normal.getY();
+            ((Direction)(Object)direction).stepZ = ((Direction)(Object)direction).normal.getZ();
+        }
+    }
+    // Paper end - optimise collisions
 }

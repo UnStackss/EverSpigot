@@ -75,6 +75,247 @@ public class Explosion {
     public float yield;
     // CraftBukkit end
 
+    // Paper start - optimise collisions
+    private static final double[] CACHED_RAYS;
+    static {
+        final it.unimi.dsi.fastutil.doubles.DoubleArrayList rayCoords = new it.unimi.dsi.fastutil.doubles.DoubleArrayList();
+
+        for (int x = 0; x <= 15; ++x) {
+            for (int y = 0; y <= 15; ++y) {
+                for (int z = 0; z <= 15; ++z) {
+                    if ((x == 0 || x == 15) || (y == 0 || y == 15) || (z == 0 || z == 15)) {
+                        double xDir = (double)((float)x / 15.0F * 2.0F - 1.0F);
+                        double yDir = (double)((float)y / 15.0F * 2.0F - 1.0F);
+                        double zDir = (double)((float)z / 15.0F * 2.0F - 1.0F);
+
+                        double mag = Math.sqrt(
+                            xDir * xDir + yDir * yDir + zDir * zDir
+                        );
+
+                        rayCoords.add((xDir / mag) * (double)0.3F);
+                        rayCoords.add((yDir / mag) * (double)0.3F);
+                        rayCoords.add((zDir / mag) * (double)0.3F);
+                    }
+                }
+            }
+        }
+
+        CACHED_RAYS = rayCoords.toDoubleArray();
+    }
+
+    private static final int CHUNK_CACHE_SHIFT = 2;
+    private static final int CHUNK_CACHE_MASK = (1 << CHUNK_CACHE_SHIFT) - 1;
+    private static final int CHUNK_CACHE_WIDTH = 1 << CHUNK_CACHE_SHIFT;
+
+    private static final int BLOCK_EXPLOSION_CACHE_SHIFT = 3;
+    private static final int BLOCK_EXPLOSION_CACHE_MASK = (1 << BLOCK_EXPLOSION_CACHE_SHIFT) - 1;
+    private static final int BLOCK_EXPLOSION_CACHE_WIDTH = 1 << BLOCK_EXPLOSION_CACHE_SHIFT;
+
+    // resistance = (res + 0.3F) * 0.3F;
+    // so for resistance = 0, we need res = -0.3F
+    private static final Float ZERO_RESISTANCE = Float.valueOf(-0.3f);
+    private it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache> blockCache = null;
+    private long[] chunkPosCache = null;
+    private net.minecraft.world.level.chunk.LevelChunk[] chunkCache = null;
+    private ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache getOrCacheExplosionBlock(final int x, final int y, final int z,
+                                                                                                    final long key, final boolean calculateResistance) {
+        ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache ret = this.blockCache.get(key);
+        if (ret != null) {
+            return ret;
+        }
+
+        BlockPos pos = new BlockPos(x, y, z);
+
+        if (!this.level.isInWorldBounds(pos)) {
+            ret = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache(key, pos, null, null, 0.0f, true);
+        } else {
+            net.minecraft.world.level.chunk.LevelChunk chunk;
+            long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(x >> 4, z >> 4);
+            int chunkCacheKey = ((x >> 4) & CHUNK_CACHE_MASK) | (((z >> 4) << CHUNK_CACHE_SHIFT) & (CHUNK_CACHE_MASK << CHUNK_CACHE_SHIFT));
+            if (this.chunkPosCache[chunkCacheKey] == chunkKey) {
+                chunk = this.chunkCache[chunkCacheKey];
+            } else {
+                this.chunkPosCache[chunkCacheKey] = chunkKey;
+                this.chunkCache[chunkCacheKey] = chunk = this.level.getChunk(x >> 4, z >> 4);
+            }
+
+            BlockState blockState = ((ca.spottedleaf.moonrise.patches.chunk_getblock.GetBlockChunk)chunk).moonrise$getBlock(x, y, z);
+            FluidState fluidState = blockState.getFluidState();
+
+            Optional<Float> resistance = !calculateResistance ? Optional.empty() : this.damageCalculator.getBlockExplosionResistance((Explosion)(Object)this, this.level, pos, blockState, fluidState);
+
+            ret = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache(
+                key, pos, blockState, fluidState,
+                (resistance.orElse(ZERO_RESISTANCE).floatValue() + 0.3f) * 0.3f,
+                false
+            );
+        }
+
+        this.blockCache.put(key, ret);
+
+        return ret;
+    }
+
+    private boolean clipsAnything(final Vec3 from, final Vec3 to,
+                                  final ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.LazyEntityCollisionContext context,
+                                  final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache,
+                                  final BlockPos.MutableBlockPos currPos) {
+        // assume that context.delegated = false
+        final double adjX = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.x - to.x);
+        final double adjY = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.y - to.y);
+        final double adjZ = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.z - to.z);
+
+        if (adjX == 0.0 && adjY == 0.0 && adjZ == 0.0) {
+            return false;
+        }
+
+        final double toXAdj = to.x - adjX;
+        final double toYAdj = to.y - adjY;
+        final double toZAdj = to.z - adjZ;
+        final double fromXAdj = from.x + adjX;
+        final double fromYAdj = from.y + adjY;
+        final double fromZAdj = from.z + adjZ;
+
+        int currX = Mth.floor(fromXAdj);
+        int currY = Mth.floor(fromYAdj);
+        int currZ = Mth.floor(fromZAdj);
+
+        final double diffX = toXAdj - fromXAdj;
+        final double diffY = toYAdj - fromYAdj;
+        final double diffZ = toZAdj - fromZAdj;
+
+        final double dxDouble = Math.signum(diffX);
+        final double dyDouble = Math.signum(diffY);
+        final double dzDouble = Math.signum(diffZ);
+
+        final int dx = (int)dxDouble;
+        final int dy = (int)dyDouble;
+        final int dz = (int)dzDouble;
+
+        final double normalizedDiffX = diffX == 0.0 ? Double.MAX_VALUE : dxDouble / diffX;
+        final double normalizedDiffY = diffY == 0.0 ? Double.MAX_VALUE : dyDouble / diffY;
+        final double normalizedDiffZ = diffZ == 0.0 ? Double.MAX_VALUE : dzDouble / diffZ;
+
+        double normalizedCurrX = normalizedDiffX * (diffX > 0.0 ? (1.0 - Mth.frac(fromXAdj)) : Mth.frac(fromXAdj));
+        double normalizedCurrY = normalizedDiffY * (diffY > 0.0 ? (1.0 - Mth.frac(fromYAdj)) : Mth.frac(fromYAdj));
+        double normalizedCurrZ = normalizedDiffZ * (diffZ > 0.0 ? (1.0 - Mth.frac(fromZAdj)) : Mth.frac(fromZAdj));
+
+        for (;;) {
+            currPos.set(currX, currY, currZ);
+
+            // ClipContext.Block.COLLIDER -> BlockBehaviour.BlockStateBase::getCollisionShape
+            // ClipContext.Fluid.NONE -> ignore fluids
+
+            // read block from cache
+            final long key = BlockPos.asLong(currX, currY, currZ);
+
+            final int cacheKey =
+                (currX & BLOCK_EXPLOSION_CACHE_MASK) |
+                    (currY & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
+                    (currZ & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
+            ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache cachedBlock = blockCache[cacheKey];
+            if (cachedBlock == null || cachedBlock.key != key) {
+                blockCache[cacheKey] = cachedBlock = this.getOrCacheExplosionBlock(currX, currY, currZ, key, false);
+            }
+
+            final BlockState blockState = cachedBlock.blockState;
+            if (blockState != null && !((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockState).moonrise$emptyCollisionShape()) {
+                net.minecraft.world.phys.shapes.VoxelShape collision = cachedBlock.cachedCollisionShape;
+                if (collision == null) {
+                    collision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)blockState).moonrise$getConstantCollisionShape();
+                    if (collision == null) {
+                        collision = blockState.getCollisionShape(this.level, currPos, context);
+                        if (!context.isDelegated()) {
+                            // if it was not delegated during this call, assume that for any future ones it will not be delegated
+                            // again, and cache the result
+                            cachedBlock.cachedCollisionShape = collision;
+                        }
+                    } else {
+                        cachedBlock.cachedCollisionShape = collision;
+                    }
+                }
+
+                if (!collision.isEmpty() && collision.clip(from, to, currPos) != null) {
+                    return true;
+                }
+            }
+
+            if (normalizedCurrX > 1.0 && normalizedCurrY > 1.0 && normalizedCurrZ > 1.0) {
+                return false;
+            }
+
+            // inc the smallest normalized coordinate
+
+            if (normalizedCurrX < normalizedCurrY) {
+                if (normalizedCurrX < normalizedCurrZ) {
+                    currX += dx;
+                    normalizedCurrX += normalizedDiffX;
+                } else {
+                    // x < y && x >= z <--> z < y && z <= x
+                    currZ += dz;
+                    normalizedCurrZ += normalizedDiffZ;
+                }
+            } else if (normalizedCurrY < normalizedCurrZ) {
+                // y <= x && y < z
+                currY += dy;
+                normalizedCurrY += normalizedDiffY;
+            } else {
+                // y <= x && z <= y <--> z <= y && z <= x
+                currZ += dz;
+                normalizedCurrZ += normalizedDiffZ;
+            }
+        }
+    }
+
+    private float getSeenFraction(final Vec3 source, final Entity target,
+                                  final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache,
+                                  final BlockPos.MutableBlockPos blockPos) {
+        final AABB boundingBox = target.getBoundingBox();
+        final double diffX = boundingBox.maxX - boundingBox.minX;
+        final double diffY = boundingBox.maxY - boundingBox.minY;
+        final double diffZ = boundingBox.maxZ - boundingBox.minZ;
+
+        final double incX = 1.0 / (diffX * 2.0 + 1.0);
+        final double incY = 1.0 / (diffY * 2.0 + 1.0);
+        final double incZ = 1.0 / (diffZ * 2.0 + 1.0);
+
+        if (incX < 0.0 || incY < 0.0 || incZ < 0.0) {
+            return 0.0f;
+        }
+
+        final double offX = (1.0 - Math.floor(1.0 / incX) * incX) * 0.5 + boundingBox.minX;
+        final double offY = boundingBox.minY;
+        final double offZ = (1.0 - Math.floor(1.0 / incZ) * incZ) * 0.5 + boundingBox.minZ;
+
+        final ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.LazyEntityCollisionContext context = new ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.LazyEntityCollisionContext(target);
+
+        int totalRays = 0;
+        int missedRays = 0;
+
+        for (double dx = 0.0; dx <= 1.0; dx += incX) {
+            final double fromX = Math.fma(dx, diffX, offX);
+            for (double dy = 0.0; dy <= 1.0; dy += incY) {
+                final double fromY = Math.fma(dy, diffY, offY);
+                for (double dz = 0.0; dz <= 1.0; dz += incZ) {
+                    ++totalRays;
+
+                    final Vec3 from = new Vec3(
+                        fromX,
+                        fromY,
+                        Math.fma(dz, diffZ, offZ)
+                    );
+
+                    if (!this.clipsAnything(from, source, context, blockCache, blockPos)) {
+                        ++missedRays;
+                    }
+                }
+            }
+        }
+
+        return (float)missedRays / (float)totalRays;
+    }
+    // Paper end - optimise collisions
+
     public static DamageSource getDefaultDamageSource(Level world, @Nullable Entity source) {
         return world.damageSources().explosion(source, Explosion.getIndirectSourceEntityInternal(source));
     }
@@ -167,68 +408,107 @@ public class Explosion {
         }
         // CraftBukkit end
         this.level.gameEvent(this.source, (Holder) GameEvent.EXPLODE, new Vec3(this.x, this.y, this.z));
-        Set<BlockPos> set = Sets.newHashSet();
+
+        // Paper start - collision optimisations
+        this.blockCache = new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
+
+        this.chunkPosCache = new long[CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH];
+        java.util.Arrays.fill(this.chunkPosCache, ChunkPos.INVALID_CHUNK_POS);
+
+        this.chunkCache = new net.minecraft.world.level.chunk.LevelChunk[CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH];
+
+        final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[BLOCK_EXPLOSION_CACHE_WIDTH * BLOCK_EXPLOSION_CACHE_WIDTH * BLOCK_EXPLOSION_CACHE_WIDTH];
+
+        // use initial cache value that is most likely to be used: the source position
+        final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache initialCache;
+        {
+            final int blockX = Mth.floor(this.x);
+            final int blockY = Mth.floor(this.y);
+            final int blockZ = Mth.floor(this.z);
+
+            final long key = BlockPos.asLong(blockX, blockY, blockZ);
+
+            initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
+        }
+        // Paper end - collision optimisations
+
         boolean flag = true;
 
         int i;
         int j;
 
-        for (int k = 0; k < 16; ++k) {
-            for (i = 0; i < 16; ++i) {
-                for (j = 0; j < 16; ++j) {
-                    if (k == 0 || k == 15 || i == 0 || i == 15 || j == 0 || j == 15) {
-                        double d0 = (double) ((float) k / 15.0F * 2.0F - 1.0F);
-                        double d1 = (double) ((float) i / 15.0F * 2.0F - 1.0F);
-                        double d2 = (double) ((float) j / 15.0F * 2.0F - 1.0F);
-                        double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+        // Paper start - collision optimisations
+        for (int ray = 0, len = CACHED_RAYS.length; ray < len;) {
+            ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache cachedBlock = initialCache;
 
-                        d0 /= d3;
-                        d1 /= d3;
-                        d2 /= d3;
-                        float f = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
-                        double d4 = this.x;
-                        double d5 = this.y;
-                        double d6 = this.z;
+            double currX = this.x;
+            double currY = this.y;
+            double currZ = this.z;
 
-                        for (float f1 = 0.3F; f > 0.0F; f -= 0.22500001F) {
-                            BlockPos blockposition = BlockPos.containing(d4, d5, d6);
-                            BlockState iblockdata = this.level.getBlockState(blockposition);
-                            if (!iblockdata.isDestroyable()) continue; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
-                            FluidState fluid = iblockdata.getFluidState(); // Paper - Perf: Optimize call to getFluid for explosions
+            final double incX = CACHED_RAYS[ray];
+            final double incY = CACHED_RAYS[ray + 1];
+            final double incZ = CACHED_RAYS[ray + 2];
 
-                            if (!this.level.isInWorldBounds(blockposition)) {
+            ray += 3;
+                        float power = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
+                        do {
+                            final int blockX = Mth.floor(currX);
+                            final int blockY = Mth.floor(currY);
+                            final int blockZ = Mth.floor(currZ);
+
+                            final long key = BlockPos.asLong(blockX, blockY, blockZ);
+
+                            if (cachedBlock.key != key) {
+                                final int cacheKey =
+                                    (blockX & BLOCK_EXPLOSION_CACHE_MASK) |
+                                        (blockY & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
+                                        (blockZ & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
+                                cachedBlock = blockCache[cacheKey];
+                                if (cachedBlock == null || cachedBlock.key != key) {
+                                    blockCache[cacheKey] = cachedBlock = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
+                                }
+                            }
+
+                            if (cachedBlock.outOfWorld) {
                                 break;
                             }
+                            // Paper end - collision optimisations
+                            BlockState iblockdata = cachedBlock.blockState; // Paper - optimise collisions
+                            // Paper - collision optimisations
 
-                            Optional<Float> optional = this.damageCalculator.getBlockExplosionResistance(this, this.level, blockposition, iblockdata, fluid);
+                            // Paper start - collision optimisations
+                            power -= cachedBlock.resistance;
 
-                            if (optional.isPresent()) {
-                                f -= ((Float) optional.get() + 0.3F) * 0.3F;
-                            }
-
-                            if (f > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, blockposition, iblockdata, f)) {
-                                set.add(blockposition);
-                                // Paper start - prevent headless pistons from forming
-                                if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && iblockdata.getBlock() == Blocks.MOVING_PISTON) {
-                                    net.minecraft.world.level.block.entity.BlockEntity extension = this.level.getBlockEntity(blockposition);
-                                    if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
-                                       net.minecraft.core.Direction direction = iblockdata.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
-                                       set.add(blockposition.relative(direction.getOpposite()));
+                            if (power > 0.0f && cachedBlock.shouldExplode == null && iblockdata.isDestroyable()) { // Paper - Protect Bedrock and End Portal/Frames from being destroyed
+                                // note: we expect shouldBlockExplode to be pure with respect to power, as Vanilla currently is.
+                                // basically, it is unused, which allows us to cache the result
+                                final boolean shouldExplode = this.damageCalculator.shouldBlockExplode((Explosion)(Object)this, this.level, cachedBlock.immutablePos, cachedBlock.blockState, power);
+                                cachedBlock.shouldExplode = shouldExplode ? Boolean.TRUE : Boolean.FALSE;
+                                if (shouldExplode) {
+                                    if (this.fire || !cachedBlock.blockState.isAir()) {
+                                        this.toBlow.add(cachedBlock.immutablePos);
+                                        // Paper start - prevent headless pistons from forming
+                                        if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && iblockdata.getBlock() == Blocks.MOVING_PISTON) {
+                                            net.minecraft.world.level.block.entity.BlockEntity extension = this.level.getBlockEntity(cachedBlock.immutablePos); // Paper - optimise collisions
+                                            if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
+                                                net.minecraft.core.Direction direction = iblockdata.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
+                                                this.toBlow.add(cachedBlock.immutablePos.relative(direction.getOpposite())); // Paper - optimise collisions
+                                            }
+                                        }
+                                        // Paper end - prevent headless pistons from forming
                                     }
                                 }
-                                // Paper end - prevent headless pistons from forming
                             }
 
-                            d4 += d0 * 0.30000001192092896D;
-                            d5 += d1 * 0.30000001192092896D;
-                            d6 += d2 * 0.30000001192092896D;
-                        }
+                            power -= 0.22500001F;
+                            currX += incX;
+                            currY += incY;
+                            currZ += incZ;
+                        } while (power > 0.0f);
+                        // Paper end - collision optimisations
                     }
-                }
-            }
-        }
 
-        this.toBlow.addAll(set);
+        // Paper - optimise collisions
         float f2 = this.radius * 2.0F;
 
         i = Mth.floor(this.x - (double) f2 - 1.0D);
@@ -240,6 +520,10 @@ public class Explosion {
         List<Entity> list = this.level.getEntities(this.source, new AABB((double) i, (double) l, (double) j1, (double) j, (double) i1, (double) k1), (com.google.common.base.Predicate<Entity>) entity -> entity.isAlive() && !entity.isSpectator()); // Paper - Fix lag from explosions processing dead entities
         Vec3 vec3d = new Vec3(this.x, this.y, this.z);
         Iterator iterator = list.iterator();
+
+        // Paper start - optimise collisions
+        final BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
+        // Paper end - optimise collisions
 
         while (iterator.hasNext()) {
             Entity entity = (Entity) iterator.next();
@@ -257,6 +541,7 @@ public class Explosion {
                         d8 /= d11;
                         d9 /= d11;
                         d10 /= d11;
+                        final double seenFraction; // Paper - optimise collisions
                         if (this.damageCalculator.shouldDamageEntity(this, entity)) {
                             // CraftBukkit start
 
@@ -272,6 +557,8 @@ public class Explosion {
 
                             entity.lastDamageCancelled = false;
 
+                            seenFraction = (double)this.getBlockDensity(vec3d, entity, blockCache, blockPos); // Paper - optimise collisions
+
                             if (entity instanceof EnderDragon) {
                                 for (EnderDragonPart entityComplexPart : ((EnderDragon) entity).subEntities) {
                                     // Calculate damage separately for each EntityComplexPart
@@ -280,16 +567,21 @@ public class Explosion {
                                     }
                                 }
                             } else {
-                                entity.hurt(this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity));
+                                // Paper start - optimise collisions
+                                // inline getEntityDamageAmount so that we can avoid double calling getSeenPercent, which is the MOST
+                                // expensive part of this loop!!!!
+                                final double factor = (1.0 - d7) * seenFraction;
+                                entity.hurt(this.damageSource, (float)((factor * factor + factor) / 2.0 * 7.0 * (double)f2 + 1.0));
+                                // Paper end - optimise collisions
                             }
 
                             if (entity.lastDamageCancelled) { // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Skip entity if damage event was cancelled
                                 continue;
                             }
                             // CraftBukkit end
-                        }
+                        } else { seenFraction = (double)this.getBlockDensity(vec3d, entity, blockCache, blockPos); } // Paper - optimise collisions
 
-                        double d12 = (1.0D - d7) * this.getBlockDensity(vec3d, entity) * (double) this.damageCalculator.getKnockbackMultiplier(entity); // Paper - Optimize explosions
+                        double d12 = (1.0D - d7) * seenFraction * (double) this.damageCalculator.getKnockbackMultiplier(entity); // Paper - Optimize explosions // Paper - optimise collisions
                         double d13;
 
                         if (entity instanceof LivingEntity) {
@@ -327,7 +619,11 @@ public class Explosion {
                 }
             }
         }
-
+        // Paper start - optimise collisions
+        this.blockCache = null;
+        this.chunkPosCache = null;
+        this.chunkCache = null;
+        // Paper end - optimise collisions
     }
 
     public void finalizeExplosion(boolean particles) {
@@ -544,14 +840,14 @@ public class Explosion {
         private BlockInteraction() {}
     }
     // Paper start - Optimize explosions
-    private float getBlockDensity(Vec3 vec3d, Entity entity) {
+    private float getBlockDensity(Vec3 vec3d, Entity entity, ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache, BlockPos.MutableBlockPos blockPos) { // Paper - optimise collisions
         if (!this.level.paperConfig().environment.optimizeExplosions) {
-            return getSeenPercent(vec3d, entity);
+            return this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise collisions
         }
         CacheKey key = new CacheKey(this, entity.getBoundingBox());
         Float blockDensity = this.level.explosionDensityCache.get(key);
         if (blockDensity == null) {
-            blockDensity = getSeenPercent(vec3d, entity);
+            blockDensity = this.getSeenFraction(vec3d, entity, blockCache, blockPos); // Paper - optimise collisions
             this.level.explosionDensityCache.put(key, blockDensity);
         }
 

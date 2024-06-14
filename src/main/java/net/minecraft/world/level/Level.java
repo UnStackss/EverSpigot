@@ -81,6 +81,7 @@ import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.WritableLevelData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.scores.Scoreboard;
 
 // CraftBukkit start
@@ -102,7 +103,7 @@ import org.bukkit.entity.SpawnCategory;
 import org.bukkit.event.block.BlockPhysicsEvent;
 // CraftBukkit end
 
-public abstract class Level implements LevelAccessor, AutoCloseable {
+public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel, ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter, ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevel { // Paper - rewrite chunk system // Paper - optimise collisions
 
     public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
     public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, ResourceLocation.withDefaultNamespace("overworld"));
@@ -199,6 +200,483 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
 
     public abstract ResourceKey<LevelStem> getTypeKey();
 
+    // Paper start - rewrite chunk system
+    private ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup entityLookup;
+
+    @Override
+    public final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup moonrise$getEntityLookup() {
+        return this.entityLookup;
+    }
+
+    @Override
+    public void moonrise$setEntityLookup(final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.EntityLookup entityLookup) {
+        if (this.entityLookup != null && !(this.entityLookup instanceof ca.spottedleaf.moonrise.patches.chunk_system.level.entity.dfl.DefaultEntityLookup)) {
+            throw new IllegalStateException("Entity lookup already initialised");
+        }
+        this.entityLookup = entityLookup;
+    }
+
+    @Override
+    public final <T extends Entity> List<T> getEntitiesOfClass(final Class<T> entityClass, final AABB boundingBox, final Predicate<? super T> predicate) {
+        this.getProfiler().incrementCounter("getEntities");
+        final List<T> ret = new java.util.ArrayList<>();
+
+        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(entityClass, null, boundingBox, ret, predicate);
+
+        return ret;
+    }
+
+    @Override
+    public final List<Entity> moonrise$getHardCollidingEntities(final Entity entity, final AABB box, final Predicate<? super Entity> predicate) {
+        this.getProfiler().incrementCounter("getEntities");
+        final List<Entity> ret = new java.util.ArrayList<>();
+
+        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getHardCollidingEntities(entity, box, ret, predicate);
+
+        return ret;
+    }
+
+    @Override
+    public LevelChunk moonrise$getFullChunkIfLoaded(final int chunkX, final int chunkZ) {
+        return this.getChunkSource().getChunk(chunkX, chunkZ, false);
+    }
+
+    @Override
+    public ChunkAccess moonrise$getAnyChunkIfLoaded(final int chunkX, final int chunkZ) {
+        return this.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.EMPTY, false);
+    }
+
+    @Override
+    public ChunkAccess moonrise$getSpecificChunkIfLoaded(final int chunkX, final int chunkZ, final ChunkStatus leastStatus) {
+        return this.getChunkSource().getChunk(chunkX, chunkZ, leastStatus, false);
+    }
+
+    @Override
+    public void moonrise$midTickTasks() {
+        // no-op on ClientLevel
+    }
+    /**
+     * @reason Turn all getChunk(x, z, status) calls into virtual invokes, instead of interface invokes:
+     *         1. The interface invoke is expensive
+     *         2. The method makes other interface invokes (again, expensive)
+     *         Instead, we just directly call getChunk(x, z, status, true) which avoids the interface invokes entirely.
+     * @author Spottedleaf
+     */
+    @Override
+    public ChunkAccess getChunk(final int x, final int z, final ChunkStatus status) {
+        return ((Level)(Object)this).getChunk(x, z, status, true);
+    }
+
+    @Override
+    public BlockPos getHeightmapPos(Heightmap.Types types, BlockPos blockPos) {
+        return new BlockPos(blockPos.getX(), this.getHeight(types, blockPos.getX(), blockPos.getZ()), blockPos.getZ());
+    }
+    // Paper end - rewrite chunk system
+    // Paper start - optimise collisions
+    private final int minSection;
+    private final int maxSection;
+
+    @Override
+    public final int moonrise$getMinSection() {
+        return this.minSection;
+    }
+
+    @Override
+    public final int moonrise$getMaxSection() {
+        return this.maxSection;
+    }
+
+    /**
+     * Route to faster lookup.
+     * See {@link EntityGetter#isUnobstructed(Entity, VoxelShape)} for expected behavior
+     * @author Spottedleaf
+     */
+    @Override
+    public final boolean isUnobstructed(final Entity entity) {
+        final AABB boundingBox = entity.getBoundingBox();
+        if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isEmpty(boundingBox)) {
+            return false;
+        }
+
+        final List<Entity> entities = this.getEntities(
+            entity,
+            boundingBox.inflate(-ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON, -ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON, -ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON),
+            null
+        );
+
+        for (int i = 0, len = entities.size(); i < len; ++i) {
+            final Entity otherEntity = entities.get(i);
+
+            if (otherEntity.isSpectator() || otherEntity.isRemoved() || !otherEntity.blocksBuilding || otherEntity.isPassengerOfSameVehicle(entity)) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+
+    private static net.minecraft.world.phys.BlockHitResult miss(final ClipContext clipContext) {
+        final Vec3 to = clipContext.getTo();
+        final Vec3 from = clipContext.getFrom();
+
+        return net.minecraft.world.phys.BlockHitResult.miss(to, Direction.getNearest(from.x - to.x, from.y - to.y, from.z - to.z), BlockPos.containing(to.x, to.y, to.z));
+    }
+
+    private static final FluidState AIR_FLUIDSTATE = Fluids.EMPTY.defaultFluidState();
+
+    private static net.minecraft.world.phys.BlockHitResult fastClip(final Vec3 from, final Vec3 to, final Level level,
+                                                                    final ClipContext clipContext) {
+        final double adjX = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.x - to.x);
+        final double adjY = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.y - to.y);
+        final double adjZ = ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON * (from.z - to.z);
+
+        if (adjX == 0.0 && adjY == 0.0 && adjZ == 0.0) {
+            return miss(clipContext);
+        }
+
+        final double toXAdj = to.x - adjX;
+        final double toYAdj = to.y - adjY;
+        final double toZAdj = to.z - adjZ;
+        final double fromXAdj = from.x + adjX;
+        final double fromYAdj = from.y + adjY;
+        final double fromZAdj = from.z + adjZ;
+
+        int currX = Mth.floor(fromXAdj);
+        int currY = Mth.floor(fromYAdj);
+        int currZ = Mth.floor(fromZAdj);
+
+        final BlockPos.MutableBlockPos currPos = new BlockPos.MutableBlockPos();
+
+        final double diffX = toXAdj - fromXAdj;
+        final double diffY = toYAdj - fromYAdj;
+        final double diffZ = toZAdj - fromZAdj;
+
+        final double dxDouble = Math.signum(diffX);
+        final double dyDouble = Math.signum(diffY);
+        final double dzDouble = Math.signum(diffZ);
+
+        final int dx = (int)dxDouble;
+        final int dy = (int)dyDouble;
+        final int dz = (int)dzDouble;
+
+        final double normalizedDiffX = diffX == 0.0 ? Double.MAX_VALUE : dxDouble / diffX;
+        final double normalizedDiffY = diffY == 0.0 ? Double.MAX_VALUE : dyDouble / diffY;
+        final double normalizedDiffZ = diffZ == 0.0 ? Double.MAX_VALUE : dzDouble / diffZ;
+
+        double normalizedCurrX = normalizedDiffX * (diffX > 0.0 ? (1.0 - Mth.frac(fromXAdj)) : Mth.frac(fromXAdj));
+        double normalizedCurrY = normalizedDiffY * (diffY > 0.0 ? (1.0 - Mth.frac(fromYAdj)) : Mth.frac(fromYAdj));
+        double normalizedCurrZ = normalizedDiffZ * (diffZ > 0.0 ? (1.0 - Mth.frac(fromZAdj)) : Mth.frac(fromZAdj));
+
+        net.minecraft.world.level.chunk.LevelChunkSection[] lastChunk = null;
+        net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> lastSection = null;
+        int lastChunkX = Integer.MIN_VALUE;
+        int lastChunkY = Integer.MIN_VALUE;
+        int lastChunkZ = Integer.MIN_VALUE;
+
+        final int minSection = ((ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevel)level).moonrise$getMinSection();
+
+        for (;;) {
+            currPos.set(currX, currY, currZ);
+
+            final int newChunkX = currX >> 4;
+            final int newChunkY = currY >> 4;
+            final int newChunkZ = currZ >> 4;
+
+            final int chunkDiff = ((newChunkX ^ lastChunkX) | (newChunkZ ^ lastChunkZ));
+            final int chunkYDiff = newChunkY ^ lastChunkY;
+
+            if ((chunkDiff | chunkYDiff) != 0) {
+                if (chunkDiff != 0) {
+                    lastChunk = level.getChunk(newChunkX, newChunkZ).getSections();
+                }
+                final int sectionY = newChunkY - minSection;
+                lastSection = sectionY >= 0 && sectionY < lastChunk.length ? lastChunk[sectionY].states : null;
+
+                lastChunkX = newChunkX;
+                lastChunkY = newChunkY;
+                lastChunkZ = newChunkZ;
+            }
+
+            final BlockState blockState;
+            if (lastSection != null && !(blockState = lastSection.get((currX & 15) | ((currZ & 15) << 4) | ((currY & 15) << (4+4)))).isAir()) {
+                final VoxelShape blockCollision = clipContext.getBlockShape(blockState, level, currPos);
+
+                final net.minecraft.world.phys.BlockHitResult blockHit = blockCollision.isEmpty() ? null : level.clipWithInteractionOverride(from, to, currPos, blockCollision, blockState);
+
+                final VoxelShape fluidCollision;
+                final FluidState fluidState;
+                if (clipContext.fluid != ClipContext.Fluid.NONE && (fluidState = blockState.getFluidState()) != AIR_FLUIDSTATE) {
+                    fluidCollision = clipContext.getFluidShape(fluidState, level, currPos);
+
+                    final net.minecraft.world.phys.BlockHitResult fluidHit = fluidCollision.clip(from, to, currPos);
+
+                    if (fluidHit != null) {
+                        if (blockHit == null) {
+                            return fluidHit;
+                        }
+
+                        return from.distanceToSqr(blockHit.getLocation()) <= from.distanceToSqr(fluidHit.getLocation()) ? blockHit : fluidHit;
+                    }
+                }
+
+                if (blockHit != null) {
+                    return blockHit;
+                }
+            } // else: usually fall here
+
+            if (normalizedCurrX > 1.0 && normalizedCurrY > 1.0 && normalizedCurrZ > 1.0) {
+                return miss(clipContext);
+            }
+
+            // inc the smallest normalized coordinate
+
+            if (normalizedCurrX < normalizedCurrY) {
+                if (normalizedCurrX < normalizedCurrZ) {
+                    currX += dx;
+                    normalizedCurrX += normalizedDiffX;
+                } else {
+                    // x < y && x >= z <--> z < y && z <= x
+                    currZ += dz;
+                    normalizedCurrZ += normalizedDiffZ;
+                }
+            } else if (normalizedCurrY < normalizedCurrZ) {
+                // y <= x && y < z
+                currY += dy;
+                normalizedCurrY += normalizedDiffY;
+            } else {
+                // y <= x && z <= y <--> z <= y && z <= x
+                currZ += dz;
+                normalizedCurrZ += normalizedDiffZ;
+            }
+        }
+    }
+
+    /**
+     * @reason Route to optimized call
+     * @author Spottedleaf
+     */
+    @Override
+    public final net.minecraft.world.phys.BlockHitResult clip(final ClipContext clipContext) {
+        // can only do this in this class, as not everything that implements BlockGetter can retrieve chunks
+        return fastClip(clipContext.getFrom(), clipContext.getTo(), (Level)(Object)this, clipContext);
+    }
+
+    /**
+     * @reason Route to faster logic
+     * @author Spottedleaf
+     */
+    @Override
+    public final boolean collidesWithSuffocatingBlock(final Entity entity, final AABB box) {
+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder((Level)(Object)this, entity, box, null, null,
+            ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_ONLY,
+            (final BlockState state, final BlockPos pos) -> {
+                return state.isSuffocating((Level)(Object)Level.this, pos);
+            }
+        );
+    }
+
+    private static VoxelShape inflateAABBToVoxel(final AABB aabb, final double x, final double y, final double z) {
+        return net.minecraft.world.phys.shapes.Shapes.create(
+            aabb.minX - x,
+            aabb.minY - y,
+            aabb.minZ - z,
+
+            aabb.maxX + x,
+            aabb.maxY + y,
+            aabb.maxZ + z
+        );
+    }
+
+    /**
+     * @reason Use optimised OR operator join strategy, avoid streams
+     * @author Spottedleaf
+     */
+    @Override
+    public final java.util.Optional<net.minecraft.world.phys.Vec3> findFreePosition(final Entity entity, final VoxelShape boundsShape, final Vec3 fromPosition,
+                                                                                    final double rangeX, final double rangeY, final double rangeZ) {
+        if (boundsShape.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+
+        final double expandByX = rangeX * 0.5;
+        final double expandByY = rangeY * 0.5;
+        final double expandByZ = rangeZ * 0.5;
+
+        // note: it is useless to look at shapes outside of range / 2.0
+        final AABB collectionVolume = boundsShape.bounds().inflate(expandByX, expandByY, expandByZ);
+
+        final List<AABB> aabbs = new java.util.ArrayList<>();
+        final List<VoxelShape> voxels = new java.util.ArrayList<>();
+
+        ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder(
+            (Level)(Object)this, entity, collectionVolume, voxels, aabbs,
+            ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER,
+            null
+        );
+
+        final WorldBorder worldBorder = this.getWorldBorder();
+        if (worldBorder != null) {
+            aabbs.removeIf((final AABB aabb) -> {
+                return !worldBorder.isWithinBounds(aabb);
+            });
+            voxels.removeIf((final VoxelShape shape) -> {
+                return !worldBorder.isWithinBounds(shape.bounds());
+            });
+        }
+
+        // push voxels into aabbs
+        for (int i = 0, len = voxels.size(); i < len; ++i) {
+            aabbs.addAll(voxels.get(i).toAabbs());
+        }
+
+        // expand AABBs
+        final VoxelShape first = aabbs.isEmpty() ? net.minecraft.world.phys.shapes.Shapes.empty() : inflateAABBToVoxel(aabbs.get(0), expandByX, expandByY, expandByZ);
+        final VoxelShape[] rest = new VoxelShape[Math.max(0, aabbs.size() - 1)];
+
+        for (int i = 1, len = aabbs.size(); i < len; ++i) {
+            rest[i - 1] = inflateAABBToVoxel(aabbs.get(i), expandByX, expandByY, expandByZ);
+        }
+
+        // use optimized implementation of ORing the shapes together
+        final VoxelShape joined = net.minecraft.world.phys.shapes.Shapes.or(first, rest);
+
+        // find free space
+        // can use unoptimized join here (instead of join()), as closestPointTo uses toAabbs()
+        final VoxelShape freeSpace = net.minecraft.world.phys.shapes.Shapes.joinUnoptimized(boundsShape, joined, net.minecraft.world.phys.shapes.BooleanOp.ONLY_FIRST);
+
+        return freeSpace.closestPointTo(fromPosition);
+    }
+
+    /**
+     * @reason Route to faster logic
+     * @author Spottedleaf
+     */
+    @Override
+    public final java.util.Optional<net.minecraft.core.BlockPos> findSupportingBlock(final Entity entity, final AABB aabb) {
+        final int minBlockX = Mth.floor(aabb.minX - ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON) - 1;
+        final int maxBlockX = Mth.floor(aabb.maxX + ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON) + 1;
+
+        final int minBlockY = Mth.floor(aabb.minY - ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON) - 1;
+        final int maxBlockY = Mth.floor(aabb.maxY + ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON) + 1;
+
+        final int minBlockZ = Mth.floor(aabb.minZ - ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON) - 1;
+        final int maxBlockZ = Mth.floor(aabb.maxZ + ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_EPSILON) + 1;
+
+        ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.LazyEntityCollisionContext collisionContext = null;
+
+        final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        BlockPos selected = null;
+        double selectedDistance = Double.MAX_VALUE;
+
+        final Vec3 entityPos = entity.position();
+
+        LevelChunk lastChunk = null;
+        int lastChunkX = Integer.MIN_VALUE;
+        int lastChunkZ = Integer.MIN_VALUE;
+
+        final ChunkSource chunkSource = this.getChunkSource();
+
+        for (int currZ = minBlockZ; currZ <= maxBlockZ; ++currZ) {
+            pos.setZ(currZ);
+            for (int currX = minBlockX; currX <= maxBlockX; ++currX) {
+                pos.setX(currX);
+
+                final int newChunkX = currX >> 4;
+                final int newChunkZ = currZ >> 4;
+
+                if (((newChunkX ^ lastChunkX) | (newChunkZ ^ lastChunkZ)) != 0) {
+                    lastChunkX = newChunkX;
+                    lastChunkZ = newChunkZ;
+                    lastChunk = (LevelChunk)chunkSource.getChunk(newChunkX, newChunkZ, ChunkStatus.FULL, false);
+                }
+
+                if (lastChunk == null) {
+                    continue;
+                }
+                for (int currY = minBlockY; currY <= maxBlockY; ++currY) {
+                    int edgeCount = ((currX == minBlockX || currX == maxBlockX) ? 1 : 0) +
+                        ((currY == minBlockY || currY == maxBlockY) ? 1 : 0) +
+                        ((currZ == minBlockZ || currZ == maxBlockZ) ? 1 : 0);
+                    if (edgeCount == 3) {
+                        continue;
+                    }
+
+                    pos.setY(currY);
+
+                    final double distance = pos.distToCenterSqr(entityPos);
+                    if (distance > selectedDistance || (distance == selectedDistance && selected.compareTo(pos) >= 0)) {
+                        continue;
+                    }
+
+                    final BlockState state = ((ca.spottedleaf.moonrise.patches.chunk_getblock.GetBlockChunk)lastChunk).moonrise$getBlock(currX, currY, currZ);
+                    if (((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)state).moonrise$emptyCollisionShape()) {
+                        continue;
+                    }
+
+                    VoxelShape blockCollision = ((ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState)state).moonrise$getConstantCollisionShape();
+
+                    if ((edgeCount != 1 || state.hasLargeCollisionShape()) && (edgeCount != 2 || state.getBlock() == Blocks.MOVING_PISTON)) {
+                        if (collisionContext == null) {
+                            collisionContext = new ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.LazyEntityCollisionContext(entity);
+                        }
+
+                        if (blockCollision == null) {
+                            blockCollision = state.getCollisionShape((Level)(Object)this, pos, collisionContext);
+                        }
+
+                        if (blockCollision.isEmpty()) {
+                            continue;
+                        }
+
+                        // avoid VoxelShape#move by shifting the entity collision shape instead
+                        final AABB shiftedAABB = aabb.move(-(double)currX, -(double)currY, -(double)currZ);
+
+                        final AABB singleAABB = ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)blockCollision).moonrise$getSingleAABBRepresentation();
+                        if (singleAABB != null) {
+                            if (!ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.voxelShapeIntersect(singleAABB, shiftedAABB)) {
+                                continue;
+                            }
+
+                            selected = pos.immutable();
+                            selectedDistance = distance;
+                            continue;
+                        }
+
+                        if (!ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.voxelShapeIntersectNoEmpty(blockCollision, shiftedAABB)) {
+                            continue;
+                        }
+
+                        selected = pos.immutable();
+                        selectedDistance = distance;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        return java.util.Optional.ofNullable(selected);
+    }
+    // Paper end - optimise collisions
+    // Paper start - optimise random ticking
+    @Override
+    public abstract Holder<Biome> getUncachedNoiseBiome(final int x, final int y, final int z);
+
+    /**
+     * @reason Make getChunk and getUncachedNoiseBiome virtual calls instead of interface calls
+     *         by implementing the superclass method in this class.
+     * @author Spottedleaf
+     */
+    @Override
+    public Holder<Biome> getNoiseBiome(final int x, final int y, final int z) {
+        final ChunkAccess chunk = this.getChunk(x >> 2, z >> 2, ChunkStatus.BIOMES, false);
+
+        return chunk != null ? chunk.getNoiseBiome(x, y, z) : this.getUncachedNoiseBiome(x, y, z);
+    }
+    // Paper end - optimise random ticking
+
     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, RegistryAccess iregistrycustom, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator) { // Paper - create paper world config
         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
@@ -281,6 +759,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         this.timings = new co.aikar.timings.WorldTimingsHandler(this); // Paper - code below can generate new world and access timings
         this.entityLimiter = new org.spigotmc.TickLimiter(this.spigotConfig.entityMaxTickTime);
         this.tileLimiter = new org.spigotmc.TickLimiter(this.spigotConfig.tileMaxTickTime);
+        this.entityLookup = new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.dfl.DefaultEntityLookup(this); // Paper - rewrite chunk system
+        // Paper start - optimise collisions
+        this.minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this);
+        this.maxSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(this);
+        // Paper end - optimise collisions
     }
 
     // Paper start - Cancel hit for vanished players
@@ -549,7 +1032,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
                 this.setBlocksDirty(blockposition, iblockdata1, iblockdata2);
             }
 
-            if ((i & 2) != 0 && (!this.isClientSide || (i & 4) == 0) && (this.isClientSide || chunk == null || (chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING)))) { // allow chunk to be null here as chunk.isReady() is false when we send our notification during block placement
+            if ((i & 2) != 0 && (!this.isClientSide || (i & 4) == 0) && (this.isClientSide || chunk == null || (chunk.getFullStatus() != null && chunk.getFullStatus().isOrAfter(FullChunkStatus.FULL)))) { // allow chunk to be null here as chunk.isReady() is false when we send our notification during block placement // Paper - rewrite chunk system - change from ticking to full
                 this.sendBlockUpdated(blockposition, iblockdata1, iblockdata, i);
             }
 
@@ -813,6 +1296,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         // Iterator<TickingBlockEntity> iterator = this.blockEntityTickers.iterator();
         boolean flag = this.tickRateManager().runsNormally();
 
+        int tickedEntities = 0; // Paper - rewrite chunk system
+
         int tilesThisCycle = 0;
         var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
         toRemove.add(null); // Paper - Fix MC-117075
@@ -828,6 +1313,11 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
                 // Spigot end
             } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
                 tickingblockentity.tick();
+                // Paper start - rewrite chunk system
+                if ((++tickedEntities & 7) == 0) {
+                    ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)(Level)(Object)this).moonrise$midTickTasks();
+                }
+                // Paper end - rewrite chunk system
             }
         }
         this.blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075
@@ -850,12 +1340,20 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
             entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
             // Paper end - Prevent block entity and entity crashes
         }
+        this.moonrise$midTickTasks(); // Paper - rewrite chunk system
     }
     // Paper start - Option to prevent armor stands from doing entity lookups
     @Override
     public boolean noCollision(@Nullable Entity entity, AABB box) {
         if (entity instanceof net.minecraft.world.entity.decoration.ArmorStand && !entity.level().paperConfig().entities.armorStands.doCollisionEntityLookups) return false;
-        return LevelAccessor.super.noCollision(entity, box);
+        // Paper start - optimise collisions
+        final int flags = entity == null ? (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER | ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_ONLY) : ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_ONLY;
+        if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder((Level)(Object)this, entity, box, null, null, flags, null)) {
+            return false;
+        }
+
+        return !ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getEntityHardCollisions((Level)(Object)this, entity, box, null, flags, null);
+        // Paper end - optimise collisions
     }
     // Paper end - Option to prevent armor stands from doing entity lookups
 
@@ -949,7 +1447,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         }
         // Paper end - Perf: Optimize capturedTileEntities lookup
         // CraftBukkit end
-        return this.isOutsideBuildHeight(blockposition) ? null : (!this.isClientSide && Thread.currentThread() != this.thread ? null : this.getChunkAt(blockposition).getBlockEntity(blockposition, LevelChunk.EntityCreationType.IMMEDIATE));
+        return this.isOutsideBuildHeight(blockposition) ? null : (!this.isClientSide && !ca.spottedleaf.moonrise.common.util.TickThread.isTickThread() ? null : this.getChunkAt(blockposition).getBlockEntity(blockposition, LevelChunk.EntityCreationType.IMMEDIATE)); // Paper - rewrite chunk system
     }
 
     public void setBlockEntity(BlockEntity blockEntity) {
@@ -1039,28 +1537,13 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
     @Override
     public List<Entity> getEntities(@Nullable Entity except, AABB box, Predicate<? super Entity> predicate) {
         this.getProfiler().incrementCounter("getEntities");
-        List<Entity> list = Lists.newArrayList();
+        // Paper start - rewrite chunk system
+        final List<Entity> ret = new java.util.ArrayList<>();
 
-        this.getEntities().get(box, (entity1) -> {
-            if (entity1 != except && predicate.test(entity1)) {
-                list.add(entity1);
-            }
+        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(except, box, ret, predicate);
 
-            if (entity1 instanceof EnderDragon) {
-                EnderDragonPart[] aentitycomplexpart = ((EnderDragon) entity1).getSubEntities();
-                int i = aentitycomplexpart.length;
-
-                for (int j = 0; j < i; ++j) {
-                    EnderDragonPart entitycomplexpart = aentitycomplexpart[j];
-
-                    if (entity1 != except && predicate.test(entitycomplexpart)) {
-                        list.add(entitycomplexpart);
-                    }
-                }
-            }
-
-        });
-        return list;
+        return ret;
+        // Paper end - rewrite chunk system
     }
 
     @Override
@@ -1075,36 +1558,77 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
         this.getEntities(filter, box, predicate, result, Integer.MAX_VALUE);
     }
 
-    public <T extends Entity> void getEntities(EntityTypeTest<Entity, T> filter, AABB box, Predicate<? super T> predicate, List<? super T> result, int limit) {
+    // Paper start - rewrite chunk system
+    public <T extends Entity> void getEntities(final EntityTypeTest<Entity, T> entityTypeTest,
+                                               final AABB boundingBox, final Predicate<? super T> predicate,
+                                               final List<? super T> into, final int maxCount) {
         this.getProfiler().incrementCounter("getEntities");
-        this.getEntities().get(filter, box, (entity) -> {
-            if (predicate.test(entity)) {
-                result.add(entity);
-                if (result.size() >= limit) {
-                    return AbortableIterationConsumer.Continuation.ABORT;
-                }
+
+        if (entityTypeTest instanceof net.minecraft.world.entity.EntityType<T> byType) {
+            if (maxCount != Integer.MAX_VALUE) {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(byType, boundingBox, into, predicate, maxCount);
+                return;
+            } else {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(byType, boundingBox, into, predicate);
+                return;
             }
+        }
 
-            if (entity instanceof EnderDragon entityenderdragon) {
-                EnderDragonPart[] aentitycomplexpart = entityenderdragon.getSubEntities();
-                int j = aentitycomplexpart.length;
-
-                for (int k = 0; k < j; ++k) {
-                    EnderDragonPart entitycomplexpart = aentitycomplexpart[k];
-                    T t0 = filter.tryCast(entitycomplexpart); // CraftBukkit - decompile error
-
-                    if (t0 != null && predicate.test(t0)) {
-                        result.add(t0);
-                        if (result.size() >= limit) {
-                            return AbortableIterationConsumer.Continuation.ABORT;
-                        }
-                    }
-                }
+        if (entityTypeTest == null) {
+            if (maxCount != Integer.MAX_VALUE) {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, boundingBox, (List)into, (Predicate)predicate, maxCount);
+                return;
+            } else {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, boundingBox, (List)into, (Predicate)predicate);
+                return;
             }
+        }
 
-            return AbortableIterationConsumer.Continuation.CONTINUE;
-        });
+        final Class<? extends Entity> base = entityTypeTest.getBaseClass();
+
+        final Predicate<? super T> modifiedPredicate;
+        if (predicate == null) {
+            modifiedPredicate = (final T obj) -> {
+                return entityTypeTest.tryCast(obj) != null;
+            };
+        } else {
+            modifiedPredicate = (final Entity obj) -> {
+                final T casted = entityTypeTest.tryCast(obj);
+                if (casted == null) {
+                    return false;
+                }
+
+                return predicate.test(casted);
+            };
+        }
+
+        if (base == null || base == Entity.class) {
+            if (maxCount != Integer.MAX_VALUE) {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, boundingBox, (List)into, (Predicate)modifiedPredicate, maxCount);
+                return;
+            } else {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities((Entity)null, boundingBox, (List)into, (Predicate)modifiedPredicate);
+                return;
+            }
+        } else {
+            if (maxCount != Integer.MAX_VALUE) {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(base, null, boundingBox, (List)into, (Predicate)modifiedPredicate, maxCount);
+                return;
+            } else {
+                ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this).moonrise$getEntityLookup().getEntities(base, null, boundingBox, (List)into, (Predicate)modifiedPredicate);
+                return;
+            }
+        }
     }
+
+    public org.bukkit.entity.Entity[] getChunkEntities(int chunkX, int chunkZ) {
+        ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices slices = ((ServerLevel)this).moonrise$getEntityLookup().getChunk(chunkX, chunkZ);
+        if (slices == null) {
+            return new org.bukkit.entity.Entity[0];
+        }
+        return slices.getChunkEntities();
+    }
+    // Paper end - rewrite chunk system
 
     @Nullable
     public abstract Entity getEntity(int id);

@@ -476,7 +476,33 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface 
         return world.dimension() == net.minecraft.world.level.Level.NETHER ? this.getProperties().allowNether : true;
     }
 
+    private static final java.util.concurrent.atomic.AtomicInteger ASYNC_DEBUG_CHUNKS_COUNT = new java.util.concurrent.atomic.AtomicInteger(); // Paper - rewrite chunk system
+
     public void handleConsoleInput(String command, CommandSourceStack commandSource) {
+        // Paper start - rewrite chunk system
+        if (command.equalsIgnoreCase("paper debug chunks --async")) {
+            LOGGER.info("Scheduling async debug chunks");
+            Runnable run = () -> {
+                LOGGER.info("Async debug chunks executing");
+                ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(this, false);
+                CommandSender sender = MinecraftServer.getServer().console;
+                java.io.File file = ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.getChunkDebugFile();
+                sender.sendMessage(net.kyori.adventure.text.Component.text("Writing chunk information dump to " + file, net.kyori.adventure.text.format.NamedTextColor.GREEN));
+                try {
+                    ca.spottedleaf.moonrise.common.util.JsonUtil.writeJson(ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.debugAllWorlds(this), file);
+                    sender.sendMessage(net.kyori.adventure.text.Component.text("Successfully written chunk information!", net.kyori.adventure.text.format.NamedTextColor.GREEN));
+                } catch (Throwable thr) {
+                    MinecraftServer.LOGGER.warn("Failed to dump chunk information to file " + file.toString(), thr);
+                    sender.sendMessage(net.kyori.adventure.text.Component.text("Failed to dump chunk information, see console", net.kyori.adventure.text.format.NamedTextColor.RED));
+                }
+            };
+            Thread t = new Thread(run);
+            t.setName("Async debug thread #" + ASYNC_DEBUG_CHUNKS_COUNT.getAndIncrement());
+            t.setDaemon(true);
+            t.start();
+            return;
+        }
+        // Paper end - rewrite chunk system
         this.serverCommandQueue.add(new ConsoleInput(command, commandSource)); // Paper - Perf: use proper queue
     }
 

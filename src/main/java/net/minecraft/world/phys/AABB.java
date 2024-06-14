@@ -326,7 +326,7 @@ public class AABB {
     }
 
     @Nullable
-    private static Direction getDirection(
+    public static Direction getDirection( // Paper - optimise collisions - public
         AABB box, Vec3 intersectingVector, double[] traceDistanceResult, @Nullable Direction approachDirection, double deltaX, double deltaY, double deltaZ
     ) {
         if (deltaX > 1.0E-7) {

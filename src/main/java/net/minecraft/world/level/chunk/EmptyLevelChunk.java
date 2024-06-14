@@ -13,13 +13,47 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 
-public class EmptyLevelChunk extends LevelChunk {
+public class EmptyLevelChunk extends LevelChunk implements ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
     private final Holder<Biome> biome;
 
     public EmptyLevelChunk(Level world, ChunkPos pos, Holder<Biome> biomeEntry) {
         super(world, pos);
         this.biome = biomeEntry;
     }
+
+    // Paper start - rewrite chunk system
+    @Override
+    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getBlockNibbles() {
+        return ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(this.getLevel());
+    }
+
+    @Override
+    public void starlight$setBlockNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {}
+
+    @Override
+    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getSkyNibbles() {
+        return ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(this.getLevel());
+    }
+
+    @Override
+    public void starlight$setSkyNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {}
+
+    @Override
+    public boolean[] starlight$getSkyEmptinessMap() {
+        return null;
+    }
+
+    @Override
+    public void starlight$setSkyEmptinessMap(final boolean[] emptinessMap) {}
+
+    @Override
+    public boolean[] starlight$getBlockEmptinessMap() {
+        return null;
+    }
+
+    @Override
+    public void starlight$setBlockEmptinessMap(final boolean[] emptinessMap) {}
+    // Paper end - rewrite chunk system
 
     @Override
     public BlockState getBlockState(BlockPos pos) {

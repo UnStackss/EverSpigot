@@ -320,6 +320,7 @@ public class Main {
 
             convertable_conversionsession.saveDataTag(iregistrycustom_dimension, savedata);
             */
+            Class.forName(net.minecraft.world.entity.npc.VillagerTrades.class.getName()); // Paper - load this sync so it won't fail later async
             final DedicatedServer dedicatedserver = (DedicatedServer) MinecraftServer.spin((thread) -> {
                 DedicatedServer dedicatedserver1 = new DedicatedServer(optionset, worldLoader.get(), thread, convertable_conversionsession, resourcepackrepository, worldstem, dedicatedserversettings, DataFixers.getDataFixer(), services, LoggerChunkProgressListener::createFromGameruleRadius);
 

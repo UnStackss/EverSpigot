@@ -7,6 +7,7 @@ import net.minecraft.util.Mth;
 public final class CubeVoxelShape extends VoxelShape {
     protected CubeVoxelShape(DiscreteVoxelShape voxels) {
         super(voxels);
+        ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)this).moonrise$initCache(); // Paper - optimise collisions
     }
 
     @Override

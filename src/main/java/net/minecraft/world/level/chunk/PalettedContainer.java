@@ -28,7 +28,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
     private static final int MIN_PALETTE_BITS = 0;
     private final PaletteResize<T> dummyPaletteResize = (newSize, added) -> 0;
     public final IdMap<T> registry;
-    private volatile PalettedContainer.Data<T> data;
+    public volatile PalettedContainer.Data<T> data; // Paper - optimise collisions - public
     private final PalettedContainer.Strategy strategy;
     // private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer"); // Paper - unused
 
@@ -155,7 +155,7 @@ public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainer
         return this.get(this.strategy.getIndex(x, y, z));
     }
 
-    protected T get(int index) {
+    public T get(int index) { // Paper - public
         PalettedContainer.Data<T> data = this.data;
         return data.palette.valueFor(data.storage.get(index));
     }

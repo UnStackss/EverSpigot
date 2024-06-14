@@ -763,7 +763,7 @@ public abstract class BlockBehaviour implements FeatureElement {
         boolean test(BlockState state, BlockGetter world, BlockPos pos);
     }
 
-    public abstract static class BlockStateBase extends StateHolder<Block, BlockState> {
+    public abstract static class BlockStateBase extends StateHolder<Block, BlockState> implements ca.spottedleaf.moonrise.patches.starlight.blockstate.StarlightAbstractBlockState, ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState { // Paper - rewrite chunk system // Paper - optimise collisions
 
         private final int lightEmission;
         private final boolean useShapeForLightOcclusion;
@@ -794,6 +794,76 @@ public abstract class BlockBehaviour implements FeatureElement {
         protected BlockBehaviour.BlockStateBase.Cache cache;
         private FluidState fluidState;
         private boolean isRandomlyTicking;
+
+        // Paper start - rewrite chunk system
+        private int opacityIfCached;
+        private boolean isConditionallyFullOpaque;
+
+        @Override
+        public final boolean starlight$isConditionallyFullOpaque() {
+            return this.isConditionallyFullOpaque;
+        }
+
+        @Override
+        public final int starlight$getOpacityIfCached() {
+            return this.opacityIfCached;
+        }
+        // Paper end - rewrite chunk system
+        // Paper start - optimise collisions
+        private static final int RANDOM_OFFSET = 704237939;
+        private static final Direction[] DIRECTIONS_CACHED = Direction.values();
+        private static final java.util.concurrent.atomic.AtomicInteger ID_GENERATOR = new java.util.concurrent.atomic.AtomicInteger();
+        private final int id1 = it.unimi.dsi.fastutil.HashCommon.murmurHash3(it.unimi.dsi.fastutil.HashCommon.murmurHash3(ID_GENERATOR.getAndIncrement() + RANDOM_OFFSET) + RANDOM_OFFSET);
+        private final int id2 = it.unimi.dsi.fastutil.HashCommon.murmurHash3(it.unimi.dsi.fastutil.HashCommon.murmurHash3(ID_GENERATOR.getAndIncrement() + RANDOM_OFFSET) + RANDOM_OFFSET);
+        private boolean occludesFullBlock;
+        private boolean emptyCollisionShape;
+        private VoxelShape constantCollisionShape;
+        private AABB constantAABBCollision;
+
+        private static void initCaches(final VoxelShape shape) {
+            ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$isFullBlock();
+            ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$occludesFullBlock();
+            shape.toAabbs();
+            if (!shape.isEmpty()) {
+                shape.bounds();
+            }
+        }
+
+        @Override
+        public final boolean moonrise$hasCache() {
+            return this.cache != null;
+        }
+
+        @Override
+        public final boolean moonrise$occludesFullBlock() {
+            return this.occludesFullBlock;
+        }
+
+        @Override
+        public final boolean moonrise$emptyCollisionShape() {
+            return this.emptyCollisionShape;
+        }
+
+        @Override
+        public final int moonrise$uniqueId1() {
+            return this.id1;
+        }
+
+        @Override
+        public final int moonrise$uniqueId2() {
+            return this.id2;
+        }
+
+        @Override
+        public final VoxelShape moonrise$getConstantCollisionShape() {
+            return this.constantCollisionShape;
+        }
+
+        @Override
+        public final AABB moonrise$getConstantCollisionAABB() {
+            return this.constantAABBCollision;
+        }
+        // Paper end - optimise collisions
 
         protected BlockStateBase(Block block, Reference2ObjectArrayMap<Property<?>, Comparable<?>> propertyMap, MapCodec<BlockState> codec) {
             super(block, propertyMap, codec);
@@ -859,6 +929,43 @@ public abstract class BlockBehaviour implements FeatureElement {
             this.shapeExceedsCube = this.cache == null || this.cache.largeCollisionShape; // Paper - moved from actual method to here
 
             this.legacySolid = this.calculateSolid();
+            // Paper start - rewrite chunk system
+            this.isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
+            this.opacityIfCached = this.cache == null || this.isConditionallyFullOpaque ? -1 : this.cache.lightBlock;
+            // Paper end - rewrite chunk system
+            // Paper start - optimise collisions
+            if (this.cache != null) {
+                final VoxelShape collisionShape = this.cache.collisionShape;
+                try {
+                    this.constantCollisionShape = this.getCollisionShape(null, null, null);
+                    this.constantAABBCollision = this.constantCollisionShape == null ? null : ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)this.constantCollisionShape).moonrise$getSingleAABBRepresentation();
+                } catch (final Throwable throwable) {
+                    this.constantCollisionShape = null;
+                    this.constantAABBCollision = null;
+                }
+                this.occludesFullBlock = ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)collisionShape).moonrise$occludesFullBlock();
+                this.emptyCollisionShape = collisionShape.isEmpty();
+                // init caches
+                initCaches(collisionShape);
+                if (collisionShape != Shapes.empty() && collisionShape != Shapes.block()) {
+                    for (final Direction direction : DIRECTIONS_CACHED) {
+                        // initialise the directional face shape cache as well
+                        final VoxelShape shape = Shapes.getFaceShape(collisionShape, direction);
+                        initCaches(shape);
+                    }
+                }
+                if (this.cache.occlusionShapes != null) {
+                    for (final VoxelShape shape : this.cache.occlusionShapes) {
+                        initCaches(shape);
+                    }
+                }
+            } else {
+                this.occludesFullBlock = false;
+                this.emptyCollisionShape = false;
+                this.constantCollisionShape = null;
+                this.constantAABBCollision = null;
+            }
+            // Paper end - optimise collisions
         }
 
         public Block getBlock() {

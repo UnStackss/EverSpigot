@@ -1428,7 +1428,7 @@ public final class CraftServer implements Server {
         // Paper - Put world into worldlist before initing the world; move up
 
         this.getServer().prepareLevels(internal.getChunkSource().chunkMap.progressListener, internal);
-        internal.entityManager.tick(); // SPIGOT-6526: Load pending entities so they are available to the API
+        // Paper - rewrite chunk system
 
         this.pluginManager.callEvent(new WorldLoadEvent(internal.getWorld()));
         return internal.getWorld();
@@ -1473,7 +1473,7 @@ public final class CraftServer implements Server {
             }
 
             handle.getChunkSource().close(save);
-            handle.entityManager.close(save); // SPIGOT-6722: close entityManager
+            // Paper - rewrite chunk system
             handle.convertable.close();
         } catch (Exception ex) {
             this.getLogger().log(Level.SEVERE, null, ex);
@@ -2509,7 +2509,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean isPrimaryThread() {
-        return Thread.currentThread().equals(this.console.serverThread) || this.console.hasStopped() || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog)
+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThread(); // Paper - rewrite chunk system
     }
 
     // Paper start - Adventure

@@ -165,7 +165,7 @@ public class ChunkSerializer {
                 achunksection[k] = chunksection;
                 SectionPos sectionposition = SectionPos.of(chunkPos, b0);
 
-                poiStorage.checkConsistencyWithBlocks(sectionposition, chunksection);
+                // Paper - rewrite chunk system - moved to final load stage
             }
 
             boolean flag3 = nbttagcompound1.contains("BlockLight", 7);
@@ -287,6 +287,8 @@ public class ChunkSerializer {
             }
         }
 
+        ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.loadLightHook(world, chunkPos, nbt, (ChunkAccess)object1); // Paper - rewrite chunk system - note: it's ok to pass the raw value instead of wrapped
+
         if (chunktype == ChunkType.LEVELCHUNK) {
             return new ImposterProtoChunk((LevelChunk) object1, false);
         } else {
@@ -341,14 +343,44 @@ public class ChunkSerializer {
     }
     // CraftBukkit end
 
+    // Paper start - async chunk saving
+    // must be called sync
+    public static ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData getAsyncSaveData(ServerLevel world, ChunkAccess chunk) {
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(world, chunk.locX, chunk.locZ, "Preparing async chunk save data");
+
+        final CompoundTag tickLists = new CompoundTag();
+        ChunkSerializer.saveTicks(world, tickLists, chunk.getTicksForSerialization());
+
+        ListTag blockEntitiesSerialized = new ListTag();
+        for (final BlockPos blockPos : chunk.getBlockEntitiesPos()) {
+            final CompoundTag blockEntityNbt = chunk.getBlockEntityNbtForSaving(blockPos, world.registryAccess());
+            if (blockEntityNbt != null) {
+                blockEntitiesSerialized.add(blockEntityNbt);
+            }
+        }
+
+        return new ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData(
+            tickLists.get(BLOCK_TICKS_TAG),
+            tickLists.get(FLUID_TICKS_TAG),
+            blockEntitiesSerialized,
+            world.getGameTime()
+        );
+     }
+    // Paper end - async chunk saving
+
     public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
+        // Paper start - async chunk saving
+        return saveChunk(world, chunk, null);
+    }
+    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata) {
+        // Paper end - async chunk saving
         ChunkPos chunkcoordintpair = chunk.getPos();
         CompoundTag nbttagcompound = NbtUtils.addCurrentDataVersion(new CompoundTag());
 
         nbttagcompound.putInt("xPos", chunkcoordintpair.x);
         nbttagcompound.putInt("yPos", chunk.getMinSection());
         nbttagcompound.putInt("zPos", chunkcoordintpair.z);
-        nbttagcompound.putLong("LastUpdate", world.getGameTime());
+        nbttagcompound.putLong("LastUpdate", asyncsavedata != null ? asyncsavedata.worldTime() : world.getGameTime()); // Paper - async chunk saving
         nbttagcompound.putLong("InhabitedTime", chunk.getInhabitedTime());
         nbttagcompound.putString("Status", BuiltInRegistries.CHUNK_STATUS.getKey(chunk.getPersistedStatus()).toString());
         BlendingData blendingdata = chunk.getBlendingData();
@@ -424,8 +456,17 @@ public class ChunkSerializer {
             nbttagcompound.putBoolean("isLightOn", true);
         }
 
-        ListTag nbttaglist1 = new ListTag();
-        Iterator iterator = chunk.getBlockEntitiesPos().iterator();
+        // Paper start - async chunk saving
+        ListTag nbttaglist1;
+        Iterator<BlockPos> iterator;
+        if (asyncsavedata != null) {
+            nbttaglist1 = asyncsavedata.blockEntities();
+            iterator = java.util.Collections.emptyIterator();
+        } else {
+            nbttaglist1 = new ListTag();
+            iterator = chunk.getBlockEntitiesPos().iterator();
+        }
+        // Paper end - async chunk saving
 
         CompoundTag nbttagcompound2;
 
@@ -461,7 +502,14 @@ public class ChunkSerializer {
             nbttagcompound.put("CarvingMasks", nbttagcompound2);
         }
 
+        // Paper start
+        if (asyncsavedata != null) {
+            nbttagcompound.put(BLOCK_TICKS_TAG, asyncsavedata.blockTickList());
+            nbttagcompound.put(FLUID_TICKS_TAG, asyncsavedata.fluidTickList());
+        } else {
         ChunkSerializer.saveTicks(world, nbttagcompound, chunk.getTicksForSerialization());
+        }
+        // Paper end
         nbttagcompound.put("PostProcessing", ChunkSerializer.packOffsets(chunk.getPostProcessing()));
         CompoundTag nbttagcompound3 = new CompoundTag();
         Iterator iterator1 = chunk.getHeightmaps().iterator();
@@ -481,6 +529,7 @@ public class ChunkSerializer {
             nbttagcompound.put("ChunkBukkitValues", chunk.persistentDataContainer.toTagCompound());
         }
         // CraftBukkit end
+        ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.saveLightHook(world, chunk, nbttagcompound); // Paper - rewrite chunk system
         return nbttagcompound;
     }
 
@@ -506,7 +555,7 @@ public class ChunkSerializer {
 
         return nbttaglist == null && nbttaglist1 == null ? null : (chunk) -> {
             if (nbttaglist != null) {
-                world.addLegacyChunkEntities(EntityType.loadEntitiesRecursive(nbttaglist, world));
+                world.addLegacyChunkEntities(EntityType.loadEntitiesRecursive(nbttaglist, world), chunk.getPos()); // Paper - rewrite chunk system
             }
 
             if (nbttaglist1 != null) {

@@ -47,8 +47,13 @@ public class StructureCheck {
     private final BiomeSource biomeSource;
     private final long seed;
     private final DataFixer fixerUpper;
-    private final Long2ObjectMap<Object2IntMap<Structure>> loadedChunks = new Long2ObjectOpenHashMap<>();
-    private final Map<Structure, Long2BooleanMap> featureChecks = new HashMap<>();
+    // Paper start - rewrite chunk system
+    // make sure to purge entries from the maps to prevent memory leaks
+    private static final int CHUNK_TOTAL_LIMIT = 50 * (2 * 100 + 1) * (2 * 100 + 1); // cache 50 structure lookups
+    private static final int PER_FEATURE_CHECK_LIMIT = 50 * (2 * 100 + 1) * (2 * 100 + 1); // cache 50 structure lookups
+    private final ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<it.unimi.dsi.fastutil.objects.Object2IntMap<Structure>> loadedChunksSafe = new ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<>(CHUNK_TOTAL_LIMIT);
+    private final java.util.concurrent.ConcurrentHashMap<Structure, ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap> featureChecksSafe = new java.util.concurrent.ConcurrentHashMap<>();
+    // Paper end - rewrite chunk system
 
     public StructureCheck(
         ChunkScanAccess chunkIoWorker,
@@ -90,7 +95,7 @@ public class StructureCheck {
 
     public StructureCheckResult checkStart(ChunkPos pos, Structure type, StructurePlacement placement, boolean skipReferencedStructures) {
         long l = pos.toLong();
-        Object2IntMap<Structure> object2IntMap = this.loadedChunks.get(l);
+        Object2IntMap<Structure> object2IntMap = this.loadedChunksSafe.get(l); // Paper - rewrite chunk system
         if (object2IntMap != null) {
             return this.checkStructureInfo(object2IntMap, type, skipReferencedStructures);
         } else {
@@ -100,9 +105,11 @@ public class StructureCheck {
             } else if (!placement.applyAdditionalChunkRestrictions(pos.x, pos.z, this.seed, this.getSaltOverride(type))) { // Paper - add missing structure seed configs
                 return StructureCheckResult.START_NOT_PRESENT;
             } else {
-                boolean bl = this.featureChecks
-                    .computeIfAbsent(type, structure2 -> new Long2BooleanOpenHashMap())
-                    .computeIfAbsent(l, chunkPos -> this.canCreateStructure(pos, type));
+                // Paper start - rewrite chunk system
+                boolean bl = this.featureChecksSafe
+                    .computeIfAbsent(type, structure2 -> new ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap(PER_FEATURE_CHECK_LIMIT))
+                    .getOrCompute(l, chunkPos -> this.canCreateStructure(pos, type));
+                // Paper end - rewrite chunk system
                 return !bl ? StructureCheckResult.START_NOT_PRESENT : StructureCheckResult.CHUNK_LOAD_NEEDED;
             }
         }
@@ -228,15 +235,25 @@ public class StructureCheck {
     }
 
     private void storeFullResults(long pos, Object2IntMap<Structure> referencesByStructure) {
-        this.loadedChunks.put(pos, deduplicateEmptyMap(referencesByStructure));
-        this.featureChecks.values().forEach(generationPossibilityByChunkPos -> generationPossibilityByChunkPos.remove(pos));
+        // Paper start - rewrite chunk system
+        this.loadedChunksSafe.put(pos, deduplicateEmptyMap(referencesByStructure));
+        // once we insert into loadedChunks, we don't really need to be very careful about removing everything
+        // from this map, as everything that checks this map uses loadedChunks first
+        // so, one way or another it's a race condition that doesn't matter
+        for (ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap value : this.featureChecksSafe.values()) {
+            value.remove(pos);
+        }
+        // Paper end - rewrite chunk system
     }
 
     public void incrementReference(ChunkPos pos, Structure structure) {
-        this.loadedChunks.compute(pos.toLong(), (posx, referencesByStructure) -> {
-            if (referencesByStructure == null || referencesByStructure.isEmpty()) {
+        this.loadedChunksSafe.compute(pos.toLong(), (posx, referencesByStructure) -> { // Paper start - rewrite chunk system
+            if (referencesByStructure == null) {
                 referencesByStructure = new Object2IntOpenHashMap<>();
+            } else {
+                referencesByStructure = referencesByStructure instanceof Object2IntOpenHashMap<Structure> fastClone ? fastClone.clone() : new Object2IntOpenHashMap<>(referencesByStructure);
             }
+            // Paper end - rewrite chunk system
 
             referencesByStructure.computeInt(structure, (feature, references) -> references == null ? 1 : references + 1);
             return referencesByStructure;

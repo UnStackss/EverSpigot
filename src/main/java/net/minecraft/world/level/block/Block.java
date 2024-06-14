@@ -279,7 +279,7 @@ public class Block extends BlockBehaviour implements ItemLike {
     }
 
     public static boolean isShapeFullBlock(VoxelShape shape) {
-        return (Boolean) Block.SHAPE_FULL_BLOCK_CACHE.getUnchecked(shape);
+        return ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$isFullBlock(); // Paper - optimise collisions
     }
 
     public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {}

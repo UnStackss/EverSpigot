@@ -22,7 +22,18 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 
-public interface LevelReader extends BlockAndTintGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource {
+public interface LevelReader extends ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader, BlockAndTintGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource { // Paper - rewrite chunk system
+
+    // Paper start - rewrite chunk system
+    @Override
+    public default ChunkAccess moonrise$syncLoadNonFull(final int chunkX, final int chunkZ, final ChunkStatus status) {
+        if (status == null || status.isOrAfter(ChunkStatus.FULL)) {
+            throw new IllegalArgumentException("Status: " + status.toString());
+        }
+        return ((LevelReader)this).getChunk(chunkX, chunkZ, status, true);
+    }
+    // Paper end - rewrite chunk system
+
     @Nullable
     ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create);
 

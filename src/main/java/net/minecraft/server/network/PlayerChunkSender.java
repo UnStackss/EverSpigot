@@ -78,7 +78,7 @@ public class PlayerChunkSender {
         }
     }
 
-    private static void sendChunk(ServerGamePacketListenerImpl handler, ServerLevel world, LevelChunk chunk) {
+    public static void sendChunk(ServerGamePacketListenerImpl handler, ServerLevel world, LevelChunk chunk) { // Paper - public
         handler.send(new ClientboundLevelChunkWithLightPacket(chunk, world.getLightEngine(), null, null));
         // Paper start - PlayerChunkLoadEvent
         if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {

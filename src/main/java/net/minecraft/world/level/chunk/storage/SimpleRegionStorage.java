@@ -14,7 +14,7 @@ import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.ChunkPos;
 
 public class SimpleRegionStorage implements AutoCloseable {
-    private final IOWorker worker;
+    public final IOWorker worker; // Paper - public
     private final DataFixer fixerUpper;
     private final DataFixTypes dataFixType;
 

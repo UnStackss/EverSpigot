@@ -57,7 +57,7 @@ import net.minecraft.world.ticks.SerializableTickContainer;
 import net.minecraft.world.ticks.TickContainerAccess;
 import org.slf4j.Logger;
 
-public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiomeSource, LightChunk, StructureAccess {
+public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiomeSource, LightChunk, StructureAccess, ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
 
     public static final int NO_FILLED_SECTION = -1;
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -77,7 +77,7 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
     @Nullable
     protected BlendingData blendingData;
     public final Map<Heightmap.Types, Heightmap> heightmaps = Maps.newEnumMap(Heightmap.Types.class);
-    protected ChunkSkyLightSources skyLightSources;
+    // Paper - rewrite chunk system
     private final Map<Structure, StructureStart> structureStarts = Maps.newHashMap();
     private final Map<Structure, LongSet> structuresRefences = Maps.newHashMap();
     protected final Map<BlockPos, CompoundTag> pendingBlockEntities = Maps.newHashMap();
@@ -90,6 +90,57 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
     public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
     // CraftBukkit end
 
+    // Paper start - rewrite chunk system
+    private volatile ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] blockNibbles;
+    private volatile ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] skyNibbles;
+    private volatile boolean[] skyEmptinessMap;
+    private volatile boolean[] blockEmptinessMap;
+
+    @Override
+    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getBlockNibbles() {
+        return this.blockNibbles;
+    }
+
+    @Override
+    public void starlight$setBlockNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {
+        this.blockNibbles = nibbles;
+    }
+
+    @Override
+    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getSkyNibbles() {
+        return this.skyNibbles;
+    }
+
+    @Override
+    public void starlight$setSkyNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {
+        this.skyNibbles = nibbles;
+    }
+
+    @Override
+    public boolean[] starlight$getSkyEmptinessMap() {
+        return this.skyEmptinessMap;
+    }
+
+    @Override
+    public void starlight$setSkyEmptinessMap(final boolean[] emptinessMap) {
+        this.skyEmptinessMap = emptinessMap;
+    }
+
+    @Override
+    public boolean[] starlight$getBlockEmptinessMap() {
+        return this.blockEmptinessMap;
+    }
+
+    @Override
+    public void starlight$setBlockEmptinessMap(final boolean[] emptinessMap) {
+        this.blockEmptinessMap = emptinessMap;
+    }
+    // Paper end - rewrite chunk system
+    // Paper start - get block chunk optimisation
+    private final int minSection;
+    private final int maxSection;
+    // Paper end - get block chunk optimisation
+
     public ChunkAccess(ChunkPos pos, UpgradeData upgradeData, LevelHeightAccessor heightLimitView, Registry<Biome> biomeRegistry, long inhabitedTime, @Nullable LevelChunkSection[] sectionArray, @Nullable BlendingData blendingData) {
         this.locX = pos.x; this.locZ = pos.z; // Paper - reduce need for field lookups
         this.chunkPos = pos; this.coordinateKey = ChunkPos.asLong(locX, locZ); // Paper - cache long key
@@ -99,7 +150,7 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
         this.inhabitedTime = inhabitedTime;
         this.postProcessing = new ShortList[heightLimitView.getSectionsCount()];
         this.blendingData = blendingData;
-        this.skyLightSources = new ChunkSkyLightSources(heightLimitView);
+        // Paper - rewrite chunk system
         if (sectionArray != null) {
             if (this.sections.length == sectionArray.length) {
                 System.arraycopy(sectionArray, 0, this.sections, 0, this.sections.length);
@@ -111,6 +162,16 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
         ChunkAccess.replaceMissingSections(biomeRegistry, this.sections);
         // CraftBukkit start
         this.biomeRegistry = biomeRegistry;
+        // Paper start - rewrite chunk system
+        if (!((Object)this instanceof ImposterProtoChunk)) {
+            this.starlight$setBlockNibbles(ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(heightLimitView));
+            this.starlight$setSkyNibbles(ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(heightLimitView));
+        }
+        // Paper end - rewrite chunk system
+        // Paper start - get block chunk optimisation
+        this.minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(levelHeightAccessor);
+        this.maxSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(levelHeightAccessor);
+        // Paper end - get block chunk optimisation
     }
     public final Registry<Biome> biomeRegistry;
     // CraftBukkit end
@@ -442,22 +503,22 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
 
     @Override
     public Holder<Biome> getNoiseBiome(int biomeX, int biomeY, int biomeZ) {
-        try {
-            int l = QuartPos.fromBlock(this.getMinBuildHeight());
-            int i1 = l + QuartPos.fromBlock(this.getHeight()) - 1;
-            int j1 = Mth.clamp(biomeY, l, i1);
-            int k1 = this.getSectionIndex(QuartPos.toBlock(j1));
+        // Paper start - get block chunk optimisation
+        int sectionY = (biomeY >> 2) - this.minSection;
+        int rel = biomeY & 3;
 
-            return this.sections[k1].getNoiseBiome(biomeX & 3, j1 & 3, biomeZ & 3);
-        } catch (Throwable throwable) {
-            CrashReport crashreport = CrashReport.forThrowable(throwable, "Getting biome");
-            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Biome being got");
+        final LevelChunkSection[] sections = this.sections;
 
-            crashreportsystemdetails.setDetail("Location", () -> {
-                return CrashReportCategory.formatLocation(this, biomeX, biomeY, biomeZ);
-            });
-            throw new ReportedException(crashreport);
+        if (sectionY < 0) {
+            sectionY = 0;
+            rel = 0;
+        } else if (sectionY >= sections.length) {
+            sectionY = sections.length - 1;
+            rel = 3;
         }
+
+        return sections[sectionY].getNoiseBiome(biomeX & 3, rel, biomeZ & 3);
+        // Paper end - get block chunk optimisation
     }
 
     // CraftBukkit start
@@ -514,12 +575,12 @@ public abstract class ChunkAccess implements BlockGetter, BiomeManager.NoiseBiom
     }
 
     public void initializeLightSources() {
-        this.skyLightSources.fillFrom(this);
+        // Paper - rewrite chunk system
     }
 
     @Override
     public ChunkSkyLightSources getSkyLightSources() {
-        return this.skyLightSources;
+        return null; // Paper - rewrite chunk system
     }
 
     public static record TicksToSave(SerializableTickContainer<Block> blocks, SerializableTickContainer<Fluid> fluids) {

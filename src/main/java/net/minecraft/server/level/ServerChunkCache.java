@@ -46,7 +46,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.minecraft.world.level.storage.LevelStorageSource;
 
-public class ServerChunkCache extends ChunkSource {
+public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemServerChunkCache { // Paper - rewrite chunk system
 
     public static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger(); // Paper
     private static final List<ChunkStatus> CHUNK_STATUSES = ChunkStatus.getStatusList();
@@ -71,6 +71,62 @@ public class ServerChunkCache extends ChunkSource {
     private final ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable<>();
     long chunkFutureAwaitCounter;
     // Paper end
+    // Paper start - rewrite chunk system
+
+    @Override
+    public final void moonrise$setFullChunk(final int chunkX, final int chunkZ, final LevelChunk chunk) {
+        final long key = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
+        if (chunk == null) {
+            this.fullChunks.remove(key);
+        } else {
+            this.fullChunks.put(key, chunk);
+        }
+    }
+
+    @Override
+    public final LevelChunk moonrise$getFullChunkIfLoaded(final int chunkX, final int chunkZ) {
+        return this.fullChunks.get(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ));
+    }
+
+    private ChunkAccess syncLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus) {
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler chunkTaskScheduler = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler();
+        final CompletableFuture<ChunkAccess> completable = new CompletableFuture<>();
+        chunkTaskScheduler.scheduleChunkLoad(
+            chunkX, chunkZ, toStatus, true, ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.BLOCKING,
+            completable::complete
+        );
+
+        if (ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(this.level, chunkX, chunkZ)) {
+            ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.pushChunkWait(this.level, chunkX, chunkZ);
+            this.mainThreadProcessor.managedBlock(completable::isDone);
+            ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.popChunkWait();
+        }
+
+        final ChunkAccess ret = completable.join();
+        if (ret == null) {
+            throw new IllegalStateException("Chunk not loaded when requested");
+        }
+
+        return ret;
+    }
+
+    private ChunkAccess getChunkFallback(final int chunkX, final int chunkZ, final ChunkStatus toStatus,
+                                         final boolean load) {
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler chunkTaskScheduler = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler();
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager chunkHolderManager = chunkTaskScheduler.chunkHolderManager;
+
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder currentChunk = chunkHolderManager.getChunkHolder(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ));
+
+        final ChunkAccess ifPresent = currentChunk == null ? null : currentChunk.getChunkIfPresent(toStatus);
+
+        if (ifPresent != null && (toStatus != ChunkStatus.FULL || currentChunk.isFullChunkReady())) {
+            return ifPresent;
+        }
+
+        return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
+    }
+    // Paper end - rewrite chunk system
+    private ServerChunkCache.ChunkAndHolder[] iterationCopy; // Paper - chunk tick iteration optimisations
 
     public ServerChunkCache(ServerLevel world, LevelStorageSource.LevelStorageAccess session, DataFixer dataFixer, StructureTemplateManager structureTemplateManager, Executor workerExecutor, ChunkGenerator chunkGenerator, int viewDistance, int simulationDistance, boolean dsync, ChunkProgressListener worldGenerationProgressListener, ChunkStatusUpdateListener chunkStatusChangeListener, Supplier<DimensionDataStorage> persistentStateManagerFactory) {
         this.level = world;
@@ -97,13 +153,7 @@ public class ServerChunkCache extends ChunkSource {
     }
     // CraftBukkit end
     // Paper start
-    public void addLoadedChunk(LevelChunk chunk) {
-        this.fullChunks.put(chunk.coordinateKey, chunk);
-    }
-
-    public void removeLoadedChunk(LevelChunk chunk) {
-        this.fullChunks.remove(chunk.coordinateKey);
-    }
+    // Paper - rewrite chunk system
 
     @Nullable
     public ChunkAccess getChunkAtImmediately(int x, int z) {
@@ -174,63 +224,25 @@ public class ServerChunkCache extends ChunkSource {
     @Nullable
     @Override
     public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
-        if (Thread.currentThread() != this.mainThread) {
-            return (ChunkAccess) CompletableFuture.supplyAsync(() -> {
-                return this.getChunk(x, z, leastStatus, create);
-            }, this.mainThreadProcessor).join();
-        } else {
-            // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
-            LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
-            if (ifLoaded != null) {
-                return ifLoaded;
-            }
-            // Paper end - Perf: Optimise getChunkAt calls for loaded chunks
-            ProfilerFiller gameprofilerfiller = this.level.getProfiler();
+        // Paper start - rewrite chunk system
+        if (leastStatus == ChunkStatus.FULL) {
+            final LevelChunk ret = this.fullChunks.get(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(x, z));
 
-            gameprofilerfiller.incrementCounter("getChunk");
-            long k = ChunkPos.asLong(x, z);
-
-            for (int l = 0; l < 4; ++l) {
-                if (k == this.lastChunkPos[l] && leastStatus == this.lastChunkStatus[l]) {
-                    ChunkAccess ichunkaccess = this.lastChunk[l];
-
-                    if (ichunkaccess != null) { // CraftBukkit - the chunk can become accessible in the meantime TODO for non-null chunks it might also make sense to check that the chunk's state hasn't changed in the meantime
-                        return ichunkaccess;
-                    }
-                }
+            if (ret != null) {
+                return ret;
             }
 
-            gameprofilerfiller.incrementCounter("getChunkCacheMiss");
-            CompletableFuture<ChunkResult<ChunkAccess>> completablefuture = this.getChunkFutureMainThread(x, z, leastStatus, create);
-            ServerChunkCache.MainThreadExecutor chunkproviderserver_b = this.mainThreadProcessor;
-
-            Objects.requireNonNull(completablefuture);
-            if (!completablefuture.isDone()) { // Paper
-                com.destroystokyo.paper.io.SyncLoadFinder.logSyncLoad(this.level, x, z); // Paper - Add debug for sync chunk loads
-                this.level.timings.syncChunkLoad.startTiming(); // Paper
-            chunkproviderserver_b.managedBlock(completablefuture::isDone);
-                this.level.timings.syncChunkLoad.stopTiming(); // Paper
-            } // Paper
-            ChunkResult<ChunkAccess> chunkresult = (ChunkResult) completablefuture.join();
-            ChunkAccess ichunkaccess1 = (ChunkAccess) chunkresult.orElse(null); // CraftBukkit - decompile error
-
-            if (ichunkaccess1 == null && create) {
-                throw (IllegalStateException) Util.pauseInIde(new IllegalStateException("Chunk not there when requested: " + chunkresult.getError()));
-            } else {
-                this.storeInCache(k, ichunkaccess1, leastStatus);
-                return ichunkaccess1;
-            }
+            return create ? this.getChunkFallback(x, z, leastStatus, create) : null;
         }
+
+        return this.getChunkFallback(x, z, leastStatus, create);
+        // Paper end - rewrite chunk system
     }
 
     @Nullable
     @Override
     public LevelChunk getChunkNow(int chunkX, int chunkZ) {
-        if (Thread.currentThread() != this.mainThread) {
-            return null;
-        } else {
-            return this.getChunkAtIfLoadedMainThread(chunkX, chunkZ); // Paper - Perf: Optimise getChunkAt calls for loaded chunks
-        }
+        return this.fullChunks.get(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ)); // Paper - rewrite chunk system
     }
 
     private void clearCache() {
@@ -261,56 +273,59 @@ public class ServerChunkCache extends ChunkSource {
     }
 
     private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
-        ChunkPos chunkcoordintpair = new ChunkPos(chunkX, chunkZ);
-        long k = chunkcoordintpair.toLong();
-        int l = ChunkLevel.byStatus(leastStatus);
-        ChunkHolder playerchunk = this.getVisibleChunkIfPresent(k);
+        // Paper start - rewrite chunk system
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, chunkX, chunkZ, "Scheduling chunk load off-main");
 
-        // CraftBukkit start - don't add new ticket for currently unloading chunk
-        boolean currentlyUnloading = false;
-        if (playerchunk != null) {
-            FullChunkStatus oldChunkState = ChunkLevel.fullStatus(playerchunk.oldTicketLevel);
-            FullChunkStatus currentChunkState = ChunkLevel.fullStatus(playerchunk.getTicketLevel());
-            currentlyUnloading = (oldChunkState.isOrAfter(FullChunkStatus.FULL) && !currentChunkState.isOrAfter(FullChunkStatus.FULL));
+        final int minLevel = ChunkLevel.byStatus(leastStatus);
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(chunkX, chunkZ);
+
+        final boolean needsFullScheduling = leastStatus == ChunkStatus.FULL && (chunkHolder == null || !chunkHolder.getChunkStatus().isOrAfter(FullChunkStatus.FULL));
+
+        if ((chunkHolder == null || chunkHolder.getTicketLevel() > minLevel || needsFullScheduling) && !create) {
+            return ChunkHolder.UNLOADED_CHUNK_FUTURE;
         }
-        if (create && !currentlyUnloading) {
-            // CraftBukkit end
-            this.distanceManager.addTicket(TicketType.UNKNOWN, chunkcoordintpair, l, chunkcoordintpair);
-            if (this.chunkAbsent(playerchunk, l)) {
-                ProfilerFiller gameprofilerfiller = this.level.getProfiler();
 
-                gameprofilerfiller.push("chunkLoad");
-                this.runDistanceManagerUpdates();
-                playerchunk = this.getVisibleChunkIfPresent(k);
-                gameprofilerfiller.pop();
-                if (this.chunkAbsent(playerchunk, l)) {
-                    throw (IllegalStateException) Util.pauseInIde(new IllegalStateException("No chunk holder after ticket has been added"));
+        final ChunkAccess ifPresent = chunkHolder == null ? null : chunkHolder.getChunkIfPresent(leastStatus);
+        if (needsFullScheduling || ifPresent == null) {
+            // schedule
+            final CompletableFuture<ChunkResult<ChunkAccess>> ret = new CompletableFuture<>();
+            final Consumer<ChunkAccess> complete = (ChunkAccess chunk) -> {
+                if (chunk == null) {
+                    ret.complete(ChunkHolder.UNLOADED_CHUNK);
+                } else {
+                    ret.complete(ChunkResult.of(chunk));
                 }
-            }
+            };
+
+            ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().scheduleChunkLoad(
+                chunkX, chunkZ, leastStatus, true,
+                ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHER,
+                complete
+            );
+
+            return ret;
+        } else {
+            // can return now
+            return CompletableFuture.completedFuture(ChunkResult.of(ifPresent));
         }
-
-        return this.chunkAbsent(playerchunk, l) ? GenerationChunkHolder.UNLOADED_CHUNK_FUTURE : playerchunk.scheduleChunkGenerationTask(leastStatus, this.chunkMap);
-    }
-
-    private boolean chunkAbsent(@Nullable ChunkHolder holder, int maxLevel) {
-        return holder == null || holder.oldTicketLevel > maxLevel; // CraftBukkit using oldTicketLevel for isLoaded checks
+        // Paper end - rewrite chunk system
     }
 
     @Override
     public boolean hasChunk(int x, int z) {
-        ChunkHolder playerchunk = this.getVisibleChunkIfPresent((new ChunkPos(x, z)).toLong());
-        int k = ChunkLevel.byStatus(ChunkStatus.FULL);
-
-        return !this.chunkAbsent(playerchunk, k);
+        return this.getChunkNow(x, z) != null; // Paper - rewrite chunk system
     }
 
     @Nullable
     @Override
     public LightChunk getChunkForLighting(int chunkX, int chunkZ) {
-        long k = ChunkPos.asLong(chunkX, chunkZ);
-        ChunkHolder playerchunk = this.getVisibleChunkIfPresent(k);
-
-        return playerchunk == null ? null : playerchunk.getChunkIfPresentUnchecked(ChunkStatus.INITIALIZE_LIGHT.getParent());
+        // Paper start - rewrite chunk system
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder newChunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(chunkX, chunkZ);
+        if (newChunkHolder == null) {
+            return null;
+        }
+        return newChunkHolder.getChunkIfPresentUnchecked(ChunkStatus.INITIALIZE_LIGHT.getParent());
+        // Paper end - rewrite chunk system
     }
 
     @Override
@@ -323,16 +338,7 @@ public class ServerChunkCache extends ChunkSource {
     }
 
     public boolean runDistanceManagerUpdates() { // Paper - public
-        boolean flag = this.distanceManager.runAllUpdates(this.chunkMap);
-        boolean flag1 = this.chunkMap.promoteChunkMap();
-
-        this.chunkMap.runGenerationTasks();
-        if (!flag && !flag1) {
-            return false;
-        } else {
-            this.clearCache();
-            return true;
-        }
+        return ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.processTicketUpdates(); // Paper - rewrite chunk system
     }
 
     // Paper start
@@ -342,13 +348,14 @@ public class ServerChunkCache extends ChunkSource {
     // Paper end
 
     public boolean isPositionTicking(long pos) {
-        ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos);
-
-        return playerchunk == null ? false : (!this.level.shouldTickBlocksAt(pos) ? false : ((ChunkResult) playerchunk.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK)).isSuccess());
+        // Paper start - rewrite chunk system
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder newChunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(pos);
+        return newChunkHolder != null && newChunkHolder.isTickingReady();
+        // Paper end - rewrite chunk system
     }
 
     public void save(boolean flush) {
-        this.runDistanceManagerUpdates();
+        // Paper - rewrite chunk system
         try (co.aikar.timings.Timing timed = level.timings.chunkSaveData.startTiming()) { // Paper - Timings
         this.chunkMap.saveAllChunks(flush);
         } // Paper - Timings
@@ -361,16 +368,12 @@ public class ServerChunkCache extends ChunkSource {
     }
 
     public void close(boolean save) throws IOException {
-        if (save) {
-            this.save(true);
-        }
-        // CraftBukkit end
-        this.lightEngine.close();
-        this.chunkMap.close();
+        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.close(save, true); // Paper - rewrite chunk system
     }
 
     // CraftBukkit start - modelled on below
     public void purgeUnload() {
+        if (true) return; // Paper - rewrite chunk system
         this.level.getProfiler().push("purge");
         this.distanceManager.purgeStaleTickets();
         this.runDistanceManagerUpdates();
@@ -394,6 +397,7 @@ public class ServerChunkCache extends ChunkSource {
         this.level.getProfiler().popPush("chunks");
         if (tickChunks) {
             this.level.timings.chunks.startTiming(); // Paper - timings
+            ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getPlayerChunkLoader().tick(); // Paper - rewrite chunk system
             this.tickChunks();
             this.level.timings.chunks.stopTiming(); // Paper - timings
             this.chunkMap.tick();
@@ -408,6 +412,7 @@ public class ServerChunkCache extends ChunkSource {
     }
 
     private void tickChunks() {
+        long chunksTicked = 0; // Paper - rewrite chunk system
         long i = this.level.getGameTime();
         long j = i - this.lastInhabitedUpdate;
 
@@ -417,18 +422,29 @@ public class ServerChunkCache extends ChunkSource {
 
             gameprofilerfiller.push("pollingChunks");
             gameprofilerfiller.push("filteringLoadedChunks");
-            List<ServerChunkCache.ChunkAndHolder> list = Lists.newArrayListWithCapacity(this.chunkMap.size());
-            Iterator iterator = this.chunkMap.getChunks().iterator();
+            // Paper start - chunk tick iteration optimisations
+            List<ServerChunkCache.ChunkAndHolder> list;
+            {
+                final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder> tickingChunks =
+                    ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel) this.level).moonrise$getTickingChunks();
+
+                final ServerChunkCache.ChunkAndHolder[] raw = tickingChunks.getRawDataUnchecked();
+                final int size = tickingChunks.size();
+
+                if (this.iterationCopy == null || this.iterationCopy.length < size) {
+                    this.iterationCopy = new ServerChunkCache.ChunkAndHolder[raw.length];
+                }
+                System.arraycopy(raw, 0, this.iterationCopy, 0, size);
+
+                list = it.unimi.dsi.fastutil.objects.ObjectArrayList.wrap(
+                    this.iterationCopy, size
+                );
+            }
+            // Paper end - chunk tick iteration optimisations
+            Iterator iterator = null; // Paper - chunk tick iteration optimisations
             if (this.level.getServer().tickRateManager().runsNormally()) this.level.timings.chunkTicks.startTiming(); // Paper
 
-            while (iterator.hasNext()) {
-                ChunkHolder playerchunk = (ChunkHolder) iterator.next();
-                LevelChunk chunk = playerchunk.getTickingChunk();
-
-                if (chunk != null) {
-                    list.add(new ServerChunkCache.ChunkAndHolder(chunk, playerchunk));
-                }
-            }
+            // Paper - chunk tick iteration optimisations
 
             if (this.level.tickRateManager().runsNormally()) {
                 gameprofilerfiller.popPush("naturalSpawnCount");
@@ -460,14 +476,19 @@ public class ServerChunkCache extends ChunkSource {
                     LevelChunk chunk1 = chunkproviderserver_a.chunk;
                     ChunkPos chunkcoordintpair = chunk1.getPos();
 
-                    if (this.level.isNaturalSpawningAllowed(chunkcoordintpair) && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkcoordintpair)) {
+                    if (true && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkcoordintpair)) { // Paper - rewrite chunk system
                         chunk1.incrementInhabitedTime(j);
                         if (flag && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkcoordintpair) && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkcoordintpair, true)) { // Spigot
                             NaturalSpawner.spawnForChunk(this.level, chunk1, spawnercreature_d, this.spawnFriendlies, this.spawnEnemies, flag1);
                         }
 
-                        if (this.level.shouldTickBlocksAt(chunkcoordintpair.toLong())) {
+                        if (true) { // Paper - rewrite chunk system
                             this.level.tickChunk(chunk1, l);
+                            // Paper start - rewrite chunk system
+                            if ((++chunksTicked & 7L) == 0L) {
+                                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
+                            }
+                            // Paper end - rewrite chunk system
                         }
                     }
                 }
@@ -482,22 +503,35 @@ public class ServerChunkCache extends ChunkSource {
             }
 
             gameprofilerfiller.popPush("broadcast");
-            list.forEach((chunkproviderserver_a1) -> {
-                this.level.timings.broadcastChunkUpdates.startTiming(); // Paper - timing
-                chunkproviderserver_a1.holder.broadcastChanges(chunkproviderserver_a1.chunk);
-                this.level.timings.broadcastChunkUpdates.stopTiming(); // Paper - timing
-            });
+            // Paper start - chunk tick iteration optimisations
+            this.level.timings.broadcastChunkUpdates.startTiming(); // Paper - timing
+            {
+                final it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder> chunks = (it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder>)list;
+                final ServerChunkCache.ChunkAndHolder[] raw = chunks.elements();
+                final int size = chunks.size();
+
+                Objects.checkFromToIndex(0, size, raw.length);
+                for (int idx = 0; idx < size; ++idx) {
+                    final ServerChunkCache.ChunkAndHolder holder = raw[idx];
+                    raw[idx] = null;
+
+                    holder.holder().broadcastChanges(holder.chunk());
+                }
+            }
+            this.level.timings.broadcastChunkUpdates.stopTiming(); // Paper - timing
+            // Paper end - chunk tick iteration optimisations
             gameprofilerfiller.pop();
             gameprofilerfiller.pop();
         }
     }
 
     private void getFullChunk(long pos, Consumer<LevelChunk> chunkConsumer) {
-        ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos);
-
-        if (playerchunk != null) {
-            ((ChunkResult) playerchunk.getFullChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK)).ifSuccess(chunkConsumer);
+        // Paper start - rewrite chunk system
+        final LevelChunk fullChunk = this.getChunkNow(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkX(pos), ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkZ(pos));
+        if (fullChunk != null) {
+            chunkConsumer.accept(fullChunk);
         }
+        // Paper end - rewrite chunk system
 
     }
 
@@ -591,6 +625,12 @@ public class ServerChunkCache extends ChunkSource {
         this.chunkMap.setServerViewDistance(watchDistance);
     }
 
+    // Paper start - rewrite chunk system
+    public void setSendViewDistance(int viewDistance) {
+        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getPlayerChunkLoader().setSendDistance(viewDistance);
+    }
+    // Paper end - rewrite chunk system
+
     public void setSimulationDistance(int simulationDistance) {
         this.distanceManager.updateSimulationDistance(simulationDistance);
     }
@@ -669,21 +709,19 @@ public class ServerChunkCache extends ChunkSource {
         @Override
         // CraftBukkit start - process pending Chunk loadCallback() and unloadCallback() after each run task
         public boolean pollTask() {
-        try {
-            if (ServerChunkCache.this.runDistanceManagerUpdates()) {
+            // Paper start - rewrite chunk system
+            final ServerChunkCache serverChunkCache = ServerChunkCache.this;
+            if (serverChunkCache.runDistanceManagerUpdates()) {
                 return true;
             } else {
-                ServerChunkCache.this.lightEngine.tryScheduleUpdate();
-                return super.pollTask();
+                return super.pollTask() | ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)serverChunkCache.level).moonrise$getChunkTaskScheduler().executeMainThreadTask();
             }
-        } finally {
-            ServerChunkCache.this.chunkMap.callbackExecutor.run();
-        }
+            // Paper end - rewrite chunk system
         // CraftBukkit end
         }
     }
 
-    private static record ChunkAndHolder(LevelChunk chunk, ChunkHolder holder) {
+    public static record ChunkAndHolder(LevelChunk chunk, ChunkHolder holder) { // Paper - rewrite chunk system - public
 
     }
 }

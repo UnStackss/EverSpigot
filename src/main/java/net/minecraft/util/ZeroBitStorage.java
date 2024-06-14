@@ -62,4 +62,22 @@ public class ZeroBitStorage implements BitStorage {
     public BitStorage copy() {
         return this;
     }
+
+    // Paper start - block counting
+    @Override
+    public final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.ints.IntArrayList> moonrise$countEntries() {
+        final int size = this.size;
+
+        final int[] raw = new int[size];
+        for (int i = 0; i < size; ++i) {
+            raw[i] = i;
+        }
+
+        final it.unimi.dsi.fastutil.ints.IntArrayList coordinates = it.unimi.dsi.fastutil.ints.IntArrayList.wrap(raw, size);
+
+        final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.ints.IntArrayList> ret = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(1);
+        ret.put(0, coordinates);
+        return ret;
+    }
+    // Paper end - block counting
 }

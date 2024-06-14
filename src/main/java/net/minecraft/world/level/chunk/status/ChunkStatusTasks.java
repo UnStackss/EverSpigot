@@ -154,7 +154,7 @@ public class ChunkStatusTasks {
                 chunk1 = ((ImposterProtoChunk) protochunk).getWrapped();
             } else {
                 chunk1 = new LevelChunk(worldserver, protochunk, ($) -> { // Paper - decompile fix
-                    ChunkStatusTasks.postLoadProtoChunk(worldserver, protochunk.getEntities());
+                    ChunkStatusTasks.postLoadProtoChunk(worldserver, protochunk.getEntities(), protochunk.getPos()); // Paper - rewrite chunk system
                 });
                 generationchunkholder.replaceProtoChunk(new ImposterProtoChunk(chunk1, false));
             }
@@ -175,7 +175,7 @@ public class ChunkStatusTasks {
         });
     }
 
-    private static void postLoadProtoChunk(ServerLevel world, List<CompoundTag> entities) {
+    public static void postLoadProtoChunk(ServerLevel world, List<CompoundTag> entities, ChunkPos pos) { // Paper - public, add ChunkPos param
         if (!entities.isEmpty()) {
             // CraftBukkit start - these are spawned serialized (DefinedStructure) and we don't call an add event below at the moment due to ordering complexities
             world.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(entities, world).filter((entity) -> {
@@ -191,7 +191,7 @@ public class ChunkStatusTasks {
                 }
                 checkDupeUUID(world, entity); // Paper - duplicate uuid resolving
                 return !needsRemoval;
-            }));
+            }), pos); // Paper - rewrite chunk system
             // CraftBukkit end
         }
 

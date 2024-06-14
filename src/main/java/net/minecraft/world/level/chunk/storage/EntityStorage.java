@@ -70,12 +70,12 @@ public class EntityStorage implements EntityPersistentStorage<Entity> {
         }
     }
 
-    private static ChunkPos readChunkPos(CompoundTag chunkNbt) {
+    public static ChunkPos readChunkPos(CompoundTag chunkNbt) { // Paper - public
         int[] is = chunkNbt.getIntArray("Position");
         return new ChunkPos(is[0], is[1]);
     }
 
-    private static void writeChunkPos(CompoundTag chunkNbt, ChunkPos pos) {
+    public static void writeChunkPos(CompoundTag chunkNbt, ChunkPos pos) { // Paper - public
         chunkNbt.put("Position", new IntArrayTag(new int[]{pos.x, pos.z}));
     }
 

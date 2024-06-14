@@ -18,7 +18,7 @@ public class ClipContext {
     private final Vec3 from;
     private final Vec3 to;
     private final ClipContext.Block block;
-    private final ClipContext.Fluid fluid;
+    public final ClipContext.Fluid fluid; // Paper - optimise collisions - public
     private final CollisionContext collisionContext;
 
     public ClipContext(Vec3 start, Vec3 end, ClipContext.Block shapeType, ClipContext.Fluid fluidHandling, Entity entity) {

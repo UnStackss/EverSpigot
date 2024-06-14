@@ -31,7 +31,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.ticks.BlackholeTickAccess;
 import net.minecraft.world.ticks.TickContainerAccess;
 
-public class ImposterProtoChunk extends ProtoChunk {
+public class ImposterProtoChunk extends ProtoChunk implements ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
     private final LevelChunk wrapped;
     private final boolean allowWrites;
 
@@ -46,6 +46,48 @@ public class ImposterProtoChunk extends ProtoChunk {
         this.wrapped = wrapped;
         this.allowWrites = propagateToWrapped;
     }
+
+    // Paper start - rewrite chunk system
+    @Override
+    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getBlockNibbles() {
+        return ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$getBlockNibbles();
+    }
+
+    @Override
+    public void starlight$setBlockNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {
+        ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$setBlockNibbles(nibbles);
+    }
+
+    @Override
+    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getSkyNibbles() {
+        return ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$getSkyNibbles();
+    }
+
+    @Override
+    public void starlight$setSkyNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {
+        ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$setSkyNibbles(nibbles);
+    }
+
+    @Override
+    public boolean[] starlight$getSkyEmptinessMap() {
+        return ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$getSkyEmptinessMap();
+    }
+
+    @Override
+    public void starlight$setSkyEmptinessMap(final boolean[] emptinessMap) {
+        ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$setSkyEmptinessMap(emptinessMap);
+    }
+
+    @Override
+    public boolean[] starlight$getBlockEmptinessMap() {
+        return ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$getBlockEmptinessMap();
+    }
+
+    @Override
+    public void starlight$setBlockEmptinessMap(final boolean[] emptinessMap) {
+        ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)this.wrapped).starlight$setBlockEmptinessMap(emptinessMap);
+    }
+    // Paper end - rewrite chunk system
 
     @Nullable
     @Override

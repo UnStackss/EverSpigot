@@ -85,6 +85,36 @@ public class WorldGenRegion implements WorldGenLevel {
     private final AtomicLong subTickCount = new AtomicLong();
     private static final ResourceLocation WORLDGEN_REGION_RANDOM = ResourceLocation.withDefaultNamespace("worldgen_region_random");
 
+    // Paper start - rewrite chunk system
+    /**
+     * During feature generation, light data is not initialised and will always return 15 in Starlight. Vanilla
+     * can possibly return 0 if partially initialised, which allows some mushroom blocks to generate.
+     * In general, the brightness value from the light engine should not be used until the chunk is ready. To emulate
+     * Vanilla behavior better, we return 0 as the brightness during world gen unless the target chunk is finished
+     * lighting.
+     */
+    @Override
+    public int getBrightness(final net.minecraft.world.level.LightLayer lightLayer, final BlockPos blockPos) {
+        final ChunkAccess chunk = this.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
+        if (!chunk.isLightCorrect()) {
+            return 0;
+        }
+        return this.getLightEngine().getLayerListener(lightLayer).getLightValue(blockPos);
+    }
+
+    /**
+     * See above
+     */
+    @Override
+    public int getRawBrightness(final BlockPos blockPos, final int subtract) {
+        final ChunkAccess chunk = this.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
+        if (!chunk.isLightCorrect()) {
+            return 0;
+        }
+        return this.getLightEngine().getRawBrightness(blockPos, subtract);
+    }
+    // Paper end - rewrite chunk system
+
     public WorldGenRegion(ServerLevel world, StaticCache2D<GenerationChunkHolder> chunks, ChunkStep generationStep, ChunkAccess centerPos) {
         this.generatingStep = generationStep;
         this.cache = chunks;

@@ -86,7 +86,7 @@ public final class NoiseBasedChunkGenerator extends ChunkGenerator {
         return CompletableFuture.supplyAsync(Util.wrapThreadWithTaskName("init_biomes", () -> {
             this.doCreateBiomes(blender, noiseConfig, structureAccessor, chunk);
             return chunk;
-        }), Util.backgroundExecutor());
+        }), Runnable::run); // Paper - rewrite chunk system
     }
 
     private void doCreateBiomes(Blender blender, RandomState noiseConfig, StructureManager structureAccessor, ChunkAccess chunk) {
@@ -311,7 +311,7 @@ public final class NoiseBasedChunkGenerator extends ChunkGenerator {
             }
 
             return ichunkaccess1;
-        }), Util.backgroundExecutor());
+        }), Runnable::run); // Paper - rewrite chunk system
     }
 
     private ChunkAccess doFill(Blender blender, StructureManager structureAccessor, RandomState noiseConfig, ChunkAccess chunk, int minimumCellY, int cellHeight) {

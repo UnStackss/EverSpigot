@@ -28,21 +28,31 @@ import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.structure.LegacyStructureDataHandler;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 
-public class ChunkStorage implements AutoCloseable {
+public class ChunkStorage implements AutoCloseable, ca.spottedleaf.moonrise.patches.chunk_system.storage.ChunkSystemChunkStorage { // Paper - rewrite chunk system
 
     public static final int LAST_MONOLYTH_STRUCTURE_DATA_VERSION = 1493;
-    private final IOWorker worker;
+    // Paper - rewrite chunk system
     protected final DataFixer fixerUpper;
     @Nullable
     private volatile LegacyStructureDataHandler legacyStructureHandler;
 
+    // Paper start - rewrite chunk system
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+    private final RegionFileStorage storage;
+
+    @Override
+    public final RegionFileStorage moonrise$getRegionStorage() {
+        return this.storage;
+    }
+    // Paper end - rewrite chunk system
+
     public ChunkStorage(RegionStorageInfo storageKey, Path directory, DataFixer dataFixer, boolean dsync) {
         this.fixerUpper = dataFixer;
-        this.worker = new IOWorker(storageKey, directory, dsync);
+        this.storage = new IOWorker(storageKey, directory, dsync).storage; // Paper - rewrite chunk system
     }
 
     public boolean isOldChunkAround(ChunkPos chunkPos, int checkRadius) {
-        return this.worker.isOldChunkAround(chunkPos, checkRadius);
+        return true; // Paper - rewrite chunk system
     }
 
     // CraftBukkit start
@@ -102,7 +112,9 @@ public class ChunkStorage implements AutoCloseable {
                     if (nbttagcompound.getCompound("Level").getBoolean("hasLegacyStructureData")) {
                         LegacyStructureDataHandler persistentstructurelegacy = this.getLegacyStructureHandler(resourcekey, supplier);
 
+                        synchronized (persistentstructurelegacy) { // Paper - rewrite chunk system
                         nbttagcompound = persistentstructurelegacy.updateFromLegacy(nbttagcompound);
+                        } // Paper - rewrite chunk system
                     }
                 }
 
@@ -169,7 +181,13 @@ public class ChunkStorage implements AutoCloseable {
     }
 
     public CompletableFuture<Optional<CompoundTag>> read(ChunkPos chunkPos) {
-        return this.worker.loadAsync(chunkPos);
+        // Paper start - rewrite chunk system
+        try {
+            return CompletableFuture.completedFuture(Optional.ofNullable(this.storage.read(chunkPos)));
+        } catch (final Throwable throwable) {
+            return CompletableFuture.failedFuture(throwable);
+        }
+        // Paper end - rewrite chunk system
     }
 
     public CompletableFuture<Void> write(ChunkPos chunkPos, CompoundTag nbt) {
@@ -181,29 +199,54 @@ public class ChunkStorage implements AutoCloseable {
         }
         // Paper end - guard against serializing mismatching coordinates
         this.handleLegacyStructureIndex(chunkPos);
-        return this.worker.store(chunkPos, nbt);
+        // Paper start - rewrite chunk system
+        try {
+            this.storage.write(chunkPos, nbt);
+            return CompletableFuture.completedFuture(null);
+        } catch (final Throwable throwable) {
+            return CompletableFuture.failedFuture(throwable);
+        }
+        // Paper end - rewrite chunk system
     }
 
     protected void handleLegacyStructureIndex(ChunkPos chunkPos) {
         if (this.legacyStructureHandler != null) {
+            synchronized (this.legacyStructureHandler) { // Paper - rewrite chunk system
             this.legacyStructureHandler.removeIndex(chunkPos.toLong());
+            } // Paper - rewrite chunk system
         }
 
     }
 
     public void flushWorker() {
-        this.worker.synchronize(true).join();
+        // Paper start - rewrite chunk system
+        try {
+            this.storage.flush();
+        } catch (final IOException ex) {
+            LOGGER.error("Failed to flush chunk storage", ex);
+        }
+        // Paper end - rewrite chunk system
     }
 
     public void close() throws IOException {
-        this.worker.close();
+        this.storage.close(); // Paper - rewrite chunk system
     }
 
     public ChunkScanAccess chunkScanner() {
-        return this.worker;
+        // Paper start - rewrite chunk system
+        // TODO ChunkMap implementation?
+        return (chunkPos, streamTagVisitor) -> {
+            try {
+                this.storage.scanChunk(chunkPos, streamTagVisitor);
+                return java.util.concurrent.CompletableFuture.completedFuture(null);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        // Paper end - rewrite chunk system
     }
 
-    protected RegionStorageInfo storageInfo() {
-        return this.worker.storageInfo();
+    public RegionStorageInfo storageInfo() { // Paper - public
+        return this.storage.info(); // Paper - rewrite chunk system
     }
 }

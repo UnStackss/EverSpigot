@@ -54,7 +54,7 @@ public record ChunkPyramid(ImmutableList<ChunkStep> steps) {
         .step(ChunkStatus.CARVERS, builder -> builder)
         .step(ChunkStatus.FEATURES, builder -> builder)
         .step(ChunkStatus.INITIALIZE_LIGHT, builder -> builder.setTask(ChunkStatusTasks::initializeLight))
-        .step(ChunkStatus.LIGHT, builder -> builder.addRequirement(ChunkStatus.INITIALIZE_LIGHT, 1).setTask(ChunkStatusTasks::light))
+        .step(ChunkStatus.LIGHT, builder -> builder.setTask(ChunkStatusTasks::light)) // Paper - rewrite chunk system - starlight does not need neighbours
         .step(ChunkStatus.SPAWN, builder -> builder)
         .step(ChunkStatus.FULL, builder -> builder.setTask(ChunkStatusTasks::full))
         .build();

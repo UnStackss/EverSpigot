@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
 
-public class WatchdogThread extends Thread
+public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThread // Paper - rewrite chunk system
 {
 
     private static WatchdogThread instance;
@@ -115,6 +115,7 @@ public class WatchdogThread extends Thread
                 // Paper end - Different message for short timeout
                 log.log( Level.SEVERE, "------------------------------" );
                 log.log( Level.SEVERE, "Server thread dump (Look for plugins here before reporting to Paper!):" ); // Paper
+                ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(MinecraftServer.getServer(), isLongTimeout); // Paper - rewrite chunk system
                 WatchdogThread.dumpThread( ManagementFactory.getThreadMXBean().getThreadInfo( MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE ), log );
                 log.log( Level.SEVERE, "------------------------------" );
                 //

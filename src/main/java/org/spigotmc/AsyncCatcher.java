@@ -9,7 +9,7 @@ public class AsyncCatcher
 
     public static void catchOp(String reason)
     {
-        if ( AsyncCatcher.enabled && Thread.currentThread() != MinecraftServer.getServer().serverThread )
+        if (!ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()) // Paper // Paper - rewrite chunk system
         {
             MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable()); // Paper
             throw new IllegalStateException( "Asynchronous " + reason + "!" );
