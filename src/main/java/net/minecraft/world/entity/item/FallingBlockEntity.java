@@ -419,7 +419,7 @@ public class FallingBlockEntity extends Entity {
         boolean flag = (resourcekey1 == Level.END || resourcekey == Level.END) && resourcekey1 != resourcekey;
         Entity entity = super.changeDimension(teleportTarget);
 
-        this.forceTickAfterTeleportToDuplicate = entity != null && flag;
+        this.forceTickAfterTeleportToDuplicate = entity != null && flag && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowUnsafeEndPortalTeleportation; // Paper
         return entity;
     }
 }
