@@ -200,7 +200,7 @@ public class JukeboxBlockEntity extends BlockEntity implements Clearable, Contai
     public void setSongItemWithoutPlaying(ItemStack itemstack, long ticksSinceSongStarted) { // CraftBukkit - add argument
         this.item = itemstack;
         this.jukeboxSongPlayer.song = null; // CraftBukkit - reset
-        JukeboxSong.fromStack(this.level.registryAccess(), itemstack).ifPresent((holder) -> {
+        JukeboxSong.fromStack(this.level != null ? this.level.registryAccess() : org.bukkit.craftbukkit.CraftRegistry.getMinecraftRegistry(), itemstack).ifPresent((holder) -> { // Paper - fallback to other RegistyrAccess if no level
             this.jukeboxSongPlayer.setSongWithoutPlaying(holder, ticksSinceSongStarted); // CraftBukkit - add argument
         });
         // CraftBukkit start - add null check for level
