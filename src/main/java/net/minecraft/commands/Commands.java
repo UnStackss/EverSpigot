@@ -310,10 +310,7 @@ public class Commands {
 
         // Paper - Fix permission levels for command blocks
 
-        // Handle vanilla commands;
-        if (sender.getLevel().getCraftServer().getCommandBlockOverride(args[0])) {
-            args[0] = "minecraft:" + args[0];
-        }
+        // Handle vanilla commands; // Paper - handled in CommandNode/CommandDispatcher
 
         String newCommand = joiner.join(args);
         this.performPrefixedCommand(sender, newCommand, newCommand);

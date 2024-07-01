@@ -298,7 +298,7 @@ public class CommandDispatcher<S> {
         List<ParseResults<S>> potentials = null;
         final int cursor = originalReader.getCursor();
 
-        for (final CommandNode<S> child : node.getRelevantNodes(originalReader)) {
+        for (final CommandNode<S> child : node.getRelevantNodes(originalReader, source)) { // Paper - prioritize mc commands in function parsing
             if (!child.canUse(source)) {
                 continue;
             }
