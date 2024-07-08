@@ -1459,12 +1459,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
             }
 
             // CraftBukkit start
-            EntityDamageEvent event = this.handleEntityDamage(source, amount);
-            amount = 0;
-            amount += (float) event.getDamage(DamageModifier.BASE);
-            amount += (float) event.getDamage(DamageModifier.BLOCKING);
-            amount += (float) event.getDamage(DamageModifier.FREEZING);
-            amount += (float) event.getDamage(DamageModifier.HARD_HAT);
+            EntityDamageEvent event; // Paper - move this into the actual invuln check....
             // CraftBukkit end
 
             this.walkAnimation.setSpeed(1.5F);
@@ -1475,6 +1470,11 @@ public abstract class LivingEntity extends Entity implements Attackable {
                     return false;
                 }
 
+                // Paper start - only call damage event when actuallyHurt will be called - move call logic down
+                event = this.handleEntityDamage(source, amount);
+                amount = computeAmountFromEntityDamageEvent(event);
+                // Paper end - only call damage event when actuallyHurt will be called - move call logic down
+
                 // CraftBukkit start
                 if (!this.actuallyHurt(source, (float) event.getFinalDamage() - this.lastHurt, event)) {
                     return false;
@@ -1484,6 +1484,10 @@ public abstract class LivingEntity extends Entity implements Attackable {
                 this.lastHurt = amount;
                 flag1 = false;
             } else {
+                // Paper start - only call damage event when actuallyHurt will be called - move call logic down
+                event = this.handleEntityDamage(source, amount);
+                amount = computeAmountFromEntityDamageEvent(event);
+                // Paper end - only call damage event when actuallyHurt will be called - move call logic down
                 // CraftBukkit start
                 if (!this.actuallyHurt(source, (float) event.getFinalDamage(), event)) {
                     return false;
@@ -1614,6 +1618,18 @@ public abstract class LivingEntity extends Entity implements Attackable {
             return flag2;
         }
     }
+
+    // Paper start - only call damage event when actuallyHurt will be called - move out amount computation logic
+    private float computeAmountFromEntityDamageEvent(final EntityDamageEvent event) {
+        // Taken from hurt()'s craftbukkit diff.
+        float amount = 0;
+        amount += (float) event.getDamage(DamageModifier.BASE);
+        amount += (float) event.getDamage(DamageModifier.BLOCKING);
+        amount += (float) event.getDamage(DamageModifier.FREEZING);
+        amount += (float) event.getDamage(DamageModifier.HARD_HAT);
+        return amount;
+    }
+    // Paper end - only call damage event when actuallyHurt will be called - move out amount computation logic
 
     protected void blockUsingShield(LivingEntity attacker) {
         attacker.blockedByShield(this);
