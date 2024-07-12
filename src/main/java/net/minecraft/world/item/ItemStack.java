@@ -731,8 +731,10 @@ public final class ItemStack implements DataComponentHolder {
 
             this.hurtAndBreak(amount, worldserver, entity, (item) -> { // Paper - Add EntityDamageItemEvent
                 // CraftBukkit start - Check for item breaking
-                if (this.count == 1 && entity instanceof net.minecraft.world.entity.player.Player) {
+                if (this.count == 0 && entity instanceof net.minecraft.world.entity.player.Player) { // Paper - correctly call item break event - run if count reached 0
+                    this.setCount(1); // Paper - correctly call item break event - grow to count 1
                     org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent((net.minecraft.world.entity.player.Player) entity, this);
+                    this.setCount(0); // Paper - correctly call item break event - reset to count 0
                 }
                 // CraftBukkit end
                 if (slot != null) entity.onEquippedItemBroken(item, slot); // Paper - itemstack damage API - do not process entity related callbacks when damaging from API
