@@ -752,6 +752,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         // Paper end - Configurable player collision
 
         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
+        this.server.spark.registerCommandBeforePlugins(this.server); // Paper - spark
+        this.server.spark.enableAfterPlugins(this.server); // Paper - spark
         if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
         io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below
         io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - call commands event for regular plugins
@@ -1038,6 +1040,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         MinecraftServer.LOGGER.info("Stopping server");
         Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
         MinecraftTimings.stopServer(); // Paper
+        this.server.spark.disable(); // Paper - spark
         // CraftBukkit start
         if (this.server != null) {
             this.server.disablePlugins();
@@ -1227,6 +1230,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
             // tasks are default scheduled at -1 + delay, and first tick will tick at 1
             final long actualDoneTimeMs = System.currentTimeMillis() - org.bukkit.craftbukkit.Main.BOOT_TIME.toEpochMilli(); // Paper - Add total time
             LOGGER.info("Done ({})! For help, type \"help\"", String.format(java.util.Locale.ROOT, "%.3fs", actualDoneTimeMs / 1000.00D)); // Paper - Add total time
+            this.server.spark.enableBeforePlugins(); // Paper - spark
             org.spigotmc.WatchdogThread.tick();
             // Paper end - Improved Watchdog Support
             org.spigotmc.WatchdogThread.hasStarted = true; // Paper
@@ -1586,6 +1590,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         });
         isOversleep = false;MinecraftTimings.serverOversleep.stopTiming();
         // Paper end
+        this.server.spark.tickStart(); // Paper - spark
         new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
 
         ++this.tickCount;
@@ -1628,6 +1633,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
         long endTime = System.nanoTime();
         long remaining = (TICK_TIME - (endTime - lastTick)) - catchupTime;
         new com.destroystokyo.paper.event.server.ServerTickEndEvent(this.tickCount, ((double)(endTime - lastTick) / 1000000D), remaining).callEvent();
+        this.server.spark.tickEnd(((double)(endTime - lastTick) / 1000000D)); // Paper - spark
         // Paper end - Server Tick Events
         this.profiler.push("tallying");
         long j = Util.getNanos() - i;
