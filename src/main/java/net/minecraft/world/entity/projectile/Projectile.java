@@ -243,7 +243,13 @@ public abstract class Projectile extends Entity implements TraceableEntity {
     public boolean deflect(ProjectileDeflection deflection, @Nullable Entity deflector, @Nullable Entity owner, boolean fromAttack) {
         if (!this.level().isClientSide) {
             deflection.deflect(this, deflector, this.random);
-            this.setOwner(owner);
+            // Paper start - Fix PickupStatus getting reset
+            if (this instanceof AbstractArrow arrow) {
+                arrow.setOwner(owner, false);
+            } else {
+                this.setOwner(owner);
+            }
+            // Paper end - Fix PickupStatus getting reset
             this.onDeflection(deflector, fromAttack);
         }
 

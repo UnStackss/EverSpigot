@@ -668,7 +668,14 @@ public abstract class AbstractArrow extends Projectile {
 
     @Override
     public void setOwner(@Nullable Entity entity) {
+        // Paper start - Fix PickupStatus getting reset
+        this.setOwner(entity, true);
+    }
+
+    public void setOwner(@Nullable Entity entity, boolean resetPickup) {
+        // Paper end - Fix PickupStatus getting reset
         super.setOwner(entity);
+        if (!resetPickup) return; // Paper - Fix PickupStatus getting reset
         Entity entity1 = entity;
         byte b0 = 0;
 
