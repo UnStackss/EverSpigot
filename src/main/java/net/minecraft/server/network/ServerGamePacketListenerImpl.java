@@ -2702,7 +2702,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
 
             AABB axisalignedbb = entity.getBoundingBox();
 
-            if (this.player.canInteractWithEntity(axisalignedbb, 1.0D)) {
+            if (this.player.canInteractWithEntity(axisalignedbb, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(1.0D))) { // Paper - configurable lenience value for interact range
                 packet.dispatch(new ServerboundInteractPacket.Handler() {
                     private void performInteraction(InteractionHand enumhand, ServerGamePacketListenerImpl.EntityInteraction playerconnection_a, PlayerInteractEntityEvent event) { // CraftBukkit
                         ItemStack itemstack = ServerGamePacketListenerImpl.this.player.getItemInHand(enumhand);
