@@ -284,7 +284,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
         if (this.isMergable()) {
             // Spigot start
             double radius = this.level().spigotConfig.itemMerge;
-            List<ItemEntity> list = this.level().getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, radius - 0.5D, radius), (entityitem) -> {
+            List<ItemEntity> list = this.level().getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, this.level().paperConfig().entities.behavior.onlyMergeItemsHorizontally ? 0 : radius - 0.5D, radius), (entityitem) -> { // Paper - configuration to only merge items horizontally
                 // Spigot end
                 return entityitem != this && entityitem.isMergable();
             });
