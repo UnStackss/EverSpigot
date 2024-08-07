@@ -218,7 +218,7 @@ public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterlogg
     }
 
     public static boolean canActivate(BlockState state) {
-        return SculkSensorBlock.getPhase(state) == SculkSensorPhase.INACTIVE;
+        return state.getBlock() instanceof SculkSensorBlock && SculkSensorBlock.getPhase(state) == SculkSensorPhase.INACTIVE; // Paper - Check for a valid type
     }
 
     public static void deactivate(Level world, BlockPos pos, BlockState state) {
