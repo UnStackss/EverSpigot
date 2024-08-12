@@ -420,7 +420,7 @@ public class LevelStorageSource {
 
     public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String s, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException { // CraftBukkit
         Path path = this.getLevelPath(s);
-        List<ForbiddenSymlinkInfo> list = this.worldDirValidator.validateDirectory(path, true);
+        List<ForbiddenSymlinkInfo> list = Boolean.getBoolean("paper.disableWorldSymlinkValidation") ? List.of() : this.worldDirValidator.validateDirectory(path, true); // Paper - add skipping of symlinks scan
 
         if (!list.isEmpty()) {
             throw new ContentValidationException(path, list);
