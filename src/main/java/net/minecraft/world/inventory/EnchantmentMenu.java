@@ -411,4 +411,10 @@ public class EnchantmentMenu extends AbstractContainerMenu {
         return this.bukkitEntity;
     }
     // CraftBukkit end
+
+    // Paper start - add enchantment seed update API
+    public void setEnchantmentSeed(int seed) {
+        this.enchantmentSeed.set(seed);
+    }
+    // Paper end - add enchantment seed update API
 }
