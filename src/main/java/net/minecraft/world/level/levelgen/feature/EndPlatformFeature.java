@@ -44,7 +44,7 @@ public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
                     // CraftBukkit start
                     if (!blockList.getBlockState(blockposition_mutableblockposition1).is(block)) {
                         if (flag) {
-                            blockList.destroyBlock(blockposition_mutableblockposition1, true, (Entity) null);
+                            // blockList.destroyBlock(blockposition_mutableblockposition1, true, (Entity) null); // Paper - moved down - cb implementation of LevelAccessor does not support destroyBlock
                         }
 
                         blockList.setBlock(blockposition_mutableblockposition1, block.defaultBlockState(), 3);
@@ -65,6 +65,13 @@ public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
 
         worldaccess.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
         if (!portalEvent.isCancelled()) {
+            // Paper start - Properly destroy placed blocks on the end platform
+            if (flag) {
+                for (org.bukkit.craftbukkit.block.CraftBlockState state : blockList.getList()) {
+                    worldaccess.destroyBlock(state.getPosition(), true);
+                }
+            }
+            // Paper end - Properly destroy placed blocks on the end platform
             blockList.updateList();
         }
         // CraftBukkit end
