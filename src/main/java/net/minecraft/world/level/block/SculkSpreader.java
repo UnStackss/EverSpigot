@@ -125,7 +125,7 @@ public class SculkSpreader {
             int i = Math.min(list.size(), 32);
 
             for (int j = 0; j < i; ++j) {
-                this.addCursor((SculkSpreader.ChargeCursor) list.get(j));
+                this.addCursor((SculkSpreader.ChargeCursor) list.get(j), false); // Paper - don't fire event for block entity loading
             }
         }
 
@@ -145,16 +145,16 @@ public class SculkSpreader {
         while (charge > 0) {
             int j = Math.min(charge, 1000);
 
-            this.addCursor(new SculkSpreader.ChargeCursor(pos, j));
+            this.addCursor(new SculkSpreader.ChargeCursor(pos, j), true); // Paper - allow firing event for other causes
             charge -= j;
         }
 
     }
 
-    private void addCursor(SculkSpreader.ChargeCursor cursor) {
+    private void addCursor(SculkSpreader.ChargeCursor cursor, boolean fireEvent) { // Paper - add boolean to conditionally fire SculkBloomEvent
         if (this.cursors.size() < 32) {
             // CraftBukkit start
-            if (!this.isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
+            if (!this.isWorldGeneration() && fireEvent) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation // Paper - add boolean to conditionally fire SculkBloomEvent
                 CraftBlock bukkitBlock = CraftBlock.at(this.level, cursor.pos);
                 SculkBloomEvent event = new SculkBloomEvent(bukkitBlock, cursor.getCharge());
                 Bukkit.getPluginManager().callEvent(event);
