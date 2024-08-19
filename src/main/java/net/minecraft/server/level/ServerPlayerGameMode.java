@@ -566,8 +566,7 @@ public class ServerPlayerGameMode {
         } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
             MenuProvider itileinventory = iblockdata.getMenuProvider(world, blockposition);
 
-            if (itileinventory != null) {
-                player.openMenu(itileinventory);
+            if (itileinventory != null && player.openMenu(itileinventory).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 return InteractionResult.SUCCESS;
             } else {
                 return InteractionResult.PASS;

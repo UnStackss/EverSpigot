@@ -49,8 +49,7 @@ public class BeaconBlock extends BaseEntityBlock implements BeaconBeamBlock {
         if (world.isClientSide) {
             return InteractionResult.SUCCESS;
         } else {
-            if (world.getBlockEntity(pos) instanceof BeaconBlockEntity beaconBlockEntity) {
-                player.openMenu(beaconBlockEntity);
+            if (world.getBlockEntity(pos) instanceof BeaconBlockEntity beaconBlockEntity && player.openMenu(beaconBlockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 player.awardStat(Stats.INTERACT_WITH_BEACON);
             }
 

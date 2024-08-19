@@ -45,8 +45,7 @@ public class BarrelBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         } else {
             BlockEntity blockEntity = world.getBlockEntity(pos);
-            if (blockEntity instanceof BarrelBlockEntity) {
-                player.openMenu((BarrelBlockEntity)blockEntity);
+            if (blockEntity instanceof BarrelBlockEntity && player.openMenu((BarrelBlockEntity)blockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 player.awardStat(Stats.OPEN_BARREL);
                 PiglinAi.angerNearbyPiglins(player, true);
             }

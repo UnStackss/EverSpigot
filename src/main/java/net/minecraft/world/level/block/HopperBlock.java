@@ -128,8 +128,7 @@ public class HopperBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         } else {
             BlockEntity blockEntity = world.getBlockEntity(pos);
-            if (blockEntity instanceof HopperBlockEntity) {
-                player.openMenu((HopperBlockEntity)blockEntity);
+            if (blockEntity instanceof HopperBlockEntity && player.openMenu((HopperBlockEntity)blockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 player.awardStat(Stats.INSPECT_HOPPER);
             }
 

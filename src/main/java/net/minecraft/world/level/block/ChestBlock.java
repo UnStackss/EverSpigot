@@ -253,8 +253,7 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements 
         } else {
             MenuProvider itileinventory = this.getMenuProvider(state, world, pos);
 
-            if (itileinventory != null) {
-                player.openMenu(itileinventory);
+            if (itileinventory != null && player.openMenu(itileinventory).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 player.awardStat(this.getOpenChestStat());
                 PiglinAi.angerNearbyPiglins(player, true);
             }

@@ -45,8 +45,7 @@ public class BlastFurnaceBlock extends AbstractFurnaceBlock {
     @Override
     protected void openContainer(Level world, BlockPos pos, Player player) {
         BlockEntity blockEntity = world.getBlockEntity(pos);
-        if (blockEntity instanceof BlastFurnaceBlockEntity) {
-            player.openMenu((MenuProvider)blockEntity);
+        if (blockEntity instanceof BlastFurnaceBlockEntity && player.openMenu((MenuProvider)blockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
             player.awardStat(Stats.INTERACT_WITH_BLAST_FURNACE);
         }
     }

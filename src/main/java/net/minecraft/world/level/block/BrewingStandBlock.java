@@ -77,8 +77,7 @@ public class BrewingStandBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         } else {
             BlockEntity blockEntity = world.getBlockEntity(pos);
-            if (blockEntity instanceof BrewingStandBlockEntity) {
-                player.openMenu((BrewingStandBlockEntity)blockEntity);
+            if (blockEntity instanceof BrewingStandBlockEntity && player.openMenu((BrewingStandBlockEntity)blockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 player.awardStat(Stats.INTERACT_WITH_BREWINGSTAND);
             }
 

@@ -1710,6 +1710,10 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
                     } else if (factory instanceof ChestBlock.DoubleInventory) {
                         // SPIGOT-5355 - double chests too :(
                         ((ChestBlock.DoubleInventory) factory).inventorylargechest.stopOpen(this);
+                        // Paper start - Fix InventoryOpenEvent cancellation
+                    } else if (!this.enderChestInventory.isActiveChest(null)) {
+                        this.enderChestInventory.stopOpen(this);
+                        // Paper end - Fix InventoryOpenEvent cancellation
                     }
                     return OptionalInt.empty();
                 }

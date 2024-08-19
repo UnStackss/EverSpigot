@@ -106,8 +106,7 @@ public class ShulkerBoxBlock extends BaseEntityBlock {
         } else if (player.isSpectator()) {
             return InteractionResult.CONSUME;
         } else if (world.getBlockEntity(pos) instanceof ShulkerBoxBlockEntity shulkerBoxBlockEntity) {
-            if (canOpen(state, world, pos, shulkerBoxBlockEntity)) {
-                player.openMenu(shulkerBoxBlockEntity);
+            if (canOpen(state, world, pos, shulkerBoxBlockEntity) && player.openMenu(shulkerBoxBlockEntity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 player.awardStat(Stats.OPEN_SHULKER_BOX);
                 PiglinAi.angerNearbyPiglins(player, true);
             }

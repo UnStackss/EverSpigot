@@ -295,8 +295,7 @@ public class LecternBlock extends BaseEntityBlock {
     private void openScreen(Level world, BlockPos pos, Player player) {
         BlockEntity tileentity = world.getBlockEntity(pos);
 
-        if (tileentity instanceof LecternBlockEntity) {
-            player.openMenu((LecternBlockEntity) tileentity);
+        if (tileentity instanceof LecternBlockEntity && player.openMenu((LecternBlockEntity) tileentity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
             player.awardStat(Stats.INTERACT_WITH_LECTERN);
         }
 

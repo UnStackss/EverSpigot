@@ -97,7 +97,11 @@ public interface ContainerEntity extends Container, MenuProvider {
     }
 
     default InteractionResult interactWithContainerVehicle(Player player) {
-        player.openMenu(this);
+        // Paper start - Fix InventoryOpenEvent cancellation
+        if (player.openMenu(this).isEmpty()) {
+            return InteractionResult.PASS;
+        }
+        // Paper end - Fix InventoryOpenEvent cancellation
         return !player.level().isClientSide ? InteractionResult.CONSUME : InteractionResult.SUCCESS;
     }
 

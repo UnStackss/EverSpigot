@@ -78,8 +78,7 @@ public class DispenserBlock extends BaseEntityBlock {
         } else {
             BlockEntity tileentity = world.getBlockEntity(pos);
 
-            if (tileentity instanceof DispenserBlockEntity) {
-                player.openMenu((DispenserBlockEntity) tileentity);
+            if (tileentity instanceof DispenserBlockEntity && player.openMenu((DispenserBlockEntity) tileentity).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
                 if (tileentity instanceof DropperBlockEntity) {
                     player.awardStat(Stats.INSPECT_DROPPER);
                 } else {

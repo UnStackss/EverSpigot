@@ -127,8 +127,7 @@ public class ChestBoat extends Boat implements HasCustomInventoryScreen, Contain
 
     @Override
     public void openCustomInventoryScreen(Player player) {
-        player.openMenu(this);
-        if (!player.level().isClientSide) {
+        if (!player.level().isClientSide && player.openMenu(this).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
             this.gameEvent(GameEvent.CONTAINER_OPEN, player);
             PiglinAi.angerNearbyPiglins(player, true);
         }

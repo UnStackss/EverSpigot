@@ -90,11 +90,14 @@ public class EnderChestBlock extends AbstractChestBlock<EnderChestBlockEntity> i
             } else {
                 EnderChestBlockEntity enderChestBlockEntity = (EnderChestBlockEntity)blockEntity;
                 playerEnderChestContainer.setActiveChest(enderChestBlockEntity);
-                player.openMenu(
+                // Paper start - Fix InventoryOpenEvent cancellation
+                if (player.openMenu(
                     new SimpleMenuProvider((i, inventory, playerx) -> ChestMenu.threeRows(i, inventory, playerEnderChestContainer), CONTAINER_TITLE)
-                );
-                player.awardStat(Stats.OPEN_ENDERCHEST);
-                PiglinAi.angerNearbyPiglins(player, true);
+                ).isPresent()) {
+                    player.awardStat(Stats.OPEN_ENDERCHEST);
+                    PiglinAi.angerNearbyPiglins(player, true);
+                }
+                // Paper end - Fix InventoryOpenEvent cancellation
                 return InteractionResult.CONSUME;
             }
         } else {
