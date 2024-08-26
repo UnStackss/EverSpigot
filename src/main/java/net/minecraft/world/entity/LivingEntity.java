@@ -2096,7 +2096,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
 
     @Override
     public boolean isAlive() {
-        return !this.isRemoved() && this.getHealth() > 0.0F;
+        return !this.isRemoved() && this.getHealth() > 0.0F && !this.dead; // Paper - Check this.dead
     }
 
     @Override
