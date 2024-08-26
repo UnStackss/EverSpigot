@@ -2715,8 +2715,12 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
             return;
         }
         // CraftBukkit end
+        // Paper start - Ensure that client receives chat packets in the same order that we add into the message signature cache
+        synchronized (this.messageSignatureCache) {
         this.send(new ClientboundPlayerChatPacket(message.link().sender(), message.link().index(), message.signature(), message.signedBody().pack(this.messageSignatureCache), message.unsignedContent(), message.filterMask(), params));
         this.addPendingMessage(message);
+        }
+        // Paper end - Ensure that client receives chat packets in the same order that we add into the message signature cache
     }
 
     public void sendDisguisedChatMessage(Component message, ChatType.Bound params) {
