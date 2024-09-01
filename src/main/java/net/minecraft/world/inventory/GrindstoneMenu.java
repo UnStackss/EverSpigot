@@ -98,7 +98,11 @@ public class GrindstoneMenu extends AbstractContainerMenu {
             public void onTake(net.minecraft.world.entity.player.Player player, ItemStack stack) {
                 context.execute((world, blockposition) -> {
                     if (world instanceof ServerLevel) {
-                        ExperienceOrb.award((ServerLevel) world, Vec3.atCenterOf(blockposition), this.getExperienceAmount(world), org.bukkit.entity.ExperienceOrb.SpawnReason.GRINDSTONE, player); // Paper
+                        // Paper start - Fire BlockExpEvent on grindstone use
+                        org.bukkit.event.block.BlockExpEvent event = new org.bukkit.event.block.BlockExpEvent(org.bukkit.craftbukkit.block.CraftBlock.at(world, blockposition), this.getExperienceAmount(world));
+                        event.callEvent();
+                        ExperienceOrb.award((ServerLevel) world, Vec3.atCenterOf(blockposition), event.getExpToDrop(), org.bukkit.entity.ExperienceOrb.SpawnReason.GRINDSTONE, player);
+                        // Paper end - Fire BlockExpEvent on grindstone use
                     }
 
                     world.levelEvent(1042, blockposition, 0);
