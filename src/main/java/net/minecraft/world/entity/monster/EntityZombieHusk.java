@@ -58,7 +58,7 @@ public class EntityZombieHusk extends EntityZombie {
         if (flag && this.getMainHandItem().isEmpty() && entity instanceof EntityLiving) {
             float f = this.level().getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
 
-            ((EntityLiving) entity).addEffect(new MobEffect(MobEffects.HUNGER, 140 * (int) f), this);
+            ((EntityLiving) entity).addEffect(new MobEffect(MobEffects.HUNGER, 140 * (int) f), this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
         }
 
         return flag;

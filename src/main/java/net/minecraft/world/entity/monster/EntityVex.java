@@ -383,7 +383,7 @@ public class EntityVex extends EntityMonster implements TraceableEntity {
 
         @Override
         public void start() {
-            EntityVex.this.setTarget(EntityVex.this.owner.getTarget());
+            EntityVex.this.setTarget(EntityVex.this.owner.getTarget(), org.bukkit.event.entity.EntityTargetEvent.TargetReason.OWNER_ATTACKED_TARGET, true); // CraftBukkit
             super.start();
         }
     }

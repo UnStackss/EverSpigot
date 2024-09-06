@@ -54,7 +54,7 @@ public abstract class JsonList<K, V extends JsonListEntry<K>> {
     @Nullable
     public V get(K k0) {
         this.removeExpired();
-        return (JsonListEntry) this.map.get(this.getKeyForUser(k0));
+        return (V) this.map.get(this.getKeyForUser(k0)); // CraftBukkit - fix decompile error
     }
 
     public void remove(K k0) {
@@ -85,6 +85,7 @@ public abstract class JsonList<K, V extends JsonListEntry<K>> {
     }
 
     protected boolean contains(K k0) {
+        this.removeExpired(); // CraftBukkit - SPIGOT-7589: Consistently remove expired entries to mirror .get(...)
         return this.map.containsKey(this.getKeyForUser(k0));
     }
 
@@ -93,7 +94,7 @@ public abstract class JsonList<K, V extends JsonListEntry<K>> {
         Iterator iterator = this.map.values().iterator();
 
         while (iterator.hasNext()) {
-            V v0 = (JsonListEntry) iterator.next();
+            V v0 = (V) iterator.next(); // CraftBukkit - decompile error
 
             if (v0.hasExpired()) {
                 list.add(v0.getUser());
@@ -103,7 +104,7 @@ public abstract class JsonList<K, V extends JsonListEntry<K>> {
         iterator = list.iterator();
 
         while (iterator.hasNext()) {
-            K k0 = iterator.next();
+            K k0 = (K) iterator.next(); // CraftBukkit - decompile error
 
             this.map.remove(this.getKeyForUser(k0));
         }
@@ -118,7 +119,7 @@ public abstract class JsonList<K, V extends JsonListEntry<K>> {
 
     public void save() throws IOException {
         JsonArray jsonarray = new JsonArray();
-        Stream stream = this.map.values().stream().map((jsonlistentry) -> {
+        Stream<JsonObject> stream = this.map.values().stream().map((jsonlistentry) -> { // CraftBukkit - decompile error
             JsonObject jsonobject = new JsonObject();
 
             Objects.requireNonNull(jsonlistentry);
@@ -171,7 +172,7 @@ public abstract class JsonList<K, V extends JsonListEntry<K>> {
                         JsonListEntry<K> jsonlistentry = this.createEntry(jsonobject);
 
                         if (jsonlistentry.getUser() != null) {
-                            this.map.put(this.getKeyForUser(jsonlistentry.getUser()), jsonlistentry);
+                            this.map.put(this.getKeyForUser(jsonlistentry.getUser()), (V) jsonlistentry); // CraftBukkit - decompile error
                         }
                     }
                 } catch (Throwable throwable) {

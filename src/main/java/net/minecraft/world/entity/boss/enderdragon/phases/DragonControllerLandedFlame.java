@@ -10,6 +10,10 @@ import net.minecraft.world.entity.EntityAreaEffectCloud;
 import net.minecraft.world.entity.boss.enderdragon.EntityEnderDragon;
 import net.minecraft.world.phys.Vec3D;
 
+// CraftBukkit start
+import org.bukkit.event.entity.EntityRemoveEvent;
+// CraftBukkit end
+
 public class DragonControllerLandedFlame extends AbstractDragonControllerLanded {
 
     private static final int FLAME_DURATION = 200;
@@ -99,7 +103,7 @@ public class DragonControllerLandedFlame extends AbstractDragonControllerLanded 
     @Override
     public void end() {
         if (this.flame != null) {
-            this.flame.discard();
+            this.flame.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
             this.flame = null;
         }
 

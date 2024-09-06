@@ -213,7 +213,7 @@ public class EntityEvoker extends EntityIllagerWizard {
                         worldserver.getScoreboard().addPlayerToTeam(entityvex.getScoreboardName(), scoreboardteam);
                     }
 
-                    worldserver.addFreshEntityWithPassengers(entityvex);
+                    worldserver.addFreshEntityWithPassengers(entityvex, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPELL); // CraftBukkit - Add SpawnReason
                     worldserver.gameEvent((Holder) GameEvent.ENTITY_PLACE, blockposition, GameEvent.a.of((Entity) EntityEvoker.this));
                 }
             }

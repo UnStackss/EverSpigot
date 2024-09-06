@@ -34,7 +34,7 @@ public record ApplyMobEffect(HolderSet<MobEffectList> toApply, LevelBasedValue m
                 int j = Math.round(MathHelper.randomBetween(randomsource, this.minDuration.calculate(i), this.maxDuration.calculate(i)) * 20.0F);
                 int k = Math.max(0, Math.round(MathHelper.randomBetween(randomsource, this.minAmplifier.calculate(i), this.maxAmplifier.calculate(i))));
 
-                entityliving.addEffect(new MobEffect((Holder) optional.get(), j, k));
+                entityliving.addEffect(new MobEffect((Holder) optional.get(), j, k), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
             }
         }
 

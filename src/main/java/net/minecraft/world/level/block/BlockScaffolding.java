@@ -103,7 +103,7 @@ public class BlockScaffolding extends Block implements IBlockWaterlogged {
         int i = getDistance(worldserver, blockposition);
         IBlockData iblockdata1 = (IBlockData) ((IBlockData) iblockdata.setValue(BlockScaffolding.DISTANCE, i)).setValue(BlockScaffolding.BOTTOM, this.isBottom(worldserver, blockposition, i));
 
-        if ((Integer) iblockdata1.getValue(BlockScaffolding.DISTANCE) == 7) {
+        if ((Integer) iblockdata1.getValue(BlockScaffolding.DISTANCE) == 7 && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(worldserver, blockposition, Blocks.AIR.defaultBlockState()).isCancelled()) { // CraftBukkit - BlockFadeEvent
             if ((Integer) iblockdata.getValue(BlockScaffolding.DISTANCE) == 7) {
                 EntityFallingBlock.fall(worldserver, blockposition, iblockdata1);
             } else {

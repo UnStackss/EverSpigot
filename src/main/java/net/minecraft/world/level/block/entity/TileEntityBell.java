@@ -120,7 +120,7 @@ public class TileEntityBell extends TileEntity {
                 EntityLiving entityliving = (EntityLiving) iterator.next();
 
                 if (entityliving.isAlive() && !entityliving.isRemoved() && blockposition.closerToCenterThan(entityliving.position(), 32.0D)) {
-                    entityliving.getBrain().setMemory(MemoryModuleType.HEARD_BELL_TIME, (Object) this.level.getGameTime());
+                    entityliving.getBrain().setMemory(MemoryModuleType.HEARD_BELL_TIME, this.level.getGameTime()); // CraftBukkit - decompile error
                 }
             }
         }
@@ -144,9 +144,13 @@ public class TileEntityBell extends TileEntity {
     }
 
     private static void makeRaidersGlow(World world, BlockPosition blockposition, List<EntityLiving> list) {
+        List<org.bukkit.entity.LivingEntity> entities = // CraftBukkit
         list.stream().filter((entityliving) -> {
             return isRaiderWithinRange(blockposition, entityliving);
-        }).forEach(TileEntityBell::glow);
+        }).map((entity) -> (org.bukkit.entity.LivingEntity) entity.getBukkitEntity()).collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new)); // CraftBukkit
+
+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBellResonateEvent(world, blockposition, entities).forEach(TileEntityBell::glow);
+        // CraftBukkit end
     }
 
     private static void showBellParticles(World world, BlockPosition blockposition, List<EntityLiving> list) {

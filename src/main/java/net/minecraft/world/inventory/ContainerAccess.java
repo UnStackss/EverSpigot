@@ -8,6 +8,20 @@ import net.minecraft.world.level.World;
 
 public interface ContainerAccess {
 
+    // CraftBukkit start
+    default World getWorld() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    default BlockPosition getPosition() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    default org.bukkit.Location getLocation() {
+        return new org.bukkit.Location(getWorld().getWorld(), getPosition().getX(), getPosition().getY(), getPosition().getZ());
+    }
+    // CraftBukkit end
+
     ContainerAccess NULL = new ContainerAccess() {
         @Override
         public <T> Optional<T> evaluate(BiFunction<World, BlockPosition, T> bifunction) {
@@ -17,6 +31,18 @@ public interface ContainerAccess {
 
     static ContainerAccess create(final World world, final BlockPosition blockposition) {
         return new ContainerAccess() {
+            // CraftBukkit start
+            @Override
+            public World getWorld() {
+                return world;
+            }
+
+            @Override
+            public BlockPosition getPosition() {
+                return blockposition;
+            }
+            // CraftBukkit end
+
             @Override
             public <T> Optional<T> evaluate(BiFunction<World, BlockPosition, T> bifunction) {
                 return Optional.of(bifunction.apply(world, blockposition));

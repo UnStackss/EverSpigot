@@ -178,4 +178,12 @@ public abstract class TileEntityContainer extends TileEntity implements IInvento
         nbttagcompound.remove("Lock");
         nbttagcompound.remove("Items");
     }
+
+    // CraftBukkit start
+    @Override
+    public org.bukkit.Location getLocation() {
+        if (level == null) return null;
+        return new org.bukkit.Location(level.getWorld(), worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
+    }
+    // CraftBukkit end
 }

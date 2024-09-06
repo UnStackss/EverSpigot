@@ -274,6 +274,13 @@ public class Sniffer extends EntityAnimal {
                 ItemStack itemstack = (ItemStack) iterator.next();
                 EntityItem entityitem = new EntityItem(worldserver, (double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ(), itemstack);
 
+                // CraftBukkit start - handle EntityDropItemEvent
+                org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
+                org.bukkit.Bukkit.getPluginManager().callEvent(event);
+                if (event.isCancelled()) {
+                    continue;
+                }
+                // CraftBukkit end
                 entityitem.setDefaultPickUpDelay();
                 worldserver.addFreshEntity(entityitem);
             }
@@ -313,7 +320,7 @@ public class Sniffer extends EntityAnimal {
         List<GlobalPos> list = (List) this.getExploredPositions().limit(20L).collect(Collectors.toList());
 
         list.add(0, GlobalPos.of(this.level().dimension(), blockposition));
-        this.getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, (Object) list);
+        this.getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, list); // CraftBukkit - decompile error
         return this;
     }
 
@@ -454,7 +461,7 @@ public class Sniffer extends EntityAnimal {
 
     @Override
     public BehaviorController<Sniffer> getBrain() {
-        return super.getBrain();
+        return (BehaviorController<Sniffer>) super.getBrain(); // CraftBukkit - decompile error
     }
 
     @Override

@@ -39,6 +39,12 @@ public class TryLaySpawnOnWaterNearLand {
                                 if (worldserver.getBlockState(blockposition2).isAir()) {
                                     IBlockData iblockdata = block.defaultBlockState();
 
+                                    // CraftBukkit start
+                                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entityliving, blockposition2, iblockdata)) {
+                                        memoryaccessor2.erase();
+                                        return true;
+                                    }
+                                    // CraftBukkit end
                                     worldserver.setBlock(blockposition2, iblockdata, 3);
                                     worldserver.gameEvent((Holder) GameEvent.BLOCK_PLACE, blockposition2, GameEvent.a.of(entityliving, iblockdata));
                                     worldserver.playSound((EntityHuman) null, (Entity) entityliving, SoundEffects.FROG_LAY_SPAWN, SoundCategory.BLOCKS, 1.0F, 1.0F);

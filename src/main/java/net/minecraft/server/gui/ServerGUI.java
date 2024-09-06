@@ -96,7 +96,7 @@ public class ServerGUI extends JComponent {
     private JComponent buildInfoPanel() {
         JPanel jpanel = new JPanel(new BorderLayout());
         GuiStatsComponent guistatscomponent = new GuiStatsComponent(this.server);
-        Collection collection = this.finalizers;
+        Collection<Runnable> collection = this.finalizers; // CraftBukkit - decompile error
 
         Objects.requireNonNull(guistatscomponent);
         collection.add(guistatscomponent::close);
@@ -132,7 +132,7 @@ public class ServerGUI extends JComponent {
 
             jtextfield.setText("");
         });
-        jtextarea.addFocusListener(new FocusAdapter(this) {
+        jtextarea.addFocusListener(new FocusAdapter() { // CraftBukkit - decompile error
             public void focusGained(FocusEvent focusevent) {}
         });
         jpanel.add(jscrollpane, "Center");
@@ -166,6 +166,7 @@ public class ServerGUI extends JComponent {
         this.finalizers.forEach(Runnable::run);
     }
 
+    private static final java.util.regex.Pattern ANSI = java.util.regex.Pattern.compile("\\x1B\\[([0-9]{1,2}(;[0-9]{1,2})*)?[m|K]"); // CraftBukkit
     public void print(JTextArea jtextarea, JScrollPane jscrollpane, String s) {
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(() -> {
@@ -181,7 +182,7 @@ public class ServerGUI extends JComponent {
             }
 
             try {
-                document.insertString(document.getLength(), s, (AttributeSet) null);
+                document.insertString(document.getLength(), ANSI.matcher(s).replaceAll(""), (AttributeSet) null); // CraftBukkit
             } catch (BadLocationException badlocationexception) {
                 ;
             }

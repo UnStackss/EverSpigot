@@ -79,6 +79,12 @@ public class Bogged extends EntitySkeletonAbstract implements IShearable {
         ItemStack itemstack = entityhuman.getItemInHand(enumhand);
 
         if (itemstack.is(Items.SHEARS) && this.readyForShearing()) {
+            // CraftBukkit start
+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(entityhuman, this, itemstack, enumhand)) {
+                this.getEntityData().markDirty(Bogged.DATA_SHEARED); // CraftBukkit - mark dirty to restore sheared state to clients
+                return EnumInteractionResult.PASS;
+            }
+            // CraftBukkit end
             this.shear(SoundCategory.PLAYERS);
             this.gameEvent(GameEvent.SHEAR, entityhuman);
             if (!this.level().isClientSide) {

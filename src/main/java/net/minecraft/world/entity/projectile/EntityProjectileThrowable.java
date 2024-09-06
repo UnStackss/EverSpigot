@@ -32,6 +32,12 @@ public abstract class EntityProjectileThrowable extends EntityProjectile impleme
 
     protected abstract Item getDefaultItem();
 
+    // CraftBukkit start
+    public Item getDefaultItemPublic() {
+        return getDefaultItem();
+    }
+    // CraftBukkit end
+
     @Override
     public ItemStack getItem() {
         return (ItemStack) this.getEntityData().get(EntityProjectileThrowable.DATA_ITEM_STACK);

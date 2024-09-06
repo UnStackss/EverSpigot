@@ -45,7 +45,7 @@ public class BuddingAmethystBlock extends AmethystBlock {
             if (block != null) {
                 IBlockData iblockdata2 = (IBlockData) ((IBlockData) block.defaultBlockState().setValue(AmethystClusterBlock.FACING, enumdirection)).setValue(AmethystClusterBlock.WATERLOGGED, iblockdata1.getFluidState().getType() == FluidTypes.WATER);
 
-                worldserver.setBlockAndUpdate(blockposition1, iblockdata2);
+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(worldserver, blockposition, blockposition1, iblockdata2); // CraftBukkit
             }
 
         }

@@ -20,6 +20,8 @@ import net.minecraft.world.item.crafting.CraftingManager;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import org.slf4j.Logger;
 
+import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
+
 public class RecipeBookServer extends RecipeBook {
 
     public static final String RECIPE_BOOK_TAG = "recipeBook";
@@ -36,7 +38,7 @@ public class RecipeBookServer extends RecipeBook {
             RecipeHolder<?> recipeholder = (RecipeHolder) iterator.next();
             MinecraftKey minecraftkey = recipeholder.id();
 
-            if (!this.known.contains(minecraftkey) && !recipeholder.value().isSpecial()) {
+            if (!this.known.contains(minecraftkey) && !recipeholder.value().isSpecial() && CraftEventFactory.handlePlayerRecipeListUpdateEvent(entityplayer, minecraftkey)) { // CraftBukkit
                 this.add(minecraftkey);
                 this.addHighlight(minecraftkey);
                 list.add(minecraftkey);
@@ -73,6 +75,7 @@ public class RecipeBookServer extends RecipeBook {
     }
 
     private void sendRecipes(PacketPlayOutRecipes.Action packetplayoutrecipes_action, EntityPlayer entityplayer, List<MinecraftKey> list) {
+        if (entityplayer.connection == null) return; // SPIGOT-4478 during PlayerLoginEvent
         entityplayer.connection.send(new PacketPlayOutRecipes(packetplayoutrecipes_action, list, Collections.emptyList(), this.getBookSettings()));
     }
 

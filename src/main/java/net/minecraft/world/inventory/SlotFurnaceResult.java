@@ -51,7 +51,7 @@ public class SlotFurnaceResult extends Slot {
             IInventory iinventory = this.container;
 
             if (iinventory instanceof TileEntityFurnace tileentityfurnace) {
-                tileentityfurnace.awardUsedRecipesAndPopExperience(entityplayer);
+                tileentityfurnace.awardUsedRecipesAndPopExperience(entityplayer, itemstack, this.removeCount); // CraftBukkit
             }
         }
 

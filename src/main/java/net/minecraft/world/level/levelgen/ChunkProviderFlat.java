@@ -34,10 +34,16 @@ public class ChunkProviderFlat extends ChunkGenerator {
     private final GeneratorSettingsFlat settings;
 
     public ChunkProviderFlat(GeneratorSettingsFlat generatorsettingsflat) {
-        WorldChunkManagerHell worldchunkmanagerhell = new WorldChunkManagerHell(generatorsettingsflat.getBiome());
+        // CraftBukkit start
+        // WorldChunkManagerHell worldchunkmanagerhell = new WorldChunkManagerHell(generatorsettingsflat.getBiome());
 
-        Objects.requireNonNull(generatorsettingsflat);
-        super(worldchunkmanagerhell, SystemUtils.memoize(generatorsettingsflat::adjustGenerationSettings));
+        // Objects.requireNonNull(generatorsettingsflat);
+        this(generatorsettingsflat, new WorldChunkManagerHell(generatorsettingsflat.getBiome()));
+    }
+
+    public ChunkProviderFlat(GeneratorSettingsFlat generatorsettingsflat, net.minecraft.world.level.biome.WorldChunkManager worldchunkmanager) {
+        super(worldchunkmanager, SystemUtils.memoize(generatorsettingsflat::adjustGenerationSettings));
+        // CraftBukkit end
         this.settings = generatorsettingsflat;
     }
 

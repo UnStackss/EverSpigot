@@ -63,7 +63,7 @@ public class BlockReed extends Block {
                 int j = (Integer) iblockdata.getValue(BlockReed.AGE);
 
                 if (j == 15) {
-                    worldserver.setBlockAndUpdate(blockposition.above(), this.defaultBlockState());
+                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(worldserver, blockposition.above(), this.defaultBlockState()); // CraftBukkit
                     worldserver.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockReed.AGE, 0), 4);
                 } else {
                     worldserver.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockReed.AGE, j + 1), 4);

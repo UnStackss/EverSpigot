@@ -13,6 +13,10 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.FluidType;
 import net.minecraft.world.level.material.FluidTypes;
 
+// CraftBukkit start
+import org.bukkit.event.block.CauldronLevelChangeEvent;
+// CraftBukkit end
+
 public class BlockCauldron extends AbstractCauldronBlock {
 
     public static final MapCodec<BlockCauldron> CODEC = simpleCodec(BlockCauldron::new);
@@ -62,13 +66,11 @@ public class BlockCauldron extends AbstractCauldronBlock {
 
         if (fluidtype == FluidTypes.WATER) {
             iblockdata1 = Blocks.WATER_CAULDRON.defaultBlockState();
-            world.setBlockAndUpdate(blockposition, iblockdata1);
-            world.gameEvent((Holder) GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(iblockdata1));
+            LayeredCauldronBlock.changeLevel(iblockdata, world, blockposition, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
             world.levelEvent(1047, blockposition, 0);
         } else if (fluidtype == FluidTypes.LAVA) {
             iblockdata1 = Blocks.LAVA_CAULDRON.defaultBlockState();
-            world.setBlockAndUpdate(blockposition, iblockdata1);
-            world.gameEvent((Holder) GameEvent.BLOCK_CHANGE, blockposition, GameEvent.a.of(iblockdata1));
+            LayeredCauldronBlock.changeLevel(iblockdata, world, blockposition, iblockdata1, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
             world.levelEvent(1046, blockposition, 0);
         }
 

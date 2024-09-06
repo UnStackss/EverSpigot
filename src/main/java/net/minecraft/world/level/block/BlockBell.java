@@ -146,6 +146,11 @@ public class BlockBell extends BlockTileEntity {
             if (enumdirection == null) {
                 enumdirection = (EnumDirection) world.getBlockState(blockposition).getValue(BlockBell.FACING);
             }
+            // CraftBukkit start
+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBellRingEvent(world, blockposition, enumdirection, entity)) {
+                return false;
+            }
+            // CraftBukkit end
 
             ((TileEntityBell) tileentity).onHit(enumdirection);
             world.playSound((EntityHuman) null, blockposition, SoundEffects.BELL_BLOCK, SoundCategory.BLOCKS, 2.0F, 1.0F);

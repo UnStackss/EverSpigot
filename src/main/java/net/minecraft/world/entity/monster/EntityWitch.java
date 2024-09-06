@@ -125,7 +125,7 @@ public class EntityWitch extends EntityRaider implements IRangedEntity {
                     PotionContents potioncontents = (PotionContents) itemstack.get(DataComponents.POTION_CONTENTS);
 
                     if (itemstack.is(Items.POTION) && potioncontents != null) {
-                        potioncontents.forEachEffect(this::addEffect);
+                        potioncontents.forEachEffect((effect) -> this.addEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK)); // CraftBukkit
                     }
 
                     this.gameEvent(GameEvent.DRINK);

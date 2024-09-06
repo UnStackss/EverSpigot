@@ -9,6 +9,12 @@ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.npc.EntityVillager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 
+// CraftBukkit start
+import org.bukkit.craftbukkit.entity.CraftVillager;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
+import org.bukkit.event.entity.VillagerCareerChangeEvent;
+// CraftBukkit end
+
 public class BehaviorCareer {
 
     public BehaviorCareer() {}
@@ -37,7 +43,14 @@ public class BehaviorCareer {
                                     return villagerprofession.heldJobSite().test(holder);
                                 }).findFirst();
                             }).ifPresent((villagerprofession) -> {
-                                entityvillager.setVillagerData(entityvillager.getVillagerData().setProfession(villagerprofession));
+                                // CraftBukkit start - Fire VillagerCareerChangeEvent where Villager gets employed
+                                VillagerCareerChangeEvent event = CraftEventFactory.callVillagerCareerChangeEvent(entityvillager, CraftVillager.CraftProfession.minecraftToBukkit(villagerprofession), VillagerCareerChangeEvent.ChangeReason.EMPLOYED);
+                                if (event.isCancelled()) {
+                                    return;
+                                }
+
+                                entityvillager.setVillagerData(entityvillager.getVillagerData().setProfession(CraftVillager.CraftProfession.bukkitToMinecraft(event.getProfession())));
+                                // CraftBukkit end
                                 entityvillager.refreshBrain(worldserver);
                             });
                             return true;

@@ -30,7 +30,7 @@ public class CommandSetWorldSpawn {
     private static int setSpawn(CommandListenerWrapper commandlistenerwrapper, BlockPosition blockposition, float f) {
         WorldServer worldserver = commandlistenerwrapper.getLevel();
 
-        if (worldserver.dimension() != World.OVERWORLD) {
+        if (false && worldserver.dimension() != World.OVERWORLD) { // CraftBukkit - SPIGOT-7649: allow in all worlds
             commandlistenerwrapper.sendFailure(IChatBaseComponent.translatable("commands.setworldspawn.failure.not_overworld"));
             return 0;
         } else {

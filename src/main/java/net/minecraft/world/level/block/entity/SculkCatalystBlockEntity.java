@@ -35,10 +35,13 @@ public class SculkCatalystBlockEntity extends TileEntity implements GameEventLis
     public SculkCatalystBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
         super(TileEntityTypes.SCULK_CATALYST, blockposition, iblockdata);
         this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(iblockdata, new BlockPositionSource(blockposition));
+        catalystListener.level = level; // CraftBukkit
     }
 
     public static void serverTick(World world, BlockPosition blockposition, IBlockData iblockdata, SculkCatalystBlockEntity sculkcatalystblockentity) {
+        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = sculkcatalystblockentity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
         sculkcatalystblockentity.catalystListener.getSculkSpreader().updateCursors(world, blockposition, world.getRandom(), true);
+        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = null; // CraftBukkit
     }
 
     @Override
@@ -64,11 +67,13 @@ public class SculkCatalystBlockEntity extends TileEntity implements GameEventLis
         final SculkSpreader sculkSpreader;
         private final IBlockData blockState;
         private final PositionSource positionSource;
+        private World level; // CraftBukkit
 
         public CatalystListener(IBlockData iblockdata, PositionSource positionsource) {
             this.blockState = iblockdata;
             this.positionSource = positionsource;
             this.sculkSpreader = SculkSpreader.createLevelSpreader();
+            this.sculkSpreader.level = level; // CraftBukkit
         }
 
         @Override

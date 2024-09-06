@@ -98,7 +98,9 @@ public class EntityChicken extends EntityAnimal {
         this.flap += this.flapping * 2.0F;
         if (!this.level().isClientSide && this.isAlive() && !this.isBaby() && !this.isChickenJockey() && --this.eggTime <= 0) {
             this.playSound(SoundEffects.CHICKEN_EGG, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
+            this.forceDrops = true; // CraftBukkit
             this.spawnAtLocation((IMaterial) Items.EGG);
+            this.forceDrops = false; // CraftBukkit
             this.gameEvent(GameEvent.ENTITY_PLACE);
             this.eggTime = this.random.nextInt(6000) + 6000;
         }

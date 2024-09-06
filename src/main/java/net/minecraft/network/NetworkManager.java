@@ -114,6 +114,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet<?>> {
     private volatile DisconnectionDetails delayedDisconnect;
     @Nullable
     BandwidthDebugMonitor bandwidthDebugMonitor;
+    public String hostname = ""; // CraftBukkit - add field
 
     public NetworkManager(EnumProtocolDirection enumprotocoldirection) {
         this.receiving = enumprotocoldirection;
@@ -205,7 +206,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet<?>> {
     }
 
     private static <T extends PacketListener> void genericsFtw(Packet<T> packet, PacketListener packetlistener) {
-        packet.handle(packetlistener);
+        packet.handle((T) packetlistener); // CraftBukkit - decompile error
     }
 
     private void validateListener(ProtocolInfo<?> protocolinfo, PacketListener packetlistener) {
@@ -469,7 +470,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet<?>> {
         }
 
         if (this.isConnected()) {
-            this.channel.close().awaitUninterruptibly();
+            this.channel.close(); // We can't wait as this may be called from an event loop.
             this.disconnectionDetails = disconnectiondetails;
         }
 
@@ -537,7 +538,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet<?>> {
     }
 
     public void configurePacketHandler(ChannelPipeline channelpipeline) {
-        channelpipeline.addLast("hackfix", new ChannelOutboundHandlerAdapter(this) {
+        channelpipeline.addLast("hackfix", new ChannelOutboundHandlerAdapter() { // CraftBukkit - decompile error
             public void write(ChannelHandlerContext channelhandlercontext, Object object, ChannelPromise channelpromise) throws Exception {
                 super.write(channelhandlercontext, object, channelpromise);
             }

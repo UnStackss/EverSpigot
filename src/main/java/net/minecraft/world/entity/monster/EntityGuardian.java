@@ -59,6 +59,7 @@ public class EntityGuardian extends EntityMonster {
     private boolean clientSideTouchedGround;
     @Nullable
     public PathfinderGoalRandomStroll randomStrollGoal;
+    public EntityGuardian.PathfinderGoalGuardianAttack guardianAttackGoal; // CraftBukkit - add field
 
     public EntityGuardian(EntityTypes<? extends EntityGuardian> entitytypes, World world) {
         super(entitytypes, world);
@@ -74,7 +75,7 @@ public class EntityGuardian extends EntityMonster {
         PathfinderGoalMoveTowardsRestriction pathfindergoalmovetowardsrestriction = new PathfinderGoalMoveTowardsRestriction(this, 1.0D);
 
         this.randomStrollGoal = new PathfinderGoalRandomStroll(this, 1.0D, 80);
-        this.goalSelector.addGoal(4, new EntityGuardian.PathfinderGoalGuardianAttack(this));
+        this.goalSelector.addGoal(4, guardianAttackGoal = new EntityGuardian.PathfinderGoalGuardianAttack(this)); // CraftBukkit - assign field
         this.goalSelector.addGoal(5, pathfindergoalmovetowardsrestriction);
         this.goalSelector.addGoal(7, this.randomStrollGoal);
         this.goalSelector.addGoal(8, new PathfinderGoalLookAtPlayer(this, EntityHuman.class, 8.0F));

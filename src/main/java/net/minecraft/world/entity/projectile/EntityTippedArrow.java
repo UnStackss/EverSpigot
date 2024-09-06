@@ -119,7 +119,7 @@ public class EntityTippedArrow extends EntityArrow {
                 mobeffect = (MobEffect) iterator.next();
                 entityliving.addEffect(new MobEffect(mobeffect.getEffect(), Math.max(mobeffect.mapDuration((i) -> {
                     return i / 8;
-                }), 1), mobeffect.getAmplifier(), mobeffect.isAmbient(), mobeffect.isVisible()), entity);
+                }), 1), mobeffect.getAmplifier(), mobeffect.isAmbient(), mobeffect.isVisible()), entity, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ARROW); // CraftBukkit
             }
         }
 
@@ -127,7 +127,7 @@ public class EntityTippedArrow extends EntityArrow {
 
         while (iterator.hasNext()) {
             mobeffect = (MobEffect) iterator.next();
-            entityliving.addEffect(mobeffect, entity);
+            entityliving.addEffect(mobeffect, entity, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ARROW); // CraftBukkit
         }
 
     }

@@ -91,7 +91,7 @@ public class EntitySkeleton extends EntitySkeletonAbstract {
     }
 
     protected void doFreezeConversion() {
-        this.convertTo(EntityTypes.STRAY, true);
+        this.convertTo(EntityTypes.STRAY, true, org.bukkit.event.entity.EntityTransformEvent.TransformReason.FROZEN, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.FROZEN); // CraftBukkit - add spawn and transform reasons
         if (!this.isSilent()) {
             this.level().levelEvent((EntityHuman) null, 1048, this.blockPosition(), 0);
         }

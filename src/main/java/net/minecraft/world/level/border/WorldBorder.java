@@ -30,6 +30,7 @@ public class WorldBorder {
     int absoluteMaxSize = 29999984;
     private WorldBorder.a extent = new WorldBorder.d(5.9999968E7D);
     public static final WorldBorder.c DEFAULT_SETTINGS = new WorldBorder.c(0.0D, 0.0D, 0.2D, 5.0D, 5, 15, 5.9999968E7D, 0L, 0.0D);
+    public net.minecraft.server.level.WorldServer world; // CraftBukkit
 
     public WorldBorder() {}
 
@@ -181,6 +182,7 @@ public class WorldBorder {
     }
 
     public void addListener(IWorldBorderListener iworldborderlistener) {
+        if (listeners.contains(iworldborderlistener)) return; // CraftBukkit
         this.listeners.add(iworldborderlistener);
     }
 

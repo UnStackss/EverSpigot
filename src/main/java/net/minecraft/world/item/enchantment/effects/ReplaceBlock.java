@@ -26,7 +26,7 @@ public record ReplaceBlock(BaseBlockPosition offset, Optional<BlockPredicate> pr
 
         if ((Boolean) this.predicate.map((blockpredicate) -> {
             return blockpredicate.test(worldserver, blockposition);
-        }).orElse(true) && worldserver.setBlockAndUpdate(blockposition, this.blockState.getState(entity.getRandom(), blockposition))) {
+        }).orElse(true) && org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(worldserver, blockposition, this.blockState.getState(entity.getRandom(), blockposition), entity)) { // CraftBukkit - Call EntityBlockFormEvent
             this.triggerGameEvent.ifPresent((holder) -> {
                 worldserver.gameEvent(entity, holder, blockposition);
             });

@@ -284,7 +284,12 @@ public class EndCityPieces {
                 BlockPosition blockposition1 = blockposition.below();
 
                 if (structureboundingbox.isInside(blockposition1)) {
+                    // CraftBukkit start - ensure block transformation
+                    /*
                     RandomizableContainer.setBlockEntityLootTable(worldaccess, randomsource, blockposition1, LootTables.END_CITY_TREASURE);
+                    */
+                    setCraftLootTable(worldaccess, blockposition1, randomsource, LootTables.END_CITY_TREASURE);
+                    // CraftBukkit end
                 }
             } else if (structureboundingbox.isInside(blockposition) && World.isInSpawnableBounds(blockposition)) {
                 if (s.startsWith("Sentry")) {

@@ -172,7 +172,7 @@ public class EntitySpider extends EntityMonster {
             Holder<MobEffectList> holder = entityspider_groupdataspider.effect;
 
             if (holder != null) {
-                this.addEffect(new MobEffect(holder, -1));
+                this.addEffect(new MobEffect(holder, -1), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.SPIDER_SPAWN); // CraftBukkit
             }
         }
 

@@ -48,7 +48,7 @@ public abstract class BlockGrowingTop extends BlockGrowingAbstract implements IB
             BlockPosition blockposition1 = blockposition.relative(this.growthDirection);
 
             if (this.canGrowInto(worldserver.getBlockState(blockposition1))) {
-                worldserver.setBlockAndUpdate(blockposition1, this.getGrowIntoState(iblockdata, worldserver.random));
+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(worldserver, blockposition, blockposition1, this.getGrowIntoState(iblockdata, worldserver.random)); // CraftBukkit
             }
         }
 

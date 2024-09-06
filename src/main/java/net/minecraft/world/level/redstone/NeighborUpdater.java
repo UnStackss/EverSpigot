@@ -12,6 +12,13 @@ import net.minecraft.world.level.GeneratorAccess;
 import net.minecraft.world.level.World;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.IBlockData;
+// CraftBukkit start
+import net.minecraft.server.level.WorldServer;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.event.block.BlockPhysicsEvent;
+// CraftBukkit end
 
 public interface NeighborUpdater {
 
@@ -46,6 +53,17 @@ public interface NeighborUpdater {
 
     static void executeUpdate(World world, IBlockData iblockdata, BlockPosition blockposition, Block block, BlockPosition blockposition1, boolean flag) {
         try {
+            // CraftBukkit start
+            CraftWorld cworld = ((WorldServer) world).getWorld();
+            if (cworld != null) {
+                BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(world, blockposition), CraftBlockData.fromData(iblockdata), CraftBlock.at(world, blockposition1));
+                ((WorldServer) world).getCraftServer().getPluginManager().callEvent(event);
+
+                if (event.isCancelled()) {
+                    return;
+                }
+            }
+            // CraftBukkit end
             iblockdata.handleNeighborChanged(world, blockposition, block, blockposition1, flag);
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Exception while updating neighbours");

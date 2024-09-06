@@ -93,7 +93,7 @@ public class EntitySelector {
     }
 
     private void checkPermissions(CommandListenerWrapper commandlistenerwrapper) throws CommandSyntaxException {
-        if (this.usesSelector && !commandlistenerwrapper.hasPermission(2)) {
+        if (this.usesSelector && !commandlistenerwrapper.hasPermission(2, "minecraft.command.selector")) { // CraftBukkit
             throw ArgumentEntity.ERROR_SELECTORS_NOT_ALLOWED.create();
         }
     }

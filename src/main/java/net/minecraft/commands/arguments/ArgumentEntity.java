@@ -102,9 +102,15 @@ public class ArgumentEntity implements ArgumentType<EntitySelector> {
     }
 
     private EntitySelector parse(StringReader stringreader, boolean flag) throws CommandSyntaxException {
+        // CraftBukkit start
+        return parse(stringreader, flag, false);
+    }
+
+    public EntitySelector parse(StringReader stringreader, boolean flag, boolean overridePermissions) throws CommandSyntaxException {
+        // CraftBukkit end
         boolean flag1 = false;
         ArgumentParserSelector argumentparserselector = new ArgumentParserSelector(stringreader, flag);
-        EntitySelector entityselector = argumentparserselector.parse();
+        EntitySelector entityselector = argumentparserselector.parse(overridePermissions); // CraftBukkit
 
         if (entityselector.getMaxResults() > 1 && this.single) {
             if (this.playersOnly) {

@@ -14,6 +14,10 @@ import net.minecraft.world.level.World;
 import net.minecraft.world.phys.MovingObjectPosition;
 import net.minecraft.world.phys.MovingObjectPositionEntity;
 
+// CraftBukkit start
+import org.bukkit.event.entity.EntityRemoveEvent;
+// CraftBukkit end
+
 public class EntitySnowball extends EntityProjectileThrowable {
 
     public EntitySnowball(EntityTypes<? extends EntitySnowball> entitytypes, World world) {
@@ -65,7 +69,7 @@ public class EntitySnowball extends EntityProjectileThrowable {
         super.onHit(movingobjectposition);
         if (!this.level().isClientSide) {
             this.level().broadcastEntityEvent(this, (byte) 3);
-            this.discard();
+            this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
         }
 
     }

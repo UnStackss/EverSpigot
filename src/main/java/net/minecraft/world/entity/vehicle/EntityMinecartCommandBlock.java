@@ -143,5 +143,12 @@ public class EntityMinecartCommandBlock extends EntityMinecartAbstract {
         public boolean isValid() {
             return !EntityMinecartCommandBlock.this.isRemoved();
         }
+
+        // CraftBukkit start
+        @Override
+        public org.bukkit.command.CommandSender getBukkitSender(CommandListenerWrapper wrapper) {
+            return (org.bukkit.craftbukkit.entity.CraftMinecartCommand) EntityMinecartCommandBlock.this.getBukkitEntity();
+        }
+        // CraftBukkit end
     }
 }

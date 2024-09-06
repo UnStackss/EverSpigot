@@ -40,6 +40,11 @@ public class BlockCoralFanWall extends BlockCoralFanWallAbstract {
     @Override
     protected void tick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
         if (!scanForWater(iblockdata, worldserver, blockposition)) {
+            // CraftBukkit start
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(worldserver, blockposition, this.deadBlock.defaultBlockState().setValue(BlockCoralFanWall.WATERLOGGED, false).setValue(BlockCoralFanWall.FACING, iblockdata.getValue(BlockCoralFanWall.FACING))).isCancelled()) {
+                return;
+            }
+            // CraftBukkit end
             worldserver.setBlock(blockposition, (IBlockData) ((IBlockData) this.deadBlock.defaultBlockState().setValue(BlockCoralFanWall.WATERLOGGED, false)).setValue(BlockCoralFanWall.FACING, (EnumDirection) iblockdata.getValue(BlockCoralFanWall.FACING)), 2);
         }
 

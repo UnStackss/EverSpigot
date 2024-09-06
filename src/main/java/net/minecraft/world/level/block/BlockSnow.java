@@ -99,6 +99,11 @@ public class BlockSnow extends Block {
     @Override
     protected void randomTick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
         if (worldserver.getBrightness(EnumSkyBlock.BLOCK, blockposition) > 11) {
+            // CraftBukkit start
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(worldserver, blockposition, Blocks.AIR.defaultBlockState()).isCancelled()) {
+                return;
+            }
+            // CraftBukkit end
             dropResources(iblockdata, worldserver, blockposition);
             worldserver.removeBlock(blockposition, false);
         }

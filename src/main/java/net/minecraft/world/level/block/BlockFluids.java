@@ -39,7 +39,7 @@ import net.minecraft.world.phys.shapes.VoxelShapes;
 public class BlockFluids extends Block implements IFluidSource {
 
     private static final Codec<FluidTypeFlowing> FLOWING_FLUID = BuiltInRegistries.FLUID.byNameCodec().comapFlatMap((fluidtype) -> {
-        DataResult dataresult;
+        DataResult<FluidTypeFlowing> dataresult; // CraftBukkit - decompile error
 
         if (fluidtype instanceof FluidTypeFlowing fluidtypeflowing) {
             dataresult = DataResult.success(fluidtypeflowing);
@@ -172,14 +172,20 @@ public class BlockFluids extends Block implements IFluidSource {
                 if (world.getFluidState(blockposition1).is(TagsFluid.WATER)) {
                     Block block = world.getFluidState(blockposition).isSource() ? Blocks.OBSIDIAN : Blocks.COBBLESTONE;
 
-                    world.setBlockAndUpdate(blockposition, block.defaultBlockState());
-                    this.fizz(world, blockposition);
+                    // CraftBukkit start
+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world, blockposition, block.defaultBlockState())) {
+                        this.fizz(world, blockposition);
+                    }
+                    // CraftBukkit end
                     return false;
                 }
 
                 if (flag && world.getBlockState(blockposition1).is(Blocks.BLUE_ICE)) {
-                    world.setBlockAndUpdate(blockposition, Blocks.BASALT.defaultBlockState());
-                    this.fizz(world, blockposition);
+                    // CraftBukkit start
+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world, blockposition, Blocks.BASALT.defaultBlockState())) {
+                        this.fizz(world, blockposition);
+                    }
+                    // CraftBukkit end
                     return false;
                 }
             }

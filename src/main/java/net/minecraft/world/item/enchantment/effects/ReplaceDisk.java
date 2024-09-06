@@ -37,7 +37,7 @@ public record ReplaceDisk(LevelBasedValue radius, LevelBasedValue height, BaseBl
 
             if (blockposition1.distToCenterSqr(vec3d.x(), (double) blockposition1.getY() + 0.5D, vec3d.z()) < (double) MathHelper.square(j) && (Boolean) this.predicate.map((blockpredicate) -> {
                 return blockpredicate.test(worldserver, blockposition1);
-            }).orElse(true) && worldserver.setBlockAndUpdate(blockposition1, this.blockState.getState(randomsource, blockposition1))) {
+            }).orElse(true) && org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(worldserver, blockposition1,  this.blockState.getState(randomsource, blockposition1), entity)) { // CraftBukkit - Call EntityBlockFormEvent for Frost Walker
                 this.triggerGameEvent.ifPresent((holder) -> {
                     worldserver.gameEvent(entity, holder, blockposition1);
                 });

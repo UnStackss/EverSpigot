@@ -29,7 +29,7 @@ public class BlockMagma extends Block {
     @Override
     public void stepOn(World world, BlockPosition blockposition, IBlockData iblockdata, Entity entity) {
         if (!entity.isSteppingCarefully() && entity instanceof EntityLiving) {
-            entity.hurt(world.damageSources().hotFloor(), 1.0F);
+            entity.hurt(world.damageSources().hotFloor().directBlock(world, blockposition), 1.0F); // CraftBukkit
         }
 
         super.stepOn(world, blockposition, iblockdata, entity);

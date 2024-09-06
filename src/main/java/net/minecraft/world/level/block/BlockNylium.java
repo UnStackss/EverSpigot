@@ -41,6 +41,11 @@ public class BlockNylium extends Block implements IBlockFragilePlantElement {
     @Override
     protected void randomTick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
         if (!canBeNylium(iblockdata, worldserver, blockposition)) {
+            // CraftBukkit start
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(worldserver, blockposition, Blocks.NETHERRACK.defaultBlockState()).isCancelled()) {
+                return;
+            }
+            // CraftBukkit end
             worldserver.setBlockAndUpdate(blockposition, Blocks.NETHERRACK.defaultBlockState());
         }
 

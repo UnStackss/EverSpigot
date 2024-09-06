@@ -25,7 +25,7 @@ public class ItemMilkBucket extends Item {
         }
 
         if (!world.isClientSide) {
-            entityliving.removeAllEffects();
+            entityliving.removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.MILK); // CraftBukkit
         }
 
         if (entityliving instanceof EntityHuman entityhuman) {

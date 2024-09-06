@@ -43,8 +43,11 @@ public class SculkBlock extends DropExperienceBlock implements SculkBehaviour {
                     BlockPosition blockposition2 = blockposition1.above();
                     IBlockData iblockdata = this.getRandomGrowthState(generatoraccess, blockposition2, randomsource, sculkspreader.isWorldGeneration());
 
-                    generatoraccess.setBlock(blockposition2, iblockdata, 3);
-                    generatoraccess.playSound((EntityHuman) null, blockposition1, iblockdata.getSoundType().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    // CraftBukkit start - Call BlockSpreadEvent
+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(generatoraccess, blockposition, blockposition2, iblockdata, 3)) {
+                        generatoraccess.playSound((EntityHuman) null, blockposition1, iblockdata.getSoundType().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    }
+                    // CraftBukkit end
                 }
 
                 return Math.max(0, i - j);

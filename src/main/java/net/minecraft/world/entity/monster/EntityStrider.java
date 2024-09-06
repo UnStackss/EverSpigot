@@ -351,7 +351,14 @@ public class EntityStrider extends EntityAnimal implements ISteerable, ISaddleab
 
             boolean flag2 = flag1;
 
-            this.setSuffocating(!flag || flag2);
+            // CraftBukkit start
+            boolean suffocating = !flag || flag2;
+            if (suffocating ^ this.isSuffocating()) {
+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callStriderTemperatureChangeEvent(this, suffocating)) {
+                    this.setSuffocating(suffocating);
+                }
+            }
+            // CraftBukkit end
         }
 
         super.tick();

@@ -84,6 +84,11 @@ public class EntityLlama extends EntityHorseChestedAbstract implements VariantHo
         return false;
     }
 
+    // CraftBukkit start
+    public void setStrengthPublic(int i) {
+        this.setStrength(i);
+    }
+    // CraftBukkit end
     private void setStrength(int i) {
         this.entityData.set(EntityLlama.DATA_STRENGTH_ID, Math.max(1, Math.min(5, i)));
     }

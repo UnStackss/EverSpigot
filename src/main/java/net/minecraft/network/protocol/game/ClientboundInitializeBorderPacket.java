@@ -30,8 +30,10 @@ public class ClientboundInitializeBorderPacket implements Packet<PacketListenerP
     }
 
     public ClientboundInitializeBorderPacket(WorldBorder worldborder) {
-        this.newCenterX = worldborder.getCenterX();
-        this.newCenterZ = worldborder.getCenterZ();
+        // CraftBukkit start - multiply out nether border
+        this.newCenterX = worldborder.getCenterX() * worldborder.world.dimensionType().coordinateScale();
+        this.newCenterZ = worldborder.getCenterZ() * worldborder.world.dimensionType().coordinateScale();
+        // CraftBukkit end
         this.oldSize = worldborder.getSize();
         this.newSize = worldborder.getLerpTarget();
         this.lerpTime = worldborder.getLerpRemainingTime();

@@ -132,6 +132,7 @@ public class PlaceCommand {
         if (!structurestart.isValid()) {
             throw PlaceCommand.ERROR_STRUCTURE_FAILED.create();
         } else {
+            structurestart.generationEventCause = org.bukkit.event.world.AsyncStructureGenerateEvent.Cause.COMMAND; // CraftBukkit - set AsyncStructureGenerateEvent.Cause.COMMAND as generation cause
             StructureBoundingBox structureboundingbox = structurestart.getBoundingBox();
             ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(SectionPosition.blockToSectionCoord(structureboundingbox.minX()), SectionPosition.blockToSectionCoord(structureboundingbox.minZ()));
             ChunkCoordIntPair chunkcoordintpair1 = new ChunkCoordIntPair(SectionPosition.blockToSectionCoord(structureboundingbox.maxX()), SectionPosition.blockToSectionCoord(structureboundingbox.maxZ()));

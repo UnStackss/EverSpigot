@@ -100,7 +100,7 @@ public class SwampHutPiece extends WorldGenScatteredPiece {
                         entitywitch.setPersistenceRequired();
                         entitywitch.moveTo((double) blockposition_mutableblockposition.getX() + 0.5D, (double) blockposition_mutableblockposition.getY(), (double) blockposition_mutableblockposition.getZ() + 0.5D, 0.0F, 0.0F);
                         entitywitch.finalizeSpawn(generatoraccessseed, generatoraccessseed.getCurrentDifficultyAt(blockposition_mutableblockposition), EnumMobSpawn.STRUCTURE, (GroupDataEntity) null);
-                        generatoraccessseed.addFreshEntityWithPassengers(entitywitch);
+                        generatoraccessseed.addFreshEntityWithPassengers(entitywitch, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CHUNK_GEN); // CraftBukkit - add SpawnReason
                     }
                 }
             }
@@ -121,7 +121,7 @@ public class SwampHutPiece extends WorldGenScatteredPiece {
                     entitycat.setPersistenceRequired();
                     entitycat.moveTo((double) blockposition_mutableblockposition.getX() + 0.5D, (double) blockposition_mutableblockposition.getY(), (double) blockposition_mutableblockposition.getZ() + 0.5D, 0.0F, 0.0F);
                     entitycat.finalizeSpawn(worldaccess, worldaccess.getCurrentDifficultyAt(blockposition_mutableblockposition), EnumMobSpawn.STRUCTURE, (GroupDataEntity) null);
-                    worldaccess.addFreshEntityWithPassengers(entitycat);
+                    worldaccess.addFreshEntityWithPassengers(entitycat, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CHUNK_GEN); // CraftBukkit - add SpawnReason
                 }
             }
         }

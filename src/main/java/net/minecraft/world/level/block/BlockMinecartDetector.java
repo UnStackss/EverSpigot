@@ -26,6 +26,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateEnum;
 import net.minecraft.world.level.block.state.properties.IBlockState;
 import net.minecraft.world.phys.AxisAlignedBB;
 
+import org.bukkit.event.block.BlockRedstoneEvent; // CraftBukkit
+
 public class BlockMinecartDetector extends BlockMinecartTrackAbstract {
 
     public static final MapCodec<BlockMinecartDetector> CODEC = simpleCodec(BlockMinecartDetector::new);
@@ -87,6 +89,16 @@ public class BlockMinecartDetector extends BlockMinecartTrackAbstract {
             }
 
             IBlockData iblockdata1;
+            // CraftBukkit start
+            if (flag != flag1) {
+                org.bukkit.block.Block block = world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ());
+
+                BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(block, flag ? 15 : 0, flag1 ? 15 : 0);
+                world.getCraftServer().getPluginManager().callEvent(eventRedstone);
+
+                flag1 = eventRedstone.getNewCurrent() > 0;
+            }
+            // CraftBukkit end
 
             if (flag1 && !flag) {
                 iblockdata1 = (IBlockData) iblockdata.setValue(BlockMinecartDetector.POWERED, true);

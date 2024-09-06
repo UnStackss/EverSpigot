@@ -44,7 +44,7 @@ public final class IEntitySelector {
         ScoreboardTeamBase.EnumTeamPush scoreboardteambase_enumteampush = scoreboardteam == null ? ScoreboardTeamBase.EnumTeamPush.ALWAYS : scoreboardteam.getCollisionRule();
 
         return (Predicate) (scoreboardteambase_enumteampush == ScoreboardTeamBase.EnumTeamPush.NEVER ? Predicates.alwaysFalse() : IEntitySelector.NO_SPECTATORS.and((entity1) -> {
-            if (!entity1.isPushable()) {
+            if (!entity1.canCollideWithBukkit(entity) || !entity.canCollideWithBukkit(entity1)) { // CraftBukkit - collidable API
                 return false;
             } else if (entity.level().isClientSide && (!(entity1 instanceof EntityHuman) || !((EntityHuman) entity1).isLocalPlayer())) {
                 return false;

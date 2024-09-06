@@ -77,7 +77,7 @@ public class AdvancementTree {
             }
         }
 
-        AdvancementTree.LOGGER.info("Loaded {} advancements", this.nodes.size());
+        // AdvancementTree.LOGGER.info("Loaded {} advancements", this.nodes.size()); // CraftBukkit - moved to AdvancementDataWorld#reload
     }
 
     private boolean tryInsert(AdvancementHolder advancementholder) {

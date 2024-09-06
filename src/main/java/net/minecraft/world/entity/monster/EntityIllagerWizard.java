@@ -17,6 +17,10 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.goal.PathfinderGoal;
 import net.minecraft.world.level.World;
 
+// CraftBukkit start
+import org.bukkit.craftbukkit.event.CraftEventFactory;
+// CraftBukkit end
+
 public abstract class EntityIllagerWizard extends EntityIllagerAbstract {
 
     private static final DataWatcherObject<Byte> DATA_SPELL_CASTING_ID = DataWatcher.defineId(EntityIllagerWizard.class, DataWatcherRegistry.BYTE);
@@ -158,6 +162,11 @@ public abstract class EntityIllagerWizard extends EntityIllagerAbstract {
         public void tick() {
             --this.attackWarmupDelay;
             if (this.attackWarmupDelay == 0) {
+                // CraftBukkit start
+                if (!CraftEventFactory.handleEntitySpellCastEvent(EntityIllagerWizard.this, this.getSpell())) {
+                    return;
+                }
+                // CraftBukkit end
                 this.performSpellCasting();
                 EntityIllagerWizard.this.playSound(EntityIllagerWizard.this.getCastingSoundEvent(), 1.0F, 1.0F);
             }

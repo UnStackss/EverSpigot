@@ -51,7 +51,7 @@ class OozingMobEffect extends MobEffectList {
         if (entityslime != null) {
             entityslime.setSize(2, true);
             entityslime.moveTo(d0, d1, d2, world.getRandom().nextFloat() * 360.0F, 0.0F);
-            world.addFreshEntity(entityslime);
+            world.addFreshEntity(entityslime, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.POTION_EFFECT); // CraftBukkit
         }
     }
 

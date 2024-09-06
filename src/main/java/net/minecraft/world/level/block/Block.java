@@ -340,7 +340,13 @@ public class Block extends BlockBase implements IMaterial {
             EntityItem entityitem = (EntityItem) supplier.get();
 
             entityitem.setDefaultPickUpDelay();
-            world.addFreshEntity(entityitem);
+            // CraftBukkit start
+            if (world.captureDrops != null) {
+                world.captureDrops.add(entityitem);
+            } else {
+                world.addFreshEntity(entityitem);
+            }
+            // CraftBukkit end
         }
     }
 
@@ -366,7 +372,7 @@ public class Block extends BlockBase implements IMaterial {
 
     public void playerDestroy(World world, EntityHuman entityhuman, BlockPosition blockposition, IBlockData iblockdata, @Nullable TileEntity tileentity, ItemStack itemstack) {
         entityhuman.awardStat(StatisticList.BLOCK_MINED.get(this));
-        entityhuman.causeFoodExhaustion(0.005F);
+        entityhuman.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
         dropResources(iblockdata, world, blockposition, tileentity, entityhuman, itemstack);
     }
 
@@ -499,14 +505,22 @@ public class Block extends BlockBase implements IMaterial {
         return this.builtInRegistryHolder;
     }
 
-    protected void tryDropExperience(WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, IntProvider intprovider) {
+    // CraftBukkit start
+    protected int tryDropExperience(WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, IntProvider intprovider) {
         int i = EnchantmentManager.processBlockExperience(worldserver, itemstack, intprovider.sample(worldserver.getRandom()));
 
         if (i > 0) {
-            this.popExperience(worldserver, blockposition, i);
+            // this.popExperience(worldserver, blockposition, i);
+            return i;
         }
 
+        return 0;
     }
+
+    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
+        return 0;
+    }
+    // CraftBukkit end
 
     public static final class a {
 

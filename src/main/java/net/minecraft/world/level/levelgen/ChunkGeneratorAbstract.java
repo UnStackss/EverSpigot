@@ -1,3 +1,4 @@
+// keep
 package net.minecraft.world.level.levelgen;
 
 import com.google.common.annotations.VisibleForTesting;

@@ -428,6 +428,8 @@ public class NetherFortressPieces {
 
                 if (structureboundingbox.isInside(blockposition_mutableblockposition)) {
                     this.hasPlacedSpawner = true;
+                    // CraftBukkit start
+                    /*
                     generatoraccessseed.setBlock(blockposition_mutableblockposition, Blocks.SPAWNER.defaultBlockState(), 2);
                     TileEntity tileentity = generatoraccessseed.getBlockEntity(blockposition_mutableblockposition);
 
@@ -436,6 +438,9 @@ public class NetherFortressPieces {
 
                         tileentitymobspawner.setEntityId(EntityTypes.BLAZE, randomsource);
                     }
+                    */
+                    placeCraftSpawner(generatoraccessseed, blockposition_mutableblockposition, org.bukkit.entity.EntityType.BLAZE, 2);
+                    // CraftBukkit end
                 }
             }
 

@@ -83,6 +83,7 @@ public class BlockNote extends Block {
         if (flag1 != (Boolean) iblockdata.getValue(BlockNote.POWERED)) {
             if (flag1) {
                 this.playNote((Entity) null, iblockdata, world, blockposition);
+                iblockdata = world.getBlockState(blockposition); // CraftBukkit - SPIGOT-5617: update in case changed in event
             }
 
             world.setBlock(blockposition, (IBlockData) iblockdata.setValue(BlockNote.POWERED, flag1), 3);
@@ -92,6 +93,12 @@ public class BlockNote extends Block {
 
     private void playNote(@Nullable Entity entity, IBlockData iblockdata, World world, BlockPosition blockposition) {
         if (((BlockPropertyInstrument) iblockdata.getValue(BlockNote.INSTRUMENT)).worksAboveNoteBlock() || world.getBlockState(blockposition.above()).isAir()) {
+            // CraftBukkit start
+            org.bukkit.event.block.NotePlayEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callNotePlayEvent(world, blockposition, iblockdata.getValue(BlockNote.INSTRUMENT), iblockdata.getValue(BlockNote.NOTE));
+            if (event.isCancelled()) {
+                return;
+            }
+            // CraftBukkit end
             world.blockEvent(blockposition, this, 0, 0);
             world.gameEvent(entity, (Holder) GameEvent.NOTE_BLOCK_PLAY, blockposition);
         }

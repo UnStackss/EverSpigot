@@ -11,6 +11,11 @@ import net.minecraft.server.level.WorldServer;
 import net.minecraft.util.thread.IAsyncTaskHandler;
 import org.slf4j.Logger;
 
+// CraftBukkit start
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
+// CraftBukkit end
+
 public class PlayerConnectionUtils {
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -24,6 +29,7 @@ public class PlayerConnectionUtils {
     public static <T extends PacketListener> void ensureRunningOnSameThread(Packet<T> packet, T t0, IAsyncTaskHandler<?> iasynctaskhandler) throws CancelledPacketHandleException {
         if (!iasynctaskhandler.isSameThread()) {
             iasynctaskhandler.executeIfPossible(() -> {
+                if (t0 instanceof ServerCommonPacketListenerImpl serverCommonPacketListener && serverCommonPacketListener.processedDisconnect) return; // CraftBukkit - Don't handle sync packets for kicked players
                 if (t0.shouldHandleMessage(packet)) {
                     try {
                         packet.handle(t0);

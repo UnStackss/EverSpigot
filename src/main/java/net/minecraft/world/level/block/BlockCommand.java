@@ -29,6 +29,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateDirection;
 import net.minecraft.world.phys.MovingObjectPositionBlock;
 import org.slf4j.Logger;
 
+import org.bukkit.event.block.BlockRedstoneEvent; // CraftBukkit
+
 public class BlockCommand extends BlockTileEntity implements GameMasterBlock {
 
     public static final MapCodec<BlockCommand> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
@@ -69,6 +71,15 @@ public class BlockCommand extends BlockTileEntity implements GameMasterBlock {
                 TileEntityCommand tileentitycommand = (TileEntityCommand) tileentity;
                 boolean flag1 = world.hasNeighborSignal(blockposition);
                 boolean flag2 = tileentitycommand.isPowered();
+                // CraftBukkit start
+                org.bukkit.block.Block bukkitBlock = world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ());
+                int old = flag2 ? 15 : 0;
+                int current = flag1 ? 15 : 0;
+
+                BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(bukkitBlock, old, current);
+                world.getCraftServer().getPluginManager().callEvent(eventRedstone);
+                flag1 = eventRedstone.getNewCurrent() > 0;
+                // CraftBukkit end
 
                 tileentitycommand.setPowered(flag1);
                 if (!flag2 && !tileentitycommand.isAutomatic() && tileentitycommand.getMode() != TileEntityCommand.Type.SEQUENCE) {

@@ -52,4 +52,6 @@ public interface IMerchant {
     }
 
     boolean isClientSide();
+
+    org.bukkit.craftbukkit.inventory.CraftMerchant getCraftMerchant(); // CraftBukkit
 }

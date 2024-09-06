@@ -119,7 +119,7 @@ public class BlockBeehive extends BlockTileEntity {
                 if (entitybee.getTarget() == null) {
                     EntityHuman entityhuman = (EntityHuman) SystemUtils.getRandom(list1, world.random);
 
-                    entitybee.setTarget(entityhuman);
+                    entitybee.setTarget(entityhuman, org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER, true); // CraftBukkit
                 }
             }
         }
@@ -287,7 +287,7 @@ public class BlockBeehive extends BlockTileEntity {
                     ItemStack itemstack = new ItemStack(this);
 
                     itemstack.applyComponents(tileentitybeehive.collectComponents());
-                    itemstack.set(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY.with(BlockBeehive.HONEY_LEVEL, (Comparable) i));
+                    itemstack.set(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY.with(BlockBeehive.HONEY_LEVEL, i)); // CraftBukkit - decompile error
                     EntityItem entityitem = new EntityItem(world, (double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ(), itemstack);
 
                     entityitem.setDefaultPickUpDelay();

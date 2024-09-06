@@ -6,6 +6,10 @@ import net.minecraft.world.entity.EntityTameableAnimal;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.World;
 
+// CraftBukkit start
+import org.bukkit.event.entity.EntityRemoveEvent;
+// CraftBukkit end
+
 public abstract class EntityPerchable extends EntityTameableAnimal {
 
     private static final int RIDE_COOLDOWN = 100;
@@ -21,7 +25,7 @@ public abstract class EntityPerchable extends EntityTameableAnimal {
         nbttagcompound.putString("id", this.getEncodeId());
         this.saveWithoutId(nbttagcompound);
         if (entityplayer.setEntityOnShoulder(nbttagcompound)) {
-            this.discard();
+            this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
             return true;
         } else {
             return false;

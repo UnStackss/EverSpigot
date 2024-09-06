@@ -11,7 +11,7 @@ class PoisonMobEffect extends MobEffectList {
     @Override
     public boolean applyEffectTick(EntityLiving entityliving, int i) {
         if (entityliving.getHealth() > 1.0F) {
-            entityliving.hurt(entityliving.damageSources().magic(), 1.0F);
+            entityliving.hurt(entityliving.damageSources().poison(), 1.0F);  // CraftBukkit - DamageSource.MAGIC -> CraftEventFactory.POISON
         }
 
         return true;

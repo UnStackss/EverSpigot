@@ -38,7 +38,7 @@ public class PathfinderGoalOwnerHurtTarget extends PathfinderGoalTarget {
 
     @Override
     public void start() {
-        this.mob.setTarget(this.ownerLastHurt);
+        this.mob.setTarget(this.ownerLastHurt, org.bukkit.event.entity.EntityTargetEvent.TargetReason.OWNER_ATTACKED_TARGET, true); // CraftBukkit - reason
         EntityLiving entityliving = this.tameAnimal.getOwner();
 
         if (entityliving != null) {

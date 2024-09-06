@@ -59,6 +59,11 @@ public class BlockIce extends BlockHalfTransparent {
     }
 
     protected void melt(IBlockData iblockdata, World world, BlockPosition blockposition) {
+        // CraftBukkit start
+        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, blockposition, world.dimensionType().ultraWarm() ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState()).isCancelled()) {
+            return;
+        }
+        // CraftBukkit end
         if (world.dimensionType().ultraWarm()) {
             world.removeBlock(blockposition, false);
         } else {

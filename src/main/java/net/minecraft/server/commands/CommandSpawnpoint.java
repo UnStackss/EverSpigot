@@ -41,7 +41,7 @@ public class CommandSpawnpoint {
         while (iterator.hasNext()) {
             EntityPlayer entityplayer = (EntityPlayer) iterator.next();
 
-            entityplayer.setRespawnPosition(resourcekey, blockposition, f, true, false);
+            entityplayer.setRespawnPosition(resourcekey, blockposition, f, true, false, org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.COMMAND); // CraftBukkit
         }
 
         String s = resourcekey.location().toString();

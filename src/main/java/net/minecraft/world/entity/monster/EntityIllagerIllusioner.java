@@ -217,7 +217,7 @@ public class EntityIllagerIllusioner extends EntityIllagerWizard implements IRan
 
         @Override
         protected void performSpellCasting() {
-            EntityIllagerIllusioner.this.addEffect(new MobEffect(MobEffects.INVISIBILITY, 1200));
+            EntityIllagerIllusioner.this.addEffect(new MobEffect(MobEffects.INVISIBILITY, 1200), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ILLUSION); // CraftBukkit
         }
 
         @Nullable
@@ -268,7 +268,7 @@ public class EntityIllagerIllusioner extends EntityIllagerWizard implements IRan
 
         @Override
         protected void performSpellCasting() {
-            EntityIllagerIllusioner.this.getTarget().addEffect(new MobEffect(MobEffects.BLINDNESS, 400), EntityIllagerIllusioner.this);
+            EntityIllagerIllusioner.this.getTarget().addEffect(new MobEffect(MobEffects.BLINDNESS, 400), EntityIllagerIllusioner.this, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ATTACK); // CraftBukkit
         }
 
         @Override

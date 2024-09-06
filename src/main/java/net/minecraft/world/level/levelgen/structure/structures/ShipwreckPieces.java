@@ -79,7 +79,12 @@ public class ShipwreckPieces {
             ResourceKey<LootTable> resourcekey = (ResourceKey) ShipwreckPieces.MARKERS_TO_LOOT.get(s);
 
             if (resourcekey != null) {
+                // CraftBukkit start - ensure block transformation
+                /*
                 RandomizableContainer.setBlockEntityLootTable(worldaccess, randomsource, blockposition.below(), resourcekey);
+                */
+                setCraftLootTable(worldaccess, blockposition.below(), randomsource, resourcekey);
+                // CraftBukkit end
             }
 
         }

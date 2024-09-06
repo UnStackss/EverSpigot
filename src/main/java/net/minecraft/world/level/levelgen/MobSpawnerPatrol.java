@@ -116,7 +116,7 @@ public class MobSpawnerPatrol implements MobSpawner {
 
                 entitymonsterpatrolling.setPos((double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ());
                 entitymonsterpatrolling.finalizeSpawn(worldserver, worldserver.getCurrentDifficultyAt(blockposition), EnumMobSpawn.PATROL, (GroupDataEntity) null);
-                worldserver.addFreshEntityWithPassengers(entitymonsterpatrolling);
+                worldserver.addFreshEntityWithPassengers(entitymonsterpatrolling, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.PATROL); // CraftBukkit
                 return true;
             } else {
                 return false;

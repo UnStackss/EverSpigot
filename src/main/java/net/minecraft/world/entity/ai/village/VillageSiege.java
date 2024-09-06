@@ -121,7 +121,7 @@ public class VillageSiege implements MobSpawner {
             }
 
             entityzombie.moveTo(vec3d.x, vec3d.y, vec3d.z, worldserver.random.nextFloat() * 360.0F, 0.0F);
-            worldserver.addFreshEntityWithPassengers(entityzombie);
+            worldserver.addFreshEntityWithPassengers(entityzombie, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_INVASION); // CraftBukkit
         }
     }
 

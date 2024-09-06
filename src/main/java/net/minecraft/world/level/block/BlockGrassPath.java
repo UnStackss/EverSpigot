@@ -51,6 +51,11 @@ public class BlockGrassPath extends Block {
 
     @Override
     protected void tick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
+        // CraftBukkit start - do not fade if the block is valid here
+        if (iblockdata.canSurvive(worldserver, blockposition)) {
+            return;
+        }
+        // CraftBukkit end
         BlockSoil.turnToDirt((Entity) null, iblockdata, worldserver, blockposition);
     }
 

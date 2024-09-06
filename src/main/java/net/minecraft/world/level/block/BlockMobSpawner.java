@@ -45,12 +45,20 @@ public class BlockMobSpawner extends BlockTileEntity {
     @Override
     protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
         super.spawnAfterBreak(iblockdata, worldserver, blockposition, itemstack, flag);
+        // CraftBukkit start - Delegate to getExpDrop
+    }
+
+    @Override
+    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
         if (flag) {
             int i = 15 + worldserver.random.nextInt(15) + worldserver.random.nextInt(15);
 
-            this.popExperience(worldserver, blockposition, i);
+            // this.popExperience(worldserver, blockposition, i);
+            return i;
         }
 
+        return 0;
+        // CraftBukkit end
     }
 
     @Override

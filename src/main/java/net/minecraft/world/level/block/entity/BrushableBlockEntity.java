@@ -31,6 +31,12 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParameters;
 import net.minecraft.world.phys.Vec3D;
 import org.slf4j.Logger;
 
+// CraftBukkit start
+import java.util.Arrays;
+import org.bukkit.craftbukkit.block.CraftBlock;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
+// CraftBukkit end
+
 public class BrushableBlockEntity extends TileEntity {
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -156,7 +162,10 @@ public class BrushableBlockEntity extends TileEntity {
                 EntityItem entityitem = new EntityItem(this.level, d3, d4, d5, this.item.split(this.level.random.nextInt(21) + 10));
 
                 entityitem.setDeltaMovement(Vec3D.ZERO);
-                this.level.addFreshEntity(entityitem);
+                // CraftBukkit start
+                org.bukkit.block.Block bblock = CraftBlock.at(this.level, this.worldPosition);
+                CraftEventFactory.handleBlockDropItemEvent(bblock, bblock.getState(), (EntityPlayer) entityhuman, Arrays.asList(entityitem));
+                // CraftBukkit end
                 this.item = ItemStack.EMPTY;
             }
 

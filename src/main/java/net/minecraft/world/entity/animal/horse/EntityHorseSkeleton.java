@@ -27,6 +27,10 @@ import net.minecraft.world.entity.player.EntityHuman;
 import net.minecraft.world.level.GeneratorAccess;
 import net.minecraft.world.level.World;
 
+// CraftBukkit start
+import org.bukkit.event.entity.EntityRemoveEvent;
+// CraftBukkit end
+
 public class EntityHorseSkeleton extends EntityHorseAbstract {
 
     private final PathfinderGoalHorseTrap skeletonTrapGoal = new PathfinderGoalHorseTrap(this);
@@ -122,7 +126,7 @@ public class EntityHorseSkeleton extends EntityHorseAbstract {
     public void aiStep() {
         super.aiStep();
         if (this.isTrap() && this.trapTime++ >= 18000) {
-            this.discard();
+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
         }
 
     }

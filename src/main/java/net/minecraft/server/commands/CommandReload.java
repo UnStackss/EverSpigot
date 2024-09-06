@@ -44,6 +44,16 @@ public class CommandReload {
         return collection1;
     }
 
+    // CraftBukkit start
+    public static void reload(MinecraftServer minecraftserver) {
+        ResourcePackRepository resourcepackrepository = minecraftserver.getPackRepository();
+        SaveData savedata = minecraftserver.getWorldData();
+        Collection<String> collection = resourcepackrepository.getSelectedIds();
+        Collection<String> collection1 = discoverNewPacks(resourcepackrepository, savedata, collection);
+        minecraftserver.reloadResources(collection1);
+    }
+    // CraftBukkit end
+
     public static void register(CommandDispatcher<CommandListenerWrapper> commanddispatcher) {
         commanddispatcher.register((LiteralArgumentBuilder) ((LiteralArgumentBuilder) net.minecraft.commands.CommandDispatcher.literal("reload").requires((commandlistenerwrapper) -> {
             return commandlistenerwrapper.hasPermission(2);

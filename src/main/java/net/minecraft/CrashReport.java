@@ -36,6 +36,7 @@ public class CrashReport {
     public CrashReport(String s, Throwable throwable) {
         this.title = s;
         this.exception = throwable;
+        this.systemReport.setDetail("CraftBukkit Information", new org.bukkit.craftbukkit.CraftCrashReport()); // CraftBukkit
     }
 
     public String getTitle() {

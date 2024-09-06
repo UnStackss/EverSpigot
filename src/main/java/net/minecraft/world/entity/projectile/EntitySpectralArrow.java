@@ -41,7 +41,7 @@ public class EntitySpectralArrow extends EntityArrow {
         super.doPostHurtEffects(entityliving);
         MobEffect mobeffect = new MobEffect(MobEffects.GLOWING, this.duration, 0);
 
-        entityliving.addEffect(mobeffect, this.getEffectSource());
+        entityliving.addEffect(mobeffect, this.getEffectSource(), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.ARROW); // CraftBukkit
     }
 
     @Override

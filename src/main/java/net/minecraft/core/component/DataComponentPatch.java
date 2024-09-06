@@ -61,7 +61,7 @@ public final class DataComponentPatch {
             }
         }
 
-        return reference2objectmap;
+        return (Reference2ObjectMap) reference2objectmap; // CraftBukkit - decompile error
     });
     public static final StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch> STREAM_CODEC = new StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch>() {
         public DataComponentPatch decode(RegistryFriendlyByteBuf registryfriendlybytebuf) {
@@ -144,7 +144,7 @@ public final class DataComponentPatch {
         }
 
         private static <T> void encodeComponent(RegistryFriendlyByteBuf registryfriendlybytebuf, DataComponentType<T> datacomponenttype, Object object) {
-            datacomponenttype.streamCodec().encode(registryfriendlybytebuf, object);
+            datacomponenttype.streamCodec().encode(registryfriendlybytebuf, (T) object); // CraftBukkit - decompile error
         }
     };
     private static final String REMOVED_PREFIX = "!";
@@ -270,6 +270,42 @@ public final class DataComponentPatch {
         private final Reference2ObjectMap<DataComponentType<?>, Optional<?>> map = new Reference2ObjectArrayMap();
 
         a() {}
+
+        // CraftBukkit start
+        public void copy(DataComponentPatch orig) {
+            this.map.putAll(orig.map);
+        }
+
+        public void clear(DataComponentType<?> type) {
+            this.map.remove(type);
+        }
+
+        public boolean isSet(DataComponentType<?> type) {
+            return map.containsKey(type);
+        }
+
+        public boolean isEmpty() {
+            return this.map.isEmpty();
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            }
+
+            if (object instanceof DataComponentPatch.a patch) {
+                return this.map.equals(patch.map);
+            }
+
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return this.map.hashCode();
+        }
+        // CraftBukkit end
 
         public <T> DataComponentPatch.a set(DataComponentType<T> datacomponenttype, T t0) {
             this.map.put(datacomponenttype, Optional.of(t0));

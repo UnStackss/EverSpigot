@@ -206,7 +206,7 @@ public class TrialSpawnerData {
     }
 
     public void resetAfterBecomingOminous(TrialSpawner trialspawner, WorldServer worldserver) {
-        Stream stream = this.currentMobs.stream();
+        Stream<UUID> stream = this.currentMobs.stream(); // CraftBukkit - decompile error
 
         Objects.requireNonNull(worldserver);
         stream.map(worldserver::getEntity).forEach((entity) -> {
@@ -218,7 +218,7 @@ public class TrialSpawnerData {
                     entityinsentient.dropPreservedEquipment();
                 }
 
-                entity.remove(Entity.RemovalReason.DISCARDED);
+                entity.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - Add bukkit remove cause;
             }
         });
         if (!trialspawner.getOminousConfig().spawnPotentialsDefinition().isEmpty()) {

@@ -13,6 +13,8 @@ import net.minecraft.world.level.block.state.IBlockData;
 
 public class ItemSign extends ItemBlockWallable {
 
+    public static BlockPosition openSign; // CraftBukkit
+
     public ItemSign(Item.Info item_info, Block block, Block block1) {
         super(block, block1, item_info, EnumDirection.DOWN);
     }
@@ -35,7 +37,10 @@ public class ItemSign extends ItemBlockWallable {
                 if (block instanceof BlockSign) {
                     BlockSign blocksign = (BlockSign) block;
 
-                    blocksign.openTextEdit(entityhuman, tileentitysign, true);
+                    // CraftBukkit start - SPIGOT-4678
+                    // blocksign.openTextEdit(entityhuman, tileentitysign, true);
+                    ItemSign.openSign = blockposition;
+                    // CraftBukkit end
                 }
             }
         }

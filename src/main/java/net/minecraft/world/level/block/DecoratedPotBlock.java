@@ -239,6 +239,11 @@ public class DecoratedPotBlock extends BlockTileEntity implements IBlockWaterlog
         BlockPosition blockposition = movingobjectpositionblock.getBlockPos();
 
         if (!world.isClientSide && iprojectile.mayInteract(world, blockposition) && iprojectile.mayBreak(world)) {
+            // CraftBukkit start - call EntityChangeBlockEvent
+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(iprojectile, blockposition, this.getFluidState(iblockdata).createLegacyBlock())) {
+                return;
+            }
+            // CraftBukkit end
             world.setBlock(blockposition, (IBlockData) iblockdata.setValue(DecoratedPotBlock.CRACKED, true), 4);
             world.destroyBlock(blockposition, true, iprojectile);
         }

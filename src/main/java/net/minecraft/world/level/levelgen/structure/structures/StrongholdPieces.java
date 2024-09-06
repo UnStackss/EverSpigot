@@ -53,7 +53,7 @@ public class StrongholdPieces {
                 public boolean doPlace(int i) {
                     return super.doPlace(i) && i > 5;
                 }
-            }};
+            } }; // CraftBukkit - fix decompile styling
     private static List<StrongholdPieces.f> currentPieces;
     static Class<? extends StrongholdPieces.p> imposedPiece;
     private static int totalWeight;
@@ -1136,6 +1136,8 @@ public class StrongholdPieces {
 
                 if (structureboundingbox.isInside(blockposition_mutableblockposition)) {
                     this.hasPlacedSpawner = true;
+                    // CraftBukkit start
+                    /*
                     generatoraccessseed.setBlock(blockposition_mutableblockposition, Blocks.SPAWNER.defaultBlockState(), 2);
                     TileEntity tileentity = generatoraccessseed.getBlockEntity(blockposition_mutableblockposition);
 
@@ -1144,6 +1146,9 @@ public class StrongholdPieces {
 
                         tileentitymobspawner.setEntityId(EntityTypes.SILVERFISH, randomsource);
                     }
+                    */
+                    placeCraftSpawner(generatoraccessseed, blockposition_mutableblockposition, org.bukkit.entity.EntityType.SILVERFISH, 2);
+                    // CraftBukkit end
                 }
             }
 

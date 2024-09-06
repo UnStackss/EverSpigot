@@ -208,11 +208,12 @@ public class BlockLectern extends BlockTileEntity {
     }
 
     private void popBook(IBlockData iblockdata, World world, BlockPosition blockposition) {
-        TileEntity tileentity = world.getBlockEntity(blockposition);
+        TileEntity tileentity = world.getBlockEntity(blockposition, false); // CraftBukkit - don't validate, type may be changed already
 
         if (tileentity instanceof TileEntityLectern tileentitylectern) {
             EnumDirection enumdirection = (EnumDirection) iblockdata.getValue(BlockLectern.FACING);
             ItemStack itemstack = tileentitylectern.getBook().copy();
+            if (itemstack.isEmpty()) return; // CraftBukkit - SPIGOT-5500
             float f = 0.25F * (float) enumdirection.getStepX();
             float f1 = 0.25F * (float) enumdirection.getStepZ();
             EntityItem entityitem = new EntityItem(world, (double) blockposition.getX() + 0.5D + (double) f, (double) (blockposition.getY() + 1), (double) blockposition.getZ() + 0.5D + (double) f1, itemstack);

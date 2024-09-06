@@ -121,4 +121,6 @@ public interface GeneratorAccess extends ICombinedAccess, IWorldTime {
     default void gameEvent(ResourceKey<GameEvent> resourcekey, BlockPosition blockposition, GameEvent.a gameevent_a) {
         this.gameEvent((Holder) this.registryAccess().registryOrThrow(Registries.GAME_EVENT).getHolderOrThrow(resourcekey), blockposition, gameevent_a);
     }
+
+    net.minecraft.server.level.WorldServer getMinecraftWorld(); // CraftBukkit
 }

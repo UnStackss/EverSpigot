@@ -94,7 +94,7 @@ public abstract class EntityPiglinAbstract extends EntityMonster {
     }
 
     protected void finishConversion(WorldServer worldserver) {
-        EntityPigZombie entitypigzombie = (EntityPigZombie) this.convertTo(EntityTypes.ZOMBIFIED_PIGLIN, true);
+        EntityPigZombie entitypigzombie = (EntityPigZombie) this.convertTo(EntityTypes.ZOMBIFIED_PIGLIN, true, org.bukkit.event.entity.EntityTransformEvent.TransformReason.PIGLIN_ZOMBIFIED, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.PIGLIN_ZOMBIFIED); // CraftBukkit - add spawn and transform reasons
 
         if (entitypigzombie != null) {
             entitypigzombie.addEffect(new MobEffect(MobEffects.CONFUSION, 200, 0));

@@ -62,7 +62,22 @@ public abstract class ItemProjectileWeapon extends Item {
                 IProjectile iprojectile = this.createProjectile(worldserver, entityliving, itemstack, itemstack1, flag);
 
                 this.shootProjectile(entityliving, iprojectile, i, f, f1, f6, entityliving1);
-                worldserver.addFreshEntity(iprojectile);
+                // CraftBukkit start
+                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(entityliving, itemstack, itemstack1, iprojectile, enumhand, f, true);
+                if (event.isCancelled()) {
+                    event.getProjectile().remove();
+                    return;
+                }
+
+                if (event.getProjectile() == iprojectile.getBukkitEntity()) {
+                    if (!worldserver.addFreshEntity(iprojectile)) {
+                        if (entityliving instanceof net.minecraft.server.level.EntityPlayer) {
+                            ((net.minecraft.server.level.EntityPlayer) entityliving).getBukkitEntity().updateInventory();
+                        }
+                        return;
+                    }
+                }
+                // CraftBukkit end
                 itemstack.hurtAndBreak(this.getDurabilityUse(itemstack1), entityliving, EntityLiving.getSlotForHand(enumhand));
                 if (itemstack.isEmpty()) {
                     break;
