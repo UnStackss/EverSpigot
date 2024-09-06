@@ -2,58 +2,58 @@ package net.minecraft.world.level.block.entity;
 
 import com.google.common.annotations.VisibleForTesting;
 import net.minecraft.Optionull;
-import net.minecraft.advancements.CriterionTriggers;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffects;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.level.World;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SculkCatalystBlock;
 import net.minecraft.world.level.block.SculkSpreader;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.BlockPositionSource;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.gameevent.GameEventListener;
 import net.minecraft.world.level.gameevent.PositionSource;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.phys.Vec3;
 
-public class SculkCatalystBlockEntity extends TileEntity implements GameEventListener.b<SculkCatalystBlockEntity.CatalystListener> {
+public class SculkCatalystBlockEntity extends BlockEntity implements GameEventListener.Provider<SculkCatalystBlockEntity.CatalystListener> {
 
     private final SculkCatalystBlockEntity.CatalystListener catalystListener;
 
-    public SculkCatalystBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
-        super(TileEntityTypes.SCULK_CATALYST, blockposition, iblockdata);
-        this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(iblockdata, new BlockPositionSource(blockposition));
-        catalystListener.level = level; // CraftBukkit
+    public SculkCatalystBlockEntity(BlockPos pos, BlockState state) {
+        super(BlockEntityType.SCULK_CATALYST, pos, state);
+        this.catalystListener = new SculkCatalystBlockEntity.CatalystListener(state, new BlockPositionSource(pos));
+        this.catalystListener.level = this.level; // CraftBukkit
     }
 
-    public static void serverTick(World world, BlockPosition blockposition, IBlockData iblockdata, SculkCatalystBlockEntity sculkcatalystblockentity) {
-        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = sculkcatalystblockentity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
-        sculkcatalystblockentity.catalystListener.getSculkSpreader().updateCursors(world, blockposition, world.getRandom(), true);
+    public static void serverTick(Level world, BlockPos pos, BlockState state, SculkCatalystBlockEntity blockEntity) {
+        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = blockEntity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
+        blockEntity.catalystListener.getSculkSpreader().updateCursors(world, pos, world.getRandom(), true);
         org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = null; // CraftBukkit
     }
 
     @Override
-    protected void loadAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.loadAdditional(nbttagcompound, holderlookup_a);
-        this.catalystListener.sculkSpreader.load(nbttagcompound);
+    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.loadAdditional(nbt, registryLookup);
+        this.catalystListener.sculkSpreader.load(nbt);
     }
 
     @Override
-    protected void saveAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        this.catalystListener.sculkSpreader.save(nbttagcompound);
-        super.saveAdditional(nbttagcompound, holderlookup_a);
+    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        this.catalystListener.sculkSpreader.save(nbt);
+        super.saveAdditional(nbt, registryLookup);
     }
 
     @Override
@@ -65,15 +65,15 @@ public class SculkCatalystBlockEntity extends TileEntity implements GameEventLis
 
         public static final int PULSE_TICKS = 8;
         final SculkSpreader sculkSpreader;
-        private final IBlockData blockState;
+        private final BlockState blockState;
         private final PositionSource positionSource;
-        private World level; // CraftBukkit
+        private Level level; // CraftBukkit
 
-        public CatalystListener(IBlockData iblockdata, PositionSource positionsource) {
-            this.blockState = iblockdata;
-            this.positionSource = positionsource;
+        public CatalystListener(BlockState state, PositionSource positionSource) {
+            this.blockState = state;
+            this.positionSource = positionSource;
             this.sculkSpreader = SculkSpreader.createLevelSpreader();
-            this.sculkSpreader.level = level; // CraftBukkit
+            this.sculkSpreader.level = this.level; // CraftBukkit
         }
 
         @Override
@@ -87,30 +87,30 @@ public class SculkCatalystBlockEntity extends TileEntity implements GameEventLis
         }
 
         @Override
-        public GameEventListener.a getDeliveryMode() {
-            return GameEventListener.a.BY_DISTANCE;
+        public GameEventListener.DeliveryMode getDeliveryMode() {
+            return GameEventListener.DeliveryMode.BY_DISTANCE;
         }
 
         @Override
-        public boolean handleGameEvent(WorldServer worldserver, Holder<GameEvent> holder, GameEvent.a gameevent_a, Vec3D vec3d) {
-            if (holder.is((Holder) GameEvent.ENTITY_DIE)) {
-                Entity entity = gameevent_a.sourceEntity();
+        public boolean handleGameEvent(ServerLevel world, Holder<GameEvent> event, GameEvent.Context emitter, Vec3 emitterPos) {
+            if (event.is((Holder) GameEvent.ENTITY_DIE)) {
+                Entity entity = emitter.sourceEntity();
 
-                if (entity instanceof EntityLiving) {
-                    EntityLiving entityliving = (EntityLiving) entity;
+                if (entity instanceof LivingEntity) {
+                    LivingEntity entityliving = (LivingEntity) entity;
 
                     if (!entityliving.wasExperienceConsumed()) {
                         DamageSource damagesource = entityliving.getLastDamageSource();
-                        int i = entityliving.getExperienceReward(worldserver, (Entity) Optionull.map(damagesource, DamageSource::getEntity));
+                        int i = entityliving.getExperienceReward(world, (Entity) Optionull.map(damagesource, DamageSource::getEntity));
 
                         if (entityliving.shouldDropExperience() && i > 0) {
-                            this.sculkSpreader.addCursors(BlockPosition.containing(vec3d.relative(EnumDirection.UP, 0.5D)), i);
-                            this.tryAwardItSpreadsAdvancement(worldserver, entityliving);
+                            this.sculkSpreader.addCursors(BlockPos.containing(emitterPos.relative(Direction.UP, 0.5D)), i);
+                            this.tryAwardItSpreadsAdvancement(world, entityliving);
                         }
 
                         entityliving.skipDropExperience();
-                        this.positionSource.getPosition(worldserver).ifPresent((vec3d1) -> {
-                            this.bloom(worldserver, BlockPosition.containing(vec3d1), this.blockState, worldserver.getRandom());
+                        this.positionSource.getPosition(world).ifPresent((vec3d1) -> {
+                            this.bloom(world, BlockPos.containing(vec3d1), this.blockState, world.getRandom());
                         });
                     }
 
@@ -126,20 +126,20 @@ public class SculkCatalystBlockEntity extends TileEntity implements GameEventLis
             return this.sculkSpreader;
         }
 
-        public void bloom(WorldServer worldserver, BlockPosition blockposition, IBlockData iblockdata, RandomSource randomsource) {
-            worldserver.setBlock(blockposition, (IBlockData) iblockdata.setValue(SculkCatalystBlock.PULSE, true), 3);
-            worldserver.scheduleTick(blockposition, iblockdata.getBlock(), 8);
-            worldserver.sendParticles(Particles.SCULK_SOUL, (double) blockposition.getX() + 0.5D, (double) blockposition.getY() + 1.15D, (double) blockposition.getZ() + 0.5D, 2, 0.2D, 0.0D, 0.2D, 0.0D);
-            worldserver.playSound((EntityHuman) null, blockposition, SoundEffects.SCULK_CATALYST_BLOOM, SoundCategory.BLOCKS, 2.0F, 0.6F + randomsource.nextFloat() * 0.4F);
+        public void bloom(ServerLevel world, BlockPos pos, BlockState state, RandomSource random) {
+            world.setBlock(pos, (BlockState) state.setValue(SculkCatalystBlock.PULSE, true), 3);
+            world.scheduleTick(pos, state.getBlock(), 8);
+            world.sendParticles(ParticleTypes.SCULK_SOUL, (double) pos.getX() + 0.5D, (double) pos.getY() + 1.15D, (double) pos.getZ() + 0.5D, 2, 0.2D, 0.0D, 0.2D, 0.0D);
+            world.playSound((Player) null, pos, SoundEvents.SCULK_CATALYST_BLOOM, SoundSource.BLOCKS, 2.0F, 0.6F + random.nextFloat() * 0.4F);
         }
 
-        private void tryAwardItSpreadsAdvancement(World world, EntityLiving entityliving) {
-            EntityLiving entityliving1 = entityliving.getLastHurtByMob();
+        private void tryAwardItSpreadsAdvancement(Level world, LivingEntity deadEntity) {
+            LivingEntity entityliving1 = deadEntity.getLastHurtByMob();
 
-            if (entityliving1 instanceof EntityPlayer entityplayer) {
-                DamageSource damagesource = entityliving.getLastDamageSource() == null ? world.damageSources().playerAttack(entityplayer) : entityliving.getLastDamageSource();
+            if (entityliving1 instanceof ServerPlayer entityplayer) {
+                DamageSource damagesource = deadEntity.getLastDamageSource() == null ? world.damageSources().playerAttack(entityplayer) : deadEntity.getLastDamageSource();
 
-                CriterionTriggers.KILL_MOB_NEAR_SCULK_CATALYST.trigger(entityplayer, entityliving, damagesource);
+                CriteriaTriggers.KILL_MOB_NEAR_SCULK_CATALYST.trigger(entityplayer, deadEntity, damagesource);
             }
 
         }

@@ -1,23 +1,23 @@
 package net.minecraft.world.damagesource;
 
 import javax.annotation.Nullable;
-import net.minecraft.core.IRegistry;
-import net.minecraft.core.IRegistryCustom;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.entity.projectile.EntityArrow;
-import net.minecraft.world.entity.projectile.EntityFireballFireball;
-import net.minecraft.world.entity.projectile.EntityFireworks;
-import net.minecraft.world.entity.projectile.EntityWitherSkull;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Fireball;
+import net.minecraft.world.entity.projectile.FireworkRocketEntity;
+import net.minecraft.world.entity.projectile.WitherSkull;
 import net.minecraft.world.level.Explosion;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.phys.Vec3;
 
 public class DamageSources {
 
-    private final IRegistry<DamageType> damageTypes;
+    private final Registry<DamageType> damageTypes;
     private final DamageSource inFire;
     private final DamageSource campfire;
     private final DamageSource lightningBolt;
@@ -46,8 +46,8 @@ public class DamageSources {
     private final DamageSource melting;
     private final DamageSource poison;
 
-    public DamageSources(IRegistryCustom iregistrycustom) {
-        this.damageTypes = iregistrycustom.registryOrThrow(Registries.DAMAGE_TYPE);
+    public DamageSources(RegistryAccess registryManager) {
+        this.damageTypes = registryManager.registryOrThrow(Registries.DAMAGE_TYPE);
         this.melting = this.source(DamageTypes.ON_FIRE).melting();
         this.poison = this.source(DamageTypes.MAGIC).poison();
         // CraftBukkit end
@@ -77,16 +77,16 @@ public class DamageSources {
         this.genericKill = this.source(DamageTypes.GENERIC_KILL);
     }
 
-    private DamageSource source(ResourceKey<DamageType> resourcekey) {
-        return new DamageSource(this.damageTypes.getHolderOrThrow(resourcekey));
+    private DamageSource source(ResourceKey<DamageType> key) {
+        return new DamageSource(this.damageTypes.getHolderOrThrow(key));
     }
 
-    private DamageSource source(ResourceKey<DamageType> resourcekey, @Nullable Entity entity) {
-        return new DamageSource(this.damageTypes.getHolderOrThrow(resourcekey), entity);
+    private DamageSource source(ResourceKey<DamageType> key, @Nullable Entity attacker) {
+        return new DamageSource(this.damageTypes.getHolderOrThrow(key), attacker);
     }
 
-    private DamageSource source(ResourceKey<DamageType> resourcekey, @Nullable Entity entity, @Nullable Entity entity1) {
-        return new DamageSource(this.damageTypes.getHolderOrThrow(resourcekey), entity, entity1);
+    private DamageSource source(ResourceKey<DamageType> key, @Nullable Entity source, @Nullable Entity attacker) {
+        return new DamageSource(this.damageTypes.getHolderOrThrow(key), source, attacker);
     }
 
     // CraftBukkit start
@@ -187,85 +187,85 @@ public class DamageSources {
         return this.stalagmite;
     }
 
-    public DamageSource fallingBlock(Entity entity) {
-        return this.source(DamageTypes.FALLING_BLOCK, entity);
+    public DamageSource fallingBlock(Entity attacker) {
+        return this.source(DamageTypes.FALLING_BLOCK, attacker);
     }
 
-    public DamageSource anvil(Entity entity) {
-        return this.source(DamageTypes.FALLING_ANVIL, entity);
+    public DamageSource anvil(Entity attacker) {
+        return this.source(DamageTypes.FALLING_ANVIL, attacker);
     }
 
-    public DamageSource fallingStalactite(Entity entity) {
-        return this.source(DamageTypes.FALLING_STALACTITE, entity);
+    public DamageSource fallingStalactite(Entity attacker) {
+        return this.source(DamageTypes.FALLING_STALACTITE, attacker);
     }
 
-    public DamageSource sting(EntityLiving entityliving) {
-        return this.source(DamageTypes.STING, entityliving);
+    public DamageSource sting(LivingEntity attacker) {
+        return this.source(DamageTypes.STING, attacker);
     }
 
-    public DamageSource mobAttack(EntityLiving entityliving) {
-        return this.source(DamageTypes.MOB_ATTACK, entityliving);
+    public DamageSource mobAttack(LivingEntity attacker) {
+        return this.source(DamageTypes.MOB_ATTACK, attacker);
     }
 
-    public DamageSource noAggroMobAttack(EntityLiving entityliving) {
-        return this.source(DamageTypes.MOB_ATTACK_NO_AGGRO, entityliving);
+    public DamageSource noAggroMobAttack(LivingEntity attacker) {
+        return this.source(DamageTypes.MOB_ATTACK_NO_AGGRO, attacker);
     }
 
-    public DamageSource playerAttack(EntityHuman entityhuman) {
-        return this.source(DamageTypes.PLAYER_ATTACK, entityhuman);
+    public DamageSource playerAttack(Player attacker) {
+        return this.source(DamageTypes.PLAYER_ATTACK, attacker);
     }
 
-    public DamageSource arrow(EntityArrow entityarrow, @Nullable Entity entity) {
-        return this.source(DamageTypes.ARROW, entityarrow, entity);
+    public DamageSource arrow(AbstractArrow source, @Nullable Entity attacker) {
+        return this.source(DamageTypes.ARROW, source, attacker);
     }
 
-    public DamageSource trident(Entity entity, @Nullable Entity entity1) {
-        return this.source(DamageTypes.TRIDENT, entity, entity1);
+    public DamageSource trident(Entity source, @Nullable Entity attacker) {
+        return this.source(DamageTypes.TRIDENT, source, attacker);
     }
 
-    public DamageSource mobProjectile(Entity entity, @Nullable EntityLiving entityliving) {
-        return this.source(DamageTypes.MOB_PROJECTILE, entity, entityliving);
+    public DamageSource mobProjectile(Entity source, @Nullable LivingEntity attacker) {
+        return this.source(DamageTypes.MOB_PROJECTILE, source, attacker);
     }
 
-    public DamageSource spit(Entity entity, @Nullable EntityLiving entityliving) {
-        return this.source(DamageTypes.SPIT, entity, entityliving);
+    public DamageSource spit(Entity source, @Nullable LivingEntity attacker) {
+        return this.source(DamageTypes.SPIT, source, attacker);
     }
 
-    public DamageSource windCharge(Entity entity, @Nullable EntityLiving entityliving) {
-        return this.source(DamageTypes.WIND_CHARGE, entity, entityliving);
+    public DamageSource windCharge(Entity source, @Nullable LivingEntity attacker) {
+        return this.source(DamageTypes.WIND_CHARGE, source, attacker);
     }
 
-    public DamageSource fireworks(EntityFireworks entityfireworks, @Nullable Entity entity) {
-        return this.source(DamageTypes.FIREWORKS, entityfireworks, entity);
+    public DamageSource fireworks(FireworkRocketEntity source, @Nullable Entity attacker) {
+        return this.source(DamageTypes.FIREWORKS, source, attacker);
     }
 
-    public DamageSource fireball(EntityFireballFireball entityfireballfireball, @Nullable Entity entity) {
-        return entity == null ? this.source(DamageTypes.UNATTRIBUTED_FIREBALL, entityfireballfireball) : this.source(DamageTypes.FIREBALL, entityfireballfireball, entity);
+    public DamageSource fireball(Fireball source, @Nullable Entity attacker) {
+        return attacker == null ? this.source(DamageTypes.UNATTRIBUTED_FIREBALL, source) : this.source(DamageTypes.FIREBALL, source, attacker);
     }
 
-    public DamageSource witherSkull(EntityWitherSkull entitywitherskull, Entity entity) {
-        return this.source(DamageTypes.WITHER_SKULL, entitywitherskull, entity);
+    public DamageSource witherSkull(WitherSkull source, Entity attacker) {
+        return this.source(DamageTypes.WITHER_SKULL, source, attacker);
     }
 
-    public DamageSource thrown(Entity entity, @Nullable Entity entity1) {
-        return this.source(DamageTypes.THROWN, entity, entity1);
+    public DamageSource thrown(Entity source, @Nullable Entity attacker) {
+        return this.source(DamageTypes.THROWN, source, attacker);
     }
 
-    public DamageSource indirectMagic(Entity entity, @Nullable Entity entity1) {
-        return this.source(DamageTypes.INDIRECT_MAGIC, entity, entity1);
+    public DamageSource indirectMagic(Entity source, @Nullable Entity attacker) {
+        return this.source(DamageTypes.INDIRECT_MAGIC, source, attacker);
     }
 
-    public DamageSource thorns(Entity entity) {
-        return this.source(DamageTypes.THORNS, entity);
+    public DamageSource thorns(Entity attacker) {
+        return this.source(DamageTypes.THORNS, attacker);
     }
 
     public DamageSource explosion(@Nullable Explosion explosion) {
         return explosion != null ? this.explosion(explosion.getDirectSourceEntity(), explosion.getIndirectSourceEntity()) : this.explosion((Entity) null, (Entity) null);
     }
 
-    public DamageSource explosion(@Nullable Entity entity, @Nullable Entity entity1) {
+    public DamageSource explosion(@Nullable Entity source, @Nullable Entity attacker) {
         // CraftBukkit start
-        return this.explosion(entity, entity1, entity1 != null && entity != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION);
+        return this.explosion(source, attacker, attacker != null && source != null ? DamageTypes.PLAYER_EXPLOSION : DamageTypes.EXPLOSION);
     }
 
     public DamageSource explosion(@Nullable Entity entity, @Nullable Entity entity1, ResourceKey<DamageType> resourceKey) {
@@ -273,16 +273,16 @@ public class DamageSources {
         // CraftBukkit end
     }
 
-    public DamageSource sonicBoom(Entity entity) {
-        return this.source(DamageTypes.SONIC_BOOM, entity);
+    public DamageSource sonicBoom(Entity attacker) {
+        return this.source(DamageTypes.SONIC_BOOM, attacker);
     }
 
-    public DamageSource badRespawnPointExplosion(Vec3D vec3d) {
+    public DamageSource badRespawnPointExplosion(Vec3 position) {
         // CraftBukkit start
-        return badRespawnPointExplosion(vec3d, null);
+        return this.badRespawnPointExplosion(position, null);
     }
 
-    public DamageSource badRespawnPointExplosion(Vec3D vec3d, org.bukkit.block.BlockState blockState) {
+    public DamageSource badRespawnPointExplosion(Vec3 vec3d, org.bukkit.block.BlockState blockState) {
         return new DamageSource(this.damageTypes.getHolderOrThrow(DamageTypes.BAD_RESPAWN_POINT), vec3d).directBlockState(blockState);
         // CraftBukkit end
     }

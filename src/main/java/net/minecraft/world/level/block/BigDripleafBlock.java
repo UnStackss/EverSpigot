@@ -6,55 +6,54 @@ import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.Map;
 import javax.annotation.Nullable;
-import net.minecraft.SystemUtils;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.tags.TagsBlock;
-import net.minecraft.util.MathHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.entity.projectile.IProjectile;
-import net.minecraft.world.item.context.BlockActionContext;
-import net.minecraft.world.level.GeneratorAccess;
-import net.minecraft.world.level.IBlockAccess;
-import net.minecraft.world.level.IWorldReader;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelHeightAccessor;
-import net.minecraft.world.level.World;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.level.block.state.BlockStateList;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockProperties;
-import net.minecraft.world.level.block.state.properties.BlockStateBoolean;
-import net.minecraft.world.level.block.state.properties.BlockStateEnum;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.Tilt;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidType;
-import net.minecraft.world.level.material.FluidTypes;
-import net.minecraft.world.phys.MovingObjectPositionBlock;
-import net.minecraft.world.phys.shapes.OperatorBoolean;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraft.world.phys.shapes.VoxelShapeCollision;
-import net.minecraft.world.phys.shapes.VoxelShapes;
-
 // CraftBukkit start
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.event.entity.EntityInteractEvent;
 // CraftBukkit end
 
-public class BigDripleafBlock extends BlockFacingHorizontal implements IBlockFragilePlantElement, IBlockWaterlogged {
+public class BigDripleafBlock extends HorizontalDirectionalBlock implements BonemealableBlock, SimpleWaterloggedBlock {
 
     public static final MapCodec<BigDripleafBlock> CODEC = simpleCodec(BigDripleafBlock::new);
-    private static final BlockStateBoolean WATERLOGGED = BlockProperties.WATERLOGGED;
-    private static final BlockStateEnum<Tilt> TILT = BlockProperties.TILT;
+    private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+    private static final EnumProperty<Tilt> TILT = BlockStateProperties.TILT;
     private static final int NO_TICK = -1;
-    private static final Object2IntMap<Tilt> DELAY_UNTIL_NEXT_TILT_STATE = (Object2IntMap) SystemUtils.make(new Object2IntArrayMap(), (object2intarraymap) -> {
+    private static final Object2IntMap<Tilt> DELAY_UNTIL_NEXT_TILT_STATE = (Object2IntMap) Util.make(new Object2IntArrayMap(), (object2intarraymap) -> {
         object2intarraymap.defaultReturnValue(-1);
         object2intarraymap.put(Tilt.UNSTABLE, 10);
         object2intarraymap.put(Tilt.PARTIAL, 10);
@@ -64,136 +63,136 @@ public class BigDripleafBlock extends BlockFacingHorizontal implements IBlockFra
     private static final int STEM_WIDTH = 6;
     private static final int ENTITY_DETECTION_MIN_Y = 11;
     private static final int LOWEST_LEAF_TOP = 13;
-    private static final Map<Tilt, VoxelShape> LEAF_SHAPES = ImmutableMap.of(Tilt.NONE, Block.box(0.0D, 11.0D, 0.0D, 16.0D, 15.0D, 16.0D), Tilt.UNSTABLE, Block.box(0.0D, 11.0D, 0.0D, 16.0D, 15.0D, 16.0D), Tilt.PARTIAL, Block.box(0.0D, 11.0D, 0.0D, 16.0D, 13.0D, 16.0D), Tilt.FULL, VoxelShapes.empty());
+    private static final Map<Tilt, VoxelShape> LEAF_SHAPES = ImmutableMap.of(Tilt.NONE, Block.box(0.0D, 11.0D, 0.0D, 16.0D, 15.0D, 16.0D), Tilt.UNSTABLE, Block.box(0.0D, 11.0D, 0.0D, 16.0D, 15.0D, 16.0D), Tilt.PARTIAL, Block.box(0.0D, 11.0D, 0.0D, 16.0D, 13.0D, 16.0D), Tilt.FULL, Shapes.empty());
     private static final VoxelShape STEM_SLICER = Block.box(0.0D, 13.0D, 0.0D, 16.0D, 16.0D, 16.0D);
-    private static final Map<EnumDirection, VoxelShape> STEM_SHAPES = ImmutableMap.of(EnumDirection.NORTH, VoxelShapes.joinUnoptimized(BigDripleafStemBlock.NORTH_SHAPE, BigDripleafBlock.STEM_SLICER, OperatorBoolean.ONLY_FIRST), EnumDirection.SOUTH, VoxelShapes.joinUnoptimized(BigDripleafStemBlock.SOUTH_SHAPE, BigDripleafBlock.STEM_SLICER, OperatorBoolean.ONLY_FIRST), EnumDirection.EAST, VoxelShapes.joinUnoptimized(BigDripleafStemBlock.EAST_SHAPE, BigDripleafBlock.STEM_SLICER, OperatorBoolean.ONLY_FIRST), EnumDirection.WEST, VoxelShapes.joinUnoptimized(BigDripleafStemBlock.WEST_SHAPE, BigDripleafBlock.STEM_SLICER, OperatorBoolean.ONLY_FIRST));
-    private final Map<IBlockData, VoxelShape> shapesCache;
+    private static final Map<Direction, VoxelShape> STEM_SHAPES = ImmutableMap.of(Direction.NORTH, Shapes.joinUnoptimized(BigDripleafStemBlock.NORTH_SHAPE, BigDripleafBlock.STEM_SLICER, BooleanOp.ONLY_FIRST), Direction.SOUTH, Shapes.joinUnoptimized(BigDripleafStemBlock.SOUTH_SHAPE, BigDripleafBlock.STEM_SLICER, BooleanOp.ONLY_FIRST), Direction.EAST, Shapes.joinUnoptimized(BigDripleafStemBlock.EAST_SHAPE, BigDripleafBlock.STEM_SLICER, BooleanOp.ONLY_FIRST), Direction.WEST, Shapes.joinUnoptimized(BigDripleafStemBlock.WEST_SHAPE, BigDripleafBlock.STEM_SLICER, BooleanOp.ONLY_FIRST));
+    private final Map<BlockState, VoxelShape> shapesCache;
 
     @Override
     public MapCodec<BigDripleafBlock> codec() {
         return BigDripleafBlock.CODEC;
     }
 
-    protected BigDripleafBlock(BlockBase.Info blockbase_info) {
-        super(blockbase_info);
-        this.registerDefaultState((IBlockData) ((IBlockData) ((IBlockData) ((IBlockData) this.stateDefinition.any()).setValue(BigDripleafBlock.WATERLOGGED, false)).setValue(BigDripleafBlock.FACING, EnumDirection.NORTH)).setValue(BigDripleafBlock.TILT, Tilt.NONE));
+    protected BigDripleafBlock(BlockBehaviour.Properties settings) {
+        super(settings);
+        this.registerDefaultState((BlockState) ((BlockState) ((BlockState) ((BlockState) this.stateDefinition.any()).setValue(BigDripleafBlock.WATERLOGGED, false)).setValue(BigDripleafBlock.FACING, Direction.NORTH)).setValue(BigDripleafBlock.TILT, Tilt.NONE));
         this.shapesCache = this.getShapeForEachState(BigDripleafBlock::calculateShape);
     }
 
-    private static VoxelShape calculateShape(IBlockData iblockdata) {
-        return VoxelShapes.or((VoxelShape) BigDripleafBlock.LEAF_SHAPES.get(iblockdata.getValue(BigDripleafBlock.TILT)), (VoxelShape) BigDripleafBlock.STEM_SHAPES.get(iblockdata.getValue(BigDripleafBlock.FACING)));
+    private static VoxelShape calculateShape(BlockState state) {
+        return Shapes.or((VoxelShape) BigDripleafBlock.LEAF_SHAPES.get(state.getValue(BigDripleafBlock.TILT)), (VoxelShape) BigDripleafBlock.STEM_SHAPES.get(state.getValue(BigDripleafBlock.FACING)));
     }
 
-    public static void placeWithRandomHeight(GeneratorAccess generatoraccess, RandomSource randomsource, BlockPosition blockposition, EnumDirection enumdirection) {
-        int i = MathHelper.nextInt(randomsource, 2, 5);
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = blockposition.mutable();
+    public static void placeWithRandomHeight(LevelAccessor world, RandomSource random, BlockPos pos, Direction direction) {
+        int i = Mth.nextInt(random, 2, 5);
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = pos.mutable();
         int j = 0;
 
-        while (j < i && canPlaceAt(generatoraccess, blockposition_mutableblockposition, generatoraccess.getBlockState(blockposition_mutableblockposition))) {
+        while (j < i && BigDripleafBlock.canPlaceAt(world, blockposition_mutableblockposition, world.getBlockState(blockposition_mutableblockposition))) {
             ++j;
-            blockposition_mutableblockposition.move(EnumDirection.UP);
+            blockposition_mutableblockposition.move(Direction.UP);
         }
 
-        int k = blockposition.getY() + j - 1;
+        int k = pos.getY() + j - 1;
 
-        blockposition_mutableblockposition.setY(blockposition.getY());
+        blockposition_mutableblockposition.setY(pos.getY());
 
         while (blockposition_mutableblockposition.getY() < k) {
-            BigDripleafStemBlock.place(generatoraccess, blockposition_mutableblockposition, generatoraccess.getFluidState(blockposition_mutableblockposition), enumdirection);
-            blockposition_mutableblockposition.move(EnumDirection.UP);
+            BigDripleafStemBlock.place(world, blockposition_mutableblockposition, world.getFluidState(blockposition_mutableblockposition), direction);
+            blockposition_mutableblockposition.move(Direction.UP);
         }
 
-        place(generatoraccess, blockposition_mutableblockposition, generatoraccess.getFluidState(blockposition_mutableblockposition), enumdirection);
+        BigDripleafBlock.place(world, blockposition_mutableblockposition, world.getFluidState(blockposition_mutableblockposition), direction);
     }
 
-    private static boolean canReplace(IBlockData iblockdata) {
-        return iblockdata.isAir() || iblockdata.is(Blocks.WATER) || iblockdata.is(Blocks.SMALL_DRIPLEAF);
+    private static boolean canReplace(BlockState state) {
+        return state.isAir() || state.is(Blocks.WATER) || state.is(Blocks.SMALL_DRIPLEAF);
     }
 
-    protected static boolean canPlaceAt(LevelHeightAccessor levelheightaccessor, BlockPosition blockposition, IBlockData iblockdata) {
-        return !levelheightaccessor.isOutsideBuildHeight(blockposition) && canReplace(iblockdata);
+    protected static boolean canPlaceAt(LevelHeightAccessor world, BlockPos pos, BlockState state) {
+        return !world.isOutsideBuildHeight(pos) && BigDripleafBlock.canReplace(state);
     }
 
-    protected static boolean place(GeneratorAccess generatoraccess, BlockPosition blockposition, Fluid fluid, EnumDirection enumdirection) {
-        IBlockData iblockdata = (IBlockData) ((IBlockData) Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(BigDripleafBlock.WATERLOGGED, fluid.isSourceOfType(FluidTypes.WATER))).setValue(BigDripleafBlock.FACING, enumdirection);
+    protected static boolean place(LevelAccessor world, BlockPos pos, FluidState fluidState, Direction direction) {
+        BlockState iblockdata = (BlockState) ((BlockState) Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(BigDripleafBlock.WATERLOGGED, fluidState.isSourceOfType(Fluids.WATER))).setValue(BigDripleafBlock.FACING, direction);
 
-        return generatoraccess.setBlock(blockposition, iblockdata, 3);
-    }
-
-    @Override
-    protected void onProjectileHit(World world, IBlockData iblockdata, MovingObjectPositionBlock movingobjectpositionblock, IProjectile iprojectile) {
-        this.setTiltAndScheduleTick(iblockdata, world, movingobjectpositionblock.getBlockPos(), Tilt.FULL, SoundEffects.BIG_DRIPLEAF_TILT_DOWN, iprojectile); // CraftBukkit
+        return world.setBlock(pos, iblockdata, 3);
     }
 
     @Override
-    protected Fluid getFluidState(IBlockData iblockdata) {
-        return (Boolean) iblockdata.getValue(BigDripleafBlock.WATERLOGGED) ? FluidTypes.WATER.getSource(false) : super.getFluidState(iblockdata);
+    protected void onProjectileHit(Level world, BlockState state, BlockHitResult hit, Projectile projectile) {
+        this.setTiltAndScheduleTick(state, world, hit.getBlockPos(), Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, projectile); // CraftBukkit
     }
 
     @Override
-    protected boolean canSurvive(IBlockData iblockdata, IWorldReader iworldreader, BlockPosition blockposition) {
-        BlockPosition blockposition1 = blockposition.below();
-        IBlockData iblockdata1 = iworldreader.getBlockState(blockposition1);
-
-        return iblockdata1.is((Block) this) || iblockdata1.is(Blocks.BIG_DRIPLEAF_STEM) || iblockdata1.is(TagsBlock.BIG_DRIPLEAF_PLACEABLE);
+    protected FluidState getFluidState(BlockState state) {
+        return (Boolean) state.getValue(BigDripleafBlock.WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
     @Override
-    protected IBlockData updateShape(IBlockData iblockdata, EnumDirection enumdirection, IBlockData iblockdata1, GeneratorAccess generatoraccess, BlockPosition blockposition, BlockPosition blockposition1) {
-        if (enumdirection == EnumDirection.DOWN && !iblockdata.canSurvive(generatoraccess, blockposition)) {
+    protected boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
+        BlockPos blockposition1 = pos.below();
+        BlockState iblockdata1 = world.getBlockState(blockposition1);
+
+        return iblockdata1.is((Block) this) || iblockdata1.is(Blocks.BIG_DRIPLEAF_STEM) || iblockdata1.is(BlockTags.BIG_DRIPLEAF_PLACEABLE);
+    }
+
+    @Override
+    protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+        if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
             return Blocks.AIR.defaultBlockState();
         } else {
-            if ((Boolean) iblockdata.getValue(BigDripleafBlock.WATERLOGGED)) {
-                generatoraccess.scheduleTick(blockposition, (FluidType) FluidTypes.WATER, FluidTypes.WATER.getTickDelay(generatoraccess));
+            if ((Boolean) state.getValue(BigDripleafBlock.WATERLOGGED)) {
+                world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
             }
 
-            return enumdirection == EnumDirection.UP && iblockdata1.is((Block) this) ? Blocks.BIG_DRIPLEAF_STEM.withPropertiesOf(iblockdata) : super.updateShape(iblockdata, enumdirection, iblockdata1, generatoraccess, blockposition, blockposition1);
+            return direction == Direction.UP && neighborState.is((Block) this) ? Blocks.BIG_DRIPLEAF_STEM.withPropertiesOf(state) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
         }
     }
 
     @Override
-    public boolean isValidBonemealTarget(IWorldReader iworldreader, BlockPosition blockposition, IBlockData iblockdata) {
-        IBlockData iblockdata1 = iworldreader.getBlockState(blockposition.above());
+    public boolean isValidBonemealTarget(LevelReader world, BlockPos pos, BlockState state) {
+        BlockState iblockdata1 = world.getBlockState(pos.above());
 
-        return canReplace(iblockdata1);
+        return BigDripleafBlock.canReplace(iblockdata1);
     }
 
     @Override
-    public boolean isBonemealSuccess(World world, RandomSource randomsource, BlockPosition blockposition, IBlockData iblockdata) {
+    public boolean isBonemealSuccess(Level world, RandomSource random, BlockPos pos, BlockState state) {
         return true;
     }
 
     @Override
-    public void performBonemeal(WorldServer worldserver, RandomSource randomsource, BlockPosition blockposition, IBlockData iblockdata) {
-        BlockPosition blockposition1 = blockposition.above();
-        IBlockData iblockdata1 = worldserver.getBlockState(blockposition1);
+    public void performBonemeal(ServerLevel world, RandomSource random, BlockPos pos, BlockState state) {
+        BlockPos blockposition1 = pos.above();
+        BlockState iblockdata1 = world.getBlockState(blockposition1);
 
-        if (canPlaceAt(worldserver, blockposition1, iblockdata1)) {
-            EnumDirection enumdirection = (EnumDirection) iblockdata.getValue(BigDripleafBlock.FACING);
+        if (BigDripleafBlock.canPlaceAt(world, blockposition1, iblockdata1)) {
+            Direction enumdirection = (Direction) state.getValue(BigDripleafBlock.FACING);
 
-            BigDripleafStemBlock.place(worldserver, blockposition, iblockdata.getFluidState(), enumdirection);
-            place(worldserver, blockposition1, iblockdata1.getFluidState(), enumdirection);
+            BigDripleafStemBlock.place(world, pos, state.getFluidState(), enumdirection);
+            BigDripleafBlock.place(world, blockposition1, iblockdata1.getFluidState(), enumdirection);
         }
 
     }
 
     @Override
-    protected void entityInside(IBlockData iblockdata, World world, BlockPosition blockposition, Entity entity) {
+    protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
         if (!world.isClientSide) {
-            if (iblockdata.getValue(BigDripleafBlock.TILT) == Tilt.NONE && canEntityTilt(blockposition, entity) && !world.hasNeighborSignal(blockposition)) {
+            if (state.getValue(BigDripleafBlock.TILT) == Tilt.NONE && BigDripleafBlock.canEntityTilt(pos, entity) && !world.hasNeighborSignal(pos)) {
                 // CraftBukkit start - tilt dripleaf
                 org.bukkit.event.Cancellable cancellable;
-                if (entity instanceof EntityHuman) {
-                    cancellable = CraftEventFactory.callPlayerInteractEvent((EntityHuman) entity, org.bukkit.event.block.Action.PHYSICAL, blockposition, null, null, null);
+                if (entity instanceof Player) {
+                    cancellable = CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
                 } else {
-                    cancellable = new EntityInteractEvent(entity.getBukkitEntity(), world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+                    cancellable = new EntityInteractEvent(entity.getBukkitEntity(), world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
                     world.getCraftServer().getPluginManager().callEvent((EntityInteractEvent) cancellable);
                 }
 
                 if (cancellable.isCancelled()) {
                     return;
                 }
-                this.setTiltAndScheduleTick(iblockdata, world, blockposition, Tilt.UNSTABLE, (SoundEffect) null, entity);
+                this.setTiltAndScheduleTick(state, world, pos, Tilt.UNSTABLE, (SoundEvent) null, entity);
                 // CraftBukkit end
             }
 
@@ -201,47 +200,47 @@ public class BigDripleafBlock extends BlockFacingHorizontal implements IBlockFra
     }
 
     @Override
-    protected void tick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
-        if (worldserver.hasNeighborSignal(blockposition)) {
-            resetTilt(iblockdata, worldserver, blockposition);
+    protected void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+        if (world.hasNeighborSignal(pos)) {
+            BigDripleafBlock.resetTilt(state, world, pos);
         } else {
-            Tilt tilt = (Tilt) iblockdata.getValue(BigDripleafBlock.TILT);
+            Tilt tilt = (Tilt) state.getValue(BigDripleafBlock.TILT);
 
             if (tilt == Tilt.UNSTABLE) {
-                this.setTiltAndScheduleTick(iblockdata, worldserver, blockposition, Tilt.PARTIAL, SoundEffects.BIG_DRIPLEAF_TILT_DOWN, null); // CraftBukkit
+                this.setTiltAndScheduleTick(state, world, pos, Tilt.PARTIAL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, null); // CraftBukkit
             } else if (tilt == Tilt.PARTIAL) {
-                this.setTiltAndScheduleTick(iblockdata, worldserver, blockposition, Tilt.FULL, SoundEffects.BIG_DRIPLEAF_TILT_DOWN, null); // CraftBukkit
+                this.setTiltAndScheduleTick(state, world, pos, Tilt.FULL, SoundEvents.BIG_DRIPLEAF_TILT_DOWN, null); // CraftBukkit
             } else if (tilt == Tilt.FULL) {
-                resetTilt(iblockdata, worldserver, blockposition);
+                BigDripleafBlock.resetTilt(state, world, pos);
             }
 
         }
     }
 
     @Override
-    protected void neighborChanged(IBlockData iblockdata, World world, BlockPosition blockposition, Block block, BlockPosition blockposition1, boolean flag) {
-        if (world.hasNeighborSignal(blockposition)) {
-            resetTilt(iblockdata, world, blockposition);
+    protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+        if (world.hasNeighborSignal(pos)) {
+            BigDripleafBlock.resetTilt(state, world, pos);
         }
 
     }
 
-    private static void playTiltSound(World world, BlockPosition blockposition, SoundEffect soundeffect) {
-        float f = MathHelper.randomBetween(world.random, 0.8F, 1.2F);
+    private static void playTiltSound(Level world, BlockPos pos, SoundEvent soundEvent) {
+        float f = Mth.randomBetween(world.random, 0.8F, 1.2F);
 
-        world.playSound((EntityHuman) null, blockposition, soundeffect, SoundCategory.BLOCKS, 1.0F, f);
+        world.playSound((Player) null, pos, soundEvent, SoundSource.BLOCKS, 1.0F, f);
     }
 
-    private static boolean canEntityTilt(BlockPosition blockposition, Entity entity) {
-        return entity.onGround() && entity.position().y > (double) ((float) blockposition.getY() + 0.6875F);
+    private static boolean canEntityTilt(BlockPos pos, Entity entity) {
+        return entity.onGround() && entity.position().y > (double) ((float) pos.getY() + 0.6875F);
     }
 
     // CraftBukkit start
-    private void setTiltAndScheduleTick(IBlockData iblockdata, World world, BlockPosition blockposition, Tilt tilt, @Nullable SoundEffect soundeffect, @Nullable Entity entity) {
-        if (!setTilt(iblockdata, world, blockposition, tilt, entity)) return;
+    private void setTiltAndScheduleTick(BlockState iblockdata, Level world, BlockPos blockposition, Tilt tilt, @Nullable SoundEvent soundeffect, @Nullable Entity entity) {
+        if (!BigDripleafBlock.setTilt(iblockdata, world, blockposition, tilt, entity)) return;
         // CraftBukkit end
         if (soundeffect != null) {
-            playTiltSound(world, blockposition, soundeffect);
+            BigDripleafBlock.playTiltSound(world, blockposition, soundeffect);
         }
 
         int i = BigDripleafBlock.DELAY_UNTIL_NEXT_TILT_STATE.getInt(tilt);
@@ -252,16 +251,16 @@ public class BigDripleafBlock extends BlockFacingHorizontal implements IBlockFra
 
     }
 
-    private static void resetTilt(IBlockData iblockdata, World world, BlockPosition blockposition) {
-        setTilt(iblockdata, world, blockposition, Tilt.NONE, null); // CraftBukkit
-        if (iblockdata.getValue(BigDripleafBlock.TILT) != Tilt.NONE) {
-            playTiltSound(world, blockposition, SoundEffects.BIG_DRIPLEAF_TILT_UP);
+    private static void resetTilt(BlockState state, Level world, BlockPos pos) {
+        BigDripleafBlock.setTilt(state, world, pos, Tilt.NONE, null); // CraftBukkit
+        if (state.getValue(BigDripleafBlock.TILT) != Tilt.NONE) {
+            BigDripleafBlock.playTiltSound(world, pos, SoundEvents.BIG_DRIPLEAF_TILT_UP);
         }
 
     }
 
     // CraftBukkit start
-    private static boolean setTilt(IBlockData iblockdata, World world, BlockPosition blockposition, Tilt tilt, @Nullable Entity entity) {
+    private static boolean setTilt(BlockState iblockdata, Level world, BlockPos blockposition, Tilt tilt, @Nullable Entity entity) {
         if (entity != null) {
             if (!CraftEventFactory.callEntityChangeBlockEvent(entity, blockposition, iblockdata.setValue(BigDripleafBlock.TILT, tilt))) {
                 return false;
@@ -270,7 +269,7 @@ public class BigDripleafBlock extends BlockFacingHorizontal implements IBlockFra
         // CraftBukkit end
         Tilt tilt1 = (Tilt) iblockdata.getValue(BigDripleafBlock.TILT);
 
-        world.setBlock(blockposition, (IBlockData) iblockdata.setValue(BigDripleafBlock.TILT, tilt), 2);
+        world.setBlock(blockposition, (BlockState) iblockdata.setValue(BigDripleafBlock.TILT, tilt), 2);
         if (tilt.causesVibration() && tilt != tilt1) {
             world.gameEvent((Entity) null, (Holder) GameEvent.BLOCK_CHANGE, blockposition);
         }
@@ -279,26 +278,26 @@ public class BigDripleafBlock extends BlockFacingHorizontal implements IBlockFra
     }
 
     @Override
-    protected VoxelShape getCollisionShape(IBlockData iblockdata, IBlockAccess iblockaccess, BlockPosition blockposition, VoxelShapeCollision voxelshapecollision) {
-        return (VoxelShape) BigDripleafBlock.LEAF_SHAPES.get(iblockdata.getValue(BigDripleafBlock.TILT));
+    protected VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+        return (VoxelShape) BigDripleafBlock.LEAF_SHAPES.get(state.getValue(BigDripleafBlock.TILT));
     }
 
     @Override
-    protected VoxelShape getShape(IBlockData iblockdata, IBlockAccess iblockaccess, BlockPosition blockposition, VoxelShapeCollision voxelshapecollision) {
-        return (VoxelShape) this.shapesCache.get(iblockdata);
+    protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+        return (VoxelShape) this.shapesCache.get(state);
     }
 
     @Override
-    public IBlockData getStateForPlacement(BlockActionContext blockactioncontext) {
-        IBlockData iblockdata = blockactioncontext.getLevel().getBlockState(blockactioncontext.getClickedPos().below());
-        Fluid fluid = blockactioncontext.getLevel().getFluidState(blockactioncontext.getClickedPos());
+    public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        BlockState iblockdata = ctx.getLevel().getBlockState(ctx.getClickedPos().below());
+        FluidState fluid = ctx.getLevel().getFluidState(ctx.getClickedPos());
         boolean flag = iblockdata.is(Blocks.BIG_DRIPLEAF) || iblockdata.is(Blocks.BIG_DRIPLEAF_STEM);
 
-        return (IBlockData) ((IBlockData) this.defaultBlockState().setValue(BigDripleafBlock.WATERLOGGED, fluid.isSourceOfType(FluidTypes.WATER))).setValue(BigDripleafBlock.FACING, flag ? (EnumDirection) iblockdata.getValue(BigDripleafBlock.FACING) : blockactioncontext.getHorizontalDirection().getOpposite());
+        return (BlockState) ((BlockState) this.defaultBlockState().setValue(BigDripleafBlock.WATERLOGGED, fluid.isSourceOfType(Fluids.WATER))).setValue(BigDripleafBlock.FACING, flag ? (Direction) iblockdata.getValue(BigDripleafBlock.FACING) : ctx.getHorizontalDirection().getOpposite());
     }
 
     @Override
-    protected void createBlockStateDefinition(BlockStateList.a<Block, IBlockData> blockstatelist_a) {
-        blockstatelist_a.add(BigDripleafBlock.WATERLOGGED, BigDripleafBlock.FACING, BigDripleafBlock.TILT);
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(BigDripleafBlock.WATERLOGGED, BigDripleafBlock.FACING, BigDripleafBlock.TILT);
     }
 }

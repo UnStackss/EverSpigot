@@ -12,39 +12,39 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import net.minecraft.SystemUtils;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.particles.ParticleParam;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.nbt.DynamicOpsNBT;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketListenerPlayOut;
-import net.minecraft.network.protocol.game.PacketPlayOutTileEntityData;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.stats.StatisticList;
-import net.minecraft.util.MathHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.stats.Stats;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.VaultBlock;
-import net.minecraft.world.level.block.entity.TileEntity;
-import net.minecraft.world.level.block.entity.TileEntityTypes;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.LootTables;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameterSets;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameters;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
 // CraftBukkit start
@@ -54,7 +54,7 @@ import org.bukkit.event.block.BlockDispenseLootEvent;
 import org.bukkit.event.block.VaultDisplayItemEvent;
 // CraftBukkit end
 
-public class VaultBlockEntity extends TileEntity {
+public class VaultBlockEntity extends BlockEntity {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private final VaultServerData serverData = new VaultServerData();
@@ -62,46 +62,46 @@ public class VaultBlockEntity extends TileEntity {
     private final VaultClientData clientData = new VaultClientData();
     private VaultConfig config;
 
-    public VaultBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
-        super(TileEntityTypes.VAULT, blockposition, iblockdata);
+    public VaultBlockEntity(BlockPos pos, BlockState state) {
+        super(BlockEntityType.VAULT, pos, state);
         this.config = VaultConfig.DEFAULT;
     }
 
     @Nullable
     @Override
-    public Packet<PacketListenerPlayOut> getUpdatePacket() {
-        return PacketPlayOutTileEntityData.create(this);
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override
-    public NBTTagCompound getUpdateTag(HolderLookup.a holderlookup_a) {
-        return (NBTTagCompound) SystemUtils.make(new NBTTagCompound(), (nbttagcompound) -> {
-            nbttagcompound.put("shared_data", encode(VaultSharedData.CODEC, this.sharedData, holderlookup_a));
+    public CompoundTag getUpdateTag(HolderLookup.Provider registryLookup) {
+        return (CompoundTag) Util.make(new CompoundTag(), (nbttagcompound) -> {
+            nbttagcompound.put("shared_data", VaultBlockEntity.encode(VaultSharedData.CODEC, this.sharedData, registryLookup));
         });
     }
 
     @Override
-    protected void saveAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.saveAdditional(nbttagcompound, holderlookup_a);
-        nbttagcompound.put("config", encode(VaultConfig.CODEC, this.config, holderlookup_a));
-        nbttagcompound.put("shared_data", encode(VaultSharedData.CODEC, this.sharedData, holderlookup_a));
-        nbttagcompound.put("server_data", encode(VaultServerData.CODEC, this.serverData, holderlookup_a));
+    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.saveAdditional(nbt, registryLookup);
+        nbt.put("config", VaultBlockEntity.encode(VaultConfig.CODEC, this.config, registryLookup));
+        nbt.put("shared_data", VaultBlockEntity.encode(VaultSharedData.CODEC, this.sharedData, registryLookup));
+        nbt.put("server_data", VaultBlockEntity.encode(VaultServerData.CODEC, this.serverData, registryLookup));
     }
 
-    private static <T> NBTBase encode(Codec<T> codec, T t0, HolderLookup.a holderlookup_a) {
-        return (NBTBase) codec.encodeStart(holderlookup_a.createSerializationContext(DynamicOpsNBT.INSTANCE), t0).getOrThrow();
+    private static <T> Tag encode(Codec<T> codec, T value, HolderLookup.Provider registries) {
+        return (Tag) codec.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), value).getOrThrow();
     }
 
     @Override
-    protected void loadAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.loadAdditional(nbttagcompound, holderlookup_a);
-        DynamicOps<NBTBase> dynamicops = holderlookup_a.createSerializationContext(DynamicOpsNBT.INSTANCE);
+    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.loadAdditional(nbt, registryLookup);
+        DynamicOps<Tag> dynamicops = registryLookup.createSerializationContext(NbtOps.INSTANCE);
         DataResult dataresult;
         Logger logger;
         Optional optional;
 
-        if (nbttagcompound.contains("server_data")) {
-            dataresult = VaultServerData.CODEC.parse(dynamicops, nbttagcompound.get("server_data"));
+        if (nbt.contains("server_data")) {
+            dataresult = VaultServerData.CODEC.parse(dynamicops, nbt.get("server_data"));
             logger = VaultBlockEntity.LOGGER;
             Objects.requireNonNull(logger);
             optional = ((DataResult<VaultServerData>) dataresult).resultOrPartial(logger::error); // CraftBukkit - decompile error
@@ -111,8 +111,8 @@ public class VaultBlockEntity extends TileEntity {
             ((Optional<VaultServerData>) optional).ifPresent(vaultserverdata::set); // CraftBukkit - decompile error
         }
 
-        if (nbttagcompound.contains("config")) {
-            dataresult = VaultConfig.CODEC.parse(dynamicops, nbttagcompound.get("config"));
+        if (nbt.contains("config")) {
+            dataresult = VaultConfig.CODEC.parse(dynamicops, nbt.get("config"));
             logger = VaultBlockEntity.LOGGER;
             Objects.requireNonNull(logger);
             ((DataResult<VaultConfig>) dataresult).resultOrPartial(logger::error).ifPresent((vaultconfig) -> { // CraftBukkit - decompile error
@@ -120,8 +120,8 @@ public class VaultBlockEntity extends TileEntity {
             });
         }
 
-        if (nbttagcompound.contains("shared_data")) {
-            dataresult = VaultSharedData.CODEC.parse(dynamicops, nbttagcompound.get("shared_data"));
+        if (nbt.contains("shared_data")) {
+            dataresult = VaultSharedData.CODEC.parse(dynamicops, nbt.get("shared_data"));
             logger = VaultBlockEntity.LOGGER;
             Objects.requireNonNull(logger);
             optional = ((DataResult<VaultSharedData>) dataresult).resultOrPartial(logger::error); // CraftBukkit - decompile error
@@ -151,11 +151,11 @@ public class VaultBlockEntity extends TileEntity {
     }
 
     @VisibleForTesting
-    public void setConfig(VaultConfig vaultconfig) {
-        this.config = vaultconfig;
+    public void setConfig(VaultConfig config) {
+        this.config = config;
     }
 
-    public static final class a {
+    public static final class Client {
 
         private static final int PARTICLE_TICK_RATE = 20;
         private static final float IDLE_PARTICLE_CHANCE = 0.5F;
@@ -163,202 +163,202 @@ public class VaultBlockEntity extends TileEntity {
         private static final int ACTIVATION_PARTICLE_COUNT = 20;
         private static final int DEACTIVATION_PARTICLE_COUNT = 20;
 
-        public a() {}
+        public Client() {}
 
-        public static void tick(World world, BlockPosition blockposition, IBlockData iblockdata, VaultClientData vaultclientdata, VaultSharedData vaultshareddata) {
-            vaultclientdata.updateDisplayItemSpin();
+        public static void tick(Level world, BlockPos pos, BlockState state, VaultClientData clientData, VaultSharedData sharedData) {
+            clientData.updateDisplayItemSpin();
             if (world.getGameTime() % 20L == 0L) {
-                emitConnectionParticlesForNearbyPlayers(world, blockposition, iblockdata, vaultshareddata);
+                Client.emitConnectionParticlesForNearbyPlayers(world, pos, state, sharedData);
             }
 
-            emitIdleParticles(world, blockposition, vaultshareddata, (Boolean) iblockdata.getValue(VaultBlock.OMINOUS) ? Particles.SOUL_FIRE_FLAME : Particles.SMALL_FLAME);
-            playIdleSounds(world, blockposition, vaultshareddata);
+            Client.emitIdleParticles(world, pos, sharedData, (Boolean) state.getValue(VaultBlock.OMINOUS) ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.SMALL_FLAME);
+            Client.playIdleSounds(world, pos, sharedData);
         }
 
-        public static void emitActivationParticles(World world, BlockPosition blockposition, IBlockData iblockdata, VaultSharedData vaultshareddata, ParticleParam particleparam) {
-            emitConnectionParticlesForNearbyPlayers(world, blockposition, iblockdata, vaultshareddata);
+        public static void emitActivationParticles(Level world, BlockPos pos, BlockState state, VaultSharedData sharedData, ParticleOptions particle) {
+            Client.emitConnectionParticlesForNearbyPlayers(world, pos, state, sharedData);
             RandomSource randomsource = world.random;
 
             for (int i = 0; i < 20; ++i) {
-                Vec3D vec3d = randomPosInsideCage(blockposition, randomsource);
+                Vec3 vec3d = Client.randomPosInsideCage(pos, randomsource);
 
-                world.addParticle(Particles.SMOKE, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
-                world.addParticle(particleparam, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
+                world.addParticle(ParticleTypes.SMOKE, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
+                world.addParticle(particle, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
             }
 
         }
 
-        public static void emitDeactivationParticles(World world, BlockPosition blockposition, ParticleParam particleparam) {
+        public static void emitDeactivationParticles(Level world, BlockPos pos, ParticleOptions particle) {
             RandomSource randomsource = world.random;
 
             for (int i = 0; i < 20; ++i) {
-                Vec3D vec3d = randomPosCenterOfCage(blockposition, randomsource);
-                Vec3D vec3d1 = new Vec3D(randomsource.nextGaussian() * 0.02D, randomsource.nextGaussian() * 0.02D, randomsource.nextGaussian() * 0.02D);
+                Vec3 vec3d = Client.randomPosCenterOfCage(pos, randomsource);
+                Vec3 vec3d1 = new Vec3(randomsource.nextGaussian() * 0.02D, randomsource.nextGaussian() * 0.02D, randomsource.nextGaussian() * 0.02D);
 
-                world.addParticle(particleparam, vec3d.x(), vec3d.y(), vec3d.z(), vec3d1.x(), vec3d1.y(), vec3d1.z());
+                world.addParticle(particle, vec3d.x(), vec3d.y(), vec3d.z(), vec3d1.x(), vec3d1.y(), vec3d1.z());
             }
 
         }
 
-        private static void emitIdleParticles(World world, BlockPosition blockposition, VaultSharedData vaultshareddata, ParticleParam particleparam) {
+        private static void emitIdleParticles(Level world, BlockPos pos, VaultSharedData sharedData, ParticleOptions particle) {
             RandomSource randomsource = world.getRandom();
 
             if (randomsource.nextFloat() <= 0.5F) {
-                Vec3D vec3d = randomPosInsideCage(blockposition, randomsource);
+                Vec3 vec3d = Client.randomPosInsideCage(pos, randomsource);
 
-                world.addParticle(Particles.SMOKE, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
-                if (shouldDisplayActiveEffects(vaultshareddata)) {
-                    world.addParticle(particleparam, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
+                world.addParticle(ParticleTypes.SMOKE, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
+                if (Client.shouldDisplayActiveEffects(sharedData)) {
+                    world.addParticle(particle, vec3d.x(), vec3d.y(), vec3d.z(), 0.0D, 0.0D, 0.0D);
                 }
             }
 
         }
 
-        private static void emitConnectionParticlesForPlayer(World world, Vec3D vec3d, EntityHuman entityhuman) {
+        private static void emitConnectionParticlesForPlayer(Level world, Vec3 pos, Player player) {
             RandomSource randomsource = world.random;
-            Vec3D vec3d1 = vec3d.vectorTo(entityhuman.position().add(0.0D, (double) (entityhuman.getBbHeight() / 2.0F), 0.0D));
-            int i = MathHelper.nextInt(randomsource, 2, 5);
+            Vec3 vec3d1 = pos.vectorTo(player.position().add(0.0D, (double) (player.getBbHeight() / 2.0F), 0.0D));
+            int i = Mth.nextInt(randomsource, 2, 5);
 
             for (int j = 0; j < i; ++j) {
-                Vec3D vec3d2 = vec3d1.offsetRandom(randomsource, 1.0F);
+                Vec3 vec3d2 = vec3d1.offsetRandom(randomsource, 1.0F);
 
-                world.addParticle(Particles.VAULT_CONNECTION, vec3d.x(), vec3d.y(), vec3d.z(), vec3d2.x(), vec3d2.y(), vec3d2.z());
+                world.addParticle(ParticleTypes.VAULT_CONNECTION, pos.x(), pos.y(), pos.z(), vec3d2.x(), vec3d2.y(), vec3d2.z());
             }
 
         }
 
-        private static void emitConnectionParticlesForNearbyPlayers(World world, BlockPosition blockposition, IBlockData iblockdata, VaultSharedData vaultshareddata) {
-            Set<UUID> set = vaultshareddata.getConnectedPlayers();
+        private static void emitConnectionParticlesForNearbyPlayers(Level world, BlockPos pos, BlockState state, VaultSharedData sharedData) {
+            Set<UUID> set = sharedData.getConnectedPlayers();
 
             if (!set.isEmpty()) {
-                Vec3D vec3d = keyholePos(blockposition, (EnumDirection) iblockdata.getValue(VaultBlock.FACING));
+                Vec3 vec3d = Client.keyholePos(pos, (Direction) state.getValue(VaultBlock.FACING));
                 Iterator iterator = set.iterator();
 
                 while (iterator.hasNext()) {
                     UUID uuid = (UUID) iterator.next();
-                    EntityHuman entityhuman = world.getPlayerByUUID(uuid);
+                    Player entityhuman = world.getPlayerByUUID(uuid);
 
-                    if (entityhuman != null && isWithinConnectionRange(blockposition, vaultshareddata, entityhuman)) {
-                        emitConnectionParticlesForPlayer(world, vec3d, entityhuman);
+                    if (entityhuman != null && Client.isWithinConnectionRange(pos, sharedData, entityhuman)) {
+                        Client.emitConnectionParticlesForPlayer(world, vec3d, entityhuman);
                     }
                 }
 
             }
         }
 
-        private static boolean isWithinConnectionRange(BlockPosition blockposition, VaultSharedData vaultshareddata, EntityHuman entityhuman) {
-            return entityhuman.blockPosition().distSqr(blockposition) <= MathHelper.square(vaultshareddata.connectedParticlesRange());
+        private static boolean isWithinConnectionRange(BlockPos pos, VaultSharedData sharedData, Player player) {
+            return player.blockPosition().distSqr(pos) <= Mth.square(sharedData.connectedParticlesRange());
         }
 
-        private static void playIdleSounds(World world, BlockPosition blockposition, VaultSharedData vaultshareddata) {
-            if (shouldDisplayActiveEffects(vaultshareddata)) {
+        private static void playIdleSounds(Level world, BlockPos pos, VaultSharedData sharedData) {
+            if (Client.shouldDisplayActiveEffects(sharedData)) {
                 RandomSource randomsource = world.getRandom();
 
                 if (randomsource.nextFloat() <= 0.02F) {
-                    world.playLocalSound(blockposition, SoundEffects.VAULT_AMBIENT, SoundCategory.BLOCKS, randomsource.nextFloat() * 0.25F + 0.75F, randomsource.nextFloat() + 0.5F, false);
+                    world.playLocalSound(pos, SoundEvents.VAULT_AMBIENT, SoundSource.BLOCKS, randomsource.nextFloat() * 0.25F + 0.75F, randomsource.nextFloat() + 0.5F, false);
                 }
 
             }
         }
 
-        public static boolean shouldDisplayActiveEffects(VaultSharedData vaultshareddata) {
-            return vaultshareddata.hasDisplayItem();
+        public static boolean shouldDisplayActiveEffects(VaultSharedData sharedData) {
+            return sharedData.hasDisplayItem();
         }
 
-        private static Vec3D randomPosCenterOfCage(BlockPosition blockposition, RandomSource randomsource) {
-            return Vec3D.atLowerCornerOf(blockposition).add(MathHelper.nextDouble(randomsource, 0.4D, 0.6D), MathHelper.nextDouble(randomsource, 0.4D, 0.6D), MathHelper.nextDouble(randomsource, 0.4D, 0.6D));
+        private static Vec3 randomPosCenterOfCage(BlockPos pos, RandomSource random) {
+            return Vec3.atLowerCornerOf(pos).add(Mth.nextDouble(random, 0.4D, 0.6D), Mth.nextDouble(random, 0.4D, 0.6D), Mth.nextDouble(random, 0.4D, 0.6D));
         }
 
-        private static Vec3D randomPosInsideCage(BlockPosition blockposition, RandomSource randomsource) {
-            return Vec3D.atLowerCornerOf(blockposition).add(MathHelper.nextDouble(randomsource, 0.1D, 0.9D), MathHelper.nextDouble(randomsource, 0.25D, 0.75D), MathHelper.nextDouble(randomsource, 0.1D, 0.9D));
+        private static Vec3 randomPosInsideCage(BlockPos pos, RandomSource random) {
+            return Vec3.atLowerCornerOf(pos).add(Mth.nextDouble(random, 0.1D, 0.9D), Mth.nextDouble(random, 0.25D, 0.75D), Mth.nextDouble(random, 0.1D, 0.9D));
         }
 
-        private static Vec3D keyholePos(BlockPosition blockposition, EnumDirection enumdirection) {
-            return Vec3D.atBottomCenterOf(blockposition).add((double) enumdirection.getStepX() * 0.5D, 1.75D, (double) enumdirection.getStepZ() * 0.5D);
+        private static Vec3 keyholePos(BlockPos pos, Direction direction) {
+            return Vec3.atBottomCenterOf(pos).add((double) direction.getStepX() * 0.5D, 1.75D, (double) direction.getStepZ() * 0.5D);
         }
     }
 
-    public static final class b {
+    public static final class Server {
 
         private static final int UNLOCKING_DELAY_TICKS = 14;
         private static final int DISPLAY_CYCLE_TICK_RATE = 20;
         private static final int INSERT_FAIL_SOUND_BUFFER_TICKS = 15;
 
-        public b() {}
+        public Server() {}
 
-        public static void tick(WorldServer worldserver, BlockPosition blockposition, IBlockData iblockdata, VaultConfig vaultconfig, VaultServerData vaultserverdata, VaultSharedData vaultshareddata) {
-            VaultState vaultstate = (VaultState) iblockdata.getValue(VaultBlock.STATE);
+        public static void tick(ServerLevel world, BlockPos pos, BlockState state, VaultConfig config, VaultServerData serverData, VaultSharedData sharedData) {
+            VaultState vaultstate = (VaultState) state.getValue(VaultBlock.STATE);
 
-            if (shouldCycleDisplayItem(worldserver.getGameTime(), vaultstate)) {
-                cycleDisplayItemFromLootTable(worldserver, vaultstate, vaultconfig, vaultshareddata, blockposition);
+            if (Server.shouldCycleDisplayItem(world.getGameTime(), vaultstate)) {
+                Server.cycleDisplayItemFromLootTable(world, vaultstate, config, sharedData, pos);
             }
 
-            IBlockData iblockdata1 = iblockdata;
+            BlockState iblockdata1 = state;
 
-            if (worldserver.getGameTime() >= vaultserverdata.stateUpdatingResumesAt()) {
-                iblockdata1 = (IBlockData) iblockdata.setValue(VaultBlock.STATE, vaultstate.tickAndGetNext(worldserver, blockposition, vaultconfig, vaultserverdata, vaultshareddata));
-                if (!iblockdata.equals(iblockdata1)) {
-                    setVaultState(worldserver, blockposition, iblockdata, iblockdata1, vaultconfig, vaultshareddata);
+            if (world.getGameTime() >= serverData.stateUpdatingResumesAt()) {
+                iblockdata1 = (BlockState) state.setValue(VaultBlock.STATE, vaultstate.tickAndGetNext(world, pos, config, serverData, sharedData));
+                if (!state.equals(iblockdata1)) {
+                    Server.setVaultState(world, pos, state, iblockdata1, config, sharedData);
                 }
             }
 
-            if (vaultserverdata.isDirty || vaultshareddata.isDirty) {
-                VaultBlockEntity.setChanged(worldserver, blockposition, iblockdata);
-                if (vaultshareddata.isDirty) {
-                    worldserver.sendBlockUpdated(blockposition, iblockdata, iblockdata1, 2);
+            if (serverData.isDirty || sharedData.isDirty) {
+                VaultBlockEntity.setChanged(world, pos, state);
+                if (sharedData.isDirty) {
+                    world.sendBlockUpdated(pos, state, iblockdata1, 2);
                 }
 
-                vaultserverdata.isDirty = false;
-                vaultshareddata.isDirty = false;
+                serverData.isDirty = false;
+                sharedData.isDirty = false;
             }
 
         }
 
-        public static void tryInsertKey(WorldServer worldserver, BlockPosition blockposition, IBlockData iblockdata, VaultConfig vaultconfig, VaultServerData vaultserverdata, VaultSharedData vaultshareddata, EntityHuman entityhuman, ItemStack itemstack) {
-            VaultState vaultstate = (VaultState) iblockdata.getValue(VaultBlock.STATE);
+        public static void tryInsertKey(ServerLevel world, BlockPos pos, BlockState state, VaultConfig config, VaultServerData serverData, VaultSharedData sharedData, Player player, ItemStack stack) {
+            VaultState vaultstate = (VaultState) state.getValue(VaultBlock.STATE);
 
-            if (canEjectReward(vaultconfig, vaultstate)) {
-                if (!isValidToInsert(vaultconfig, itemstack)) {
-                    playInsertFailSound(worldserver, vaultserverdata, blockposition, SoundEffects.VAULT_INSERT_ITEM_FAIL);
-                } else if (vaultserverdata.hasRewardedPlayer(entityhuman)) {
-                    playInsertFailSound(worldserver, vaultserverdata, blockposition, SoundEffects.VAULT_REJECT_REWARDED_PLAYER);
+            if (Server.canEjectReward(config, vaultstate)) {
+                if (!Server.isValidToInsert(config, stack)) {
+                    Server.playInsertFailSound(world, serverData, pos, SoundEvents.VAULT_INSERT_ITEM_FAIL);
+                } else if (serverData.hasRewardedPlayer(player)) {
+                    Server.playInsertFailSound(world, serverData, pos, SoundEvents.VAULT_REJECT_REWARDED_PLAYER);
                 } else {
-                    List<ItemStack> list = resolveItemsToEject(worldserver, vaultconfig, blockposition, entityhuman);
+                    List<ItemStack> list = Server.resolveItemsToEject(world, config, pos, player);
 
                     if (!list.isEmpty()) {
-                        entityhuman.awardStat(StatisticList.ITEM_USED.get(itemstack.getItem()));
-                        itemstack.consume(vaultconfig.keyItem().getCount(), entityhuman);
+                        player.awardStat(Stats.ITEM_USED.get(stack.getItem()));
+                        stack.consume(config.keyItem().getCount(), player);
                         // CraftBukkit start
-                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(worldserver, blockposition, entityhuman, list);
+                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(world, pos, player, list);
                         if (vaultDispenseLootEvent.isCancelled()) {
                             return;
                         }
 
                         list = vaultDispenseLootEvent.getDispensedLoot().stream().map(CraftItemStack::asNMSCopy).toList();
                         // CraftBukkit end
-                        unlock(worldserver, iblockdata, blockposition, vaultconfig, vaultserverdata, vaultshareddata, list);
-                        vaultserverdata.addToRewardedPlayers(entityhuman);
-                        vaultshareddata.updateConnectedPlayersWithinRange(worldserver, blockposition, vaultserverdata, vaultconfig, vaultconfig.deactivationRange());
+                        Server.unlock(world, state, pos, config, serverData, sharedData, list);
+                        serverData.addToRewardedPlayers(player);
+                        sharedData.updateConnectedPlayersWithinRange(world, pos, serverData, config, config.deactivationRange());
                     }
                 }
             }
         }
 
-        static void setVaultState(WorldServer worldserver, BlockPosition blockposition, IBlockData iblockdata, IBlockData iblockdata1, VaultConfig vaultconfig, VaultSharedData vaultshareddata) {
-            VaultState vaultstate = (VaultState) iblockdata.getValue(VaultBlock.STATE);
-            VaultState vaultstate1 = (VaultState) iblockdata1.getValue(VaultBlock.STATE);
+        static void setVaultState(ServerLevel world, BlockPos pos, BlockState oldState, BlockState newState, VaultConfig config, VaultSharedData sharedData) {
+            VaultState vaultstate = (VaultState) oldState.getValue(VaultBlock.STATE);
+            VaultState vaultstate1 = (VaultState) newState.getValue(VaultBlock.STATE);
 
-            worldserver.setBlock(blockposition, iblockdata1, 3);
-            vaultstate.onTransition(worldserver, blockposition, vaultstate1, vaultconfig, vaultshareddata, (Boolean) iblockdata1.getValue(VaultBlock.OMINOUS));
+            world.setBlock(pos, newState, 3);
+            vaultstate.onTransition(world, pos, vaultstate1, config, sharedData, (Boolean) newState.getValue(VaultBlock.OMINOUS));
         }
 
-        static void cycleDisplayItemFromLootTable(WorldServer worldserver, VaultState vaultstate, VaultConfig vaultconfig, VaultSharedData vaultshareddata, BlockPosition blockposition) {
-            if (!canEjectReward(vaultconfig, vaultstate)) {
-                vaultshareddata.setDisplayItem(ItemStack.EMPTY);
+        static void cycleDisplayItemFromLootTable(ServerLevel world, VaultState state, VaultConfig config, VaultSharedData sharedData, BlockPos pos) {
+            if (!Server.canEjectReward(config, state)) {
+                sharedData.setDisplayItem(ItemStack.EMPTY);
             } else {
-                ItemStack itemstack = getRandomDisplayItemFromLootTable(worldserver, blockposition, (ResourceKey) vaultconfig.overrideLootTableToDisplay().orElse(vaultconfig.lootTable()));
+                ItemStack itemstack = Server.getRandomDisplayItemFromLootTable(world, pos, (ResourceKey) config.overrideLootTableToDisplay().orElse(config.lootTable()));
                 // CraftBukkit start
-                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(worldserver, blockposition, itemstack);
+                VaultDisplayItemEvent event = CraftEventFactory.callVaultDisplayItemEvent(world, pos, itemstack);
                 if (event.isCancelled()) {
                     return;
                 }
@@ -366,48 +366,48 @@ public class VaultBlockEntity extends TileEntity {
                 itemstack = CraftItemStack.asNMSCopy(event.getDisplayItem());
                 // CraftBukkit end
 
-                vaultshareddata.setDisplayItem(itemstack);
+                sharedData.setDisplayItem(itemstack);
             }
         }
 
-        private static ItemStack getRandomDisplayItemFromLootTable(WorldServer worldserver, BlockPosition blockposition, ResourceKey<LootTable> resourcekey) {
-            LootTable loottable = worldserver.getServer().reloadableRegistries().getLootTable(resourcekey);
-            LootParams lootparams = (new LootParams.a(worldserver)).withParameter(LootContextParameters.ORIGIN, Vec3D.atCenterOf(blockposition)).create(LootContextParameterSets.VAULT);
-            List<ItemStack> list = loottable.getRandomItems(lootparams, worldserver.getRandom());
+        private static ItemStack getRandomDisplayItemFromLootTable(ServerLevel world, BlockPos pos, ResourceKey<LootTable> lootTable) {
+            LootTable loottable = world.getServer().reloadableRegistries().getLootTable(lootTable);
+            LootParams lootparams = (new LootParams.Builder(world)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos)).create(LootContextParamSets.VAULT);
+            List<ItemStack> list = loottable.getRandomItems(lootparams, world.getRandom());
 
-            return list.isEmpty() ? ItemStack.EMPTY : (ItemStack) SystemUtils.getRandom((List) list, worldserver.getRandom());
+            return list.isEmpty() ? ItemStack.EMPTY : (ItemStack) Util.getRandom((List) list, world.getRandom());
         }
 
-        private static void unlock(WorldServer worldserver, IBlockData iblockdata, BlockPosition blockposition, VaultConfig vaultconfig, VaultServerData vaultserverdata, VaultSharedData vaultshareddata, List<ItemStack> list) {
-            vaultserverdata.setItemsToEject(list);
-            vaultshareddata.setDisplayItem(vaultserverdata.getNextItemToEject());
-            vaultserverdata.pauseStateUpdatingUntil(worldserver.getGameTime() + 14L);
-            setVaultState(worldserver, blockposition, iblockdata, (IBlockData) iblockdata.setValue(VaultBlock.STATE, VaultState.UNLOCKING), vaultconfig, vaultshareddata);
+        private static void unlock(ServerLevel world, BlockState state, BlockPos pos, VaultConfig config, VaultServerData serverData, VaultSharedData sharedData, List<ItemStack> itemsToEject) {
+            serverData.setItemsToEject(itemsToEject);
+            sharedData.setDisplayItem(serverData.getNextItemToEject());
+            serverData.pauseStateUpdatingUntil(world.getGameTime() + 14L);
+            Server.setVaultState(world, pos, state, (BlockState) state.setValue(VaultBlock.STATE, VaultState.UNLOCKING), config, sharedData);
         }
 
-        private static List<ItemStack> resolveItemsToEject(WorldServer worldserver, VaultConfig vaultconfig, BlockPosition blockposition, EntityHuman entityhuman) {
-            LootTable loottable = worldserver.getServer().reloadableRegistries().getLootTable(vaultconfig.lootTable());
-            LootParams lootparams = (new LootParams.a(worldserver)).withParameter(LootContextParameters.ORIGIN, Vec3D.atCenterOf(blockposition)).withLuck(entityhuman.getLuck()).withParameter(LootContextParameters.THIS_ENTITY, entityhuman).create(LootContextParameterSets.VAULT);
+        private static List<ItemStack> resolveItemsToEject(ServerLevel world, VaultConfig config, BlockPos pos, Player player) {
+            LootTable loottable = world.getServer().reloadableRegistries().getLootTable(config.lootTable());
+            LootParams lootparams = (new LootParams.Builder(world)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos)).withLuck(player.getLuck()).withParameter(LootContextParams.THIS_ENTITY, player).create(LootContextParamSets.VAULT);
 
             return loottable.getRandomItems(lootparams);
         }
 
-        private static boolean canEjectReward(VaultConfig vaultconfig, VaultState vaultstate) {
-            return vaultconfig.lootTable() != LootTables.EMPTY && !vaultconfig.keyItem().isEmpty() && vaultstate != VaultState.INACTIVE;
+        private static boolean canEjectReward(VaultConfig config, VaultState state) {
+            return config.lootTable() != BuiltInLootTables.EMPTY && !config.keyItem().isEmpty() && state != VaultState.INACTIVE;
         }
 
-        private static boolean isValidToInsert(VaultConfig vaultconfig, ItemStack itemstack) {
-            return ItemStack.isSameItemSameComponents(itemstack, vaultconfig.keyItem()) && itemstack.getCount() >= vaultconfig.keyItem().getCount();
+        private static boolean isValidToInsert(VaultConfig config, ItemStack stack) {
+            return ItemStack.isSameItemSameComponents(stack, config.keyItem()) && stack.getCount() >= config.keyItem().getCount();
         }
 
-        private static boolean shouldCycleDisplayItem(long i, VaultState vaultstate) {
-            return i % 20L == 0L && vaultstate == VaultState.ACTIVE;
+        private static boolean shouldCycleDisplayItem(long time, VaultState state) {
+            return time % 20L == 0L && state == VaultState.ACTIVE;
         }
 
-        private static void playInsertFailSound(WorldServer worldserver, VaultServerData vaultserverdata, BlockPosition blockposition, SoundEffect soundeffect) {
-            if (worldserver.getGameTime() >= vaultserverdata.getLastInsertFailTimestamp() + 15L) {
-                worldserver.playSound((EntityHuman) null, blockposition, soundeffect, SoundCategory.BLOCKS);
-                vaultserverdata.setLastInsertFailTimestamp(worldserver.getGameTime());
+        private static void playInsertFailSound(ServerLevel world, VaultServerData serverData, BlockPos pos, SoundEvent sound) {
+            if (world.getGameTime() >= serverData.getLastInsertFailTimestamp() + 15L) {
+                world.playSound((Player) null, pos, sound, SoundSource.BLOCKS);
+                serverData.setLastInsertFailTimestamp(world.getGameTime());
             }
 
         }

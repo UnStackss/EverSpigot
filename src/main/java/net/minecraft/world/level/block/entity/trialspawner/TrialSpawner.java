@@ -8,45 +8,44 @@ import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.core.dispenser.DispenseBehaviorItem;
-import net.minecraft.core.particles.ParticleParam;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.util.MathHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.EnumDifficulty;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityInsentient;
-import net.minecraft.world.entity.EntityPositionTypes;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.EnumMobSpawn;
-import net.minecraft.world.entity.GroupDataEntity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameRules;
-import net.minecraft.world.level.MobSpawnerData;
-import net.minecraft.world.level.RayTrace;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.block.TrialSpawnerBlock;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameterSets;
-import net.minecraft.world.phys.MovingObjectPosition;
-import net.minecraft.world.phys.MovingObjectPositionBlock;
-import net.minecraft.world.phys.Vec3D;
-import net.minecraft.world.phys.shapes.VoxelShapeCollision;
-
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 // CraftBukkit start
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -61,16 +60,16 @@ public final class TrialSpawner {
     private static final int DEFAULT_TARGET_COOLDOWN_LENGTH = 36000;
     private static final int DEFAULT_PLAYER_SCAN_RANGE = 14;
     private static final int MAX_MOB_TRACKING_DISTANCE = 47;
-    private static final int MAX_MOB_TRACKING_DISTANCE_SQR = MathHelper.square(47);
+    private static final int MAX_MOB_TRACKING_DISTANCE_SQR = Mth.square(47);
     private static final float SPAWNING_AMBIENT_SOUND_CHANCE = 0.02F;
     public TrialSpawnerConfig normalConfig;
     public TrialSpawnerConfig ominousConfig;
     private final TrialSpawnerData data;
     public int requiredPlayerRange;
     public int targetCooldownLength;
-    public final TrialSpawner.b stateAccessor;
+    public final TrialSpawner.StateAccessor stateAccessor;
     private PlayerDetector playerDetector;
-    private final PlayerDetector.a entitySelector;
+    private final PlayerDetector.EntitySelector entitySelector;
     private boolean overridePeacefulAndMobSpawnRule;
     public boolean isOminous;
 
@@ -82,19 +81,19 @@ public final class TrialSpawner {
         });
     }
 
-    public TrialSpawner(TrialSpawner.b trialspawner_b, PlayerDetector playerdetector, PlayerDetector.a playerdetector_a) {
-        this(TrialSpawnerConfig.DEFAULT, TrialSpawnerConfig.DEFAULT, new TrialSpawnerData(), 36000, 14, trialspawner_b, playerdetector, playerdetector_a);
+    public TrialSpawner(TrialSpawner.StateAccessor trialSpawner, PlayerDetector entityDetector, PlayerDetector.EntitySelector entitySelector) {
+        this(TrialSpawnerConfig.DEFAULT, TrialSpawnerConfig.DEFAULT, new TrialSpawnerData(), 36000, 14, trialSpawner, entityDetector, entitySelector);
     }
 
-    public TrialSpawner(TrialSpawnerConfig trialspawnerconfig, TrialSpawnerConfig trialspawnerconfig1, TrialSpawnerData trialspawnerdata, int i, int j, TrialSpawner.b trialspawner_b, PlayerDetector playerdetector, PlayerDetector.a playerdetector_a) {
-        this.normalConfig = trialspawnerconfig;
-        this.ominousConfig = trialspawnerconfig1;
-        this.data = trialspawnerdata;
-        this.targetCooldownLength = i;
-        this.requiredPlayerRange = j;
-        this.stateAccessor = trialspawner_b;
-        this.playerDetector = playerdetector;
-        this.entitySelector = playerdetector_a;
+    public TrialSpawner(TrialSpawnerConfig normalConfig, TrialSpawnerConfig ominousConfig, TrialSpawnerData data, int cooldownLength, int entityDetectionRange, TrialSpawner.StateAccessor trialSpawner, PlayerDetector entityDetector, PlayerDetector.EntitySelector entitySelector) {
+        this.normalConfig = normalConfig;
+        this.ominousConfig = ominousConfig;
+        this.data = data;
+        this.targetCooldownLength = cooldownLength;
+        this.requiredPlayerRange = entityDetectionRange;
+        this.stateAccessor = trialSpawner;
+        this.playerDetector = entityDetector;
+        this.entitySelector = entitySelector;
     }
 
     public TrialSpawnerConfig getConfig() {
@@ -115,15 +114,15 @@ public final class TrialSpawner {
         return !this.ominousConfig.equals(this.normalConfig) ? this.ominousConfig : TrialSpawnerConfig.DEFAULT;
     }
 
-    public void applyOminous(WorldServer worldserver, BlockPosition blockposition) {
-        worldserver.setBlock(blockposition, (IBlockData) worldserver.getBlockState(blockposition).setValue(TrialSpawnerBlock.OMINOUS, true), 3);
-        worldserver.levelEvent(3020, blockposition, 1);
+    public void applyOminous(ServerLevel world, BlockPos pos) {
+        world.setBlock(pos, (BlockState) world.getBlockState(pos).setValue(TrialSpawnerBlock.OMINOUS, true), 3);
+        world.levelEvent(3020, pos, 1);
         this.isOminous = true;
-        this.data.resetAfterBecomingOminous(this, worldserver);
+        this.data.resetAfterBecomingOminous(this, world);
     }
 
-    public void removeOminous(WorldServer worldserver, BlockPosition blockposition) {
-        worldserver.setBlock(blockposition, (IBlockData) worldserver.getBlockState(blockposition).setValue(TrialSpawnerBlock.OMINOUS, false), 3);
+    public void removeOminous(ServerLevel world, BlockPos pos) {
+        world.setBlock(pos, (BlockState) world.getBlockState(pos).setValue(TrialSpawnerBlock.OMINOUS, false), 3);
         this.isOminous = false;
     }
 
@@ -147,8 +146,8 @@ public final class TrialSpawner {
         return this.stateAccessor.getState();
     }
 
-    public void setState(World world, TrialSpawnerState trialspawnerstate) {
-        this.stateAccessor.setState(world, trialspawnerstate);
+    public void setState(Level world, TrialSpawnerState spawnerState) {
+        this.stateAccessor.setState(world, spawnerState);
     }
 
     public void markUpdated() {
@@ -159,51 +158,51 @@ public final class TrialSpawner {
         return this.playerDetector;
     }
 
-    public PlayerDetector.a getEntitySelector() {
+    public PlayerDetector.EntitySelector getEntitySelector() {
         return this.entitySelector;
     }
 
-    public boolean canSpawnInLevel(World world) {
-        return this.overridePeacefulAndMobSpawnRule ? true : (world.getDifficulty() == EnumDifficulty.PEACEFUL ? false : world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING));
+    public boolean canSpawnInLevel(Level world) {
+        return this.overridePeacefulAndMobSpawnRule ? true : (world.getDifficulty() == Difficulty.PEACEFUL ? false : world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING));
     }
 
-    public Optional<UUID> spawnMob(WorldServer worldserver, BlockPosition blockposition) {
-        RandomSource randomsource = worldserver.getRandom();
-        MobSpawnerData mobspawnerdata = this.data.getOrCreateNextSpawnData(this, worldserver.getRandom());
-        NBTTagCompound nbttagcompound = mobspawnerdata.entityToSpawn();
-        NBTTagList nbttaglist = nbttagcompound.getList("Pos", 6);
-        Optional<EntityTypes<?>> optional = EntityTypes.by(nbttagcompound);
+    public Optional<UUID> spawnMob(ServerLevel world, BlockPos pos) {
+        RandomSource randomsource = world.getRandom();
+        SpawnData mobspawnerdata = this.data.getOrCreateNextSpawnData(this, world.getRandom());
+        CompoundTag nbttagcompound = mobspawnerdata.entityToSpawn();
+        ListTag nbttaglist = nbttagcompound.getList("Pos", 6);
+        Optional<EntityType<?>> optional = EntityType.by(nbttagcompound);
 
         if (optional.isEmpty()) {
             return Optional.empty();
         } else {
             int i = nbttaglist.size();
-            double d0 = i >= 1 ? nbttaglist.getDouble(0) : (double) blockposition.getX() + (randomsource.nextDouble() - randomsource.nextDouble()) * (double) this.getConfig().spawnRange() + 0.5D;
-            double d1 = i >= 2 ? nbttaglist.getDouble(1) : (double) (blockposition.getY() + randomsource.nextInt(3) - 1);
-            double d2 = i >= 3 ? nbttaglist.getDouble(2) : (double) blockposition.getZ() + (randomsource.nextDouble() - randomsource.nextDouble()) * (double) this.getConfig().spawnRange() + 0.5D;
+            double d0 = i >= 1 ? nbttaglist.getDouble(0) : (double) pos.getX() + (randomsource.nextDouble() - randomsource.nextDouble()) * (double) this.getConfig().spawnRange() + 0.5D;
+            double d1 = i >= 2 ? nbttaglist.getDouble(1) : (double) (pos.getY() + randomsource.nextInt(3) - 1);
+            double d2 = i >= 3 ? nbttaglist.getDouble(2) : (double) pos.getZ() + (randomsource.nextDouble() - randomsource.nextDouble()) * (double) this.getConfig().spawnRange() + 0.5D;
 
-            if (!worldserver.noCollision(((EntityTypes) optional.get()).getSpawnAABB(d0, d1, d2))) {
+            if (!world.noCollision(((EntityType) optional.get()).getSpawnAABB(d0, d1, d2))) {
                 return Optional.empty();
             } else {
-                Vec3D vec3d = new Vec3D(d0, d1, d2);
+                Vec3 vec3d = new Vec3(d0, d1, d2);
 
-                if (!inLineOfSight(worldserver, blockposition.getCenter(), vec3d)) {
+                if (!TrialSpawner.inLineOfSight(world, pos.getCenter(), vec3d)) {
                     return Optional.empty();
                 } else {
-                    BlockPosition blockposition1 = BlockPosition.containing(vec3d);
+                    BlockPos blockposition1 = BlockPos.containing(vec3d);
 
-                    if (!EntityPositionTypes.checkSpawnRules((EntityTypes) optional.get(), worldserver, EnumMobSpawn.TRIAL_SPAWNER, blockposition1, worldserver.getRandom())) {
+                    if (!SpawnPlacements.checkSpawnRules((EntityType) optional.get(), world, MobSpawnType.TRIAL_SPAWNER, blockposition1, world.getRandom())) {
                         return Optional.empty();
                     } else {
                         if (mobspawnerdata.getCustomSpawnRules().isPresent()) {
-                            MobSpawnerData.a mobspawnerdata_a = (MobSpawnerData.a) mobspawnerdata.getCustomSpawnRules().get();
+                            SpawnData.CustomSpawnRules mobspawnerdata_a = (SpawnData.CustomSpawnRules) mobspawnerdata.getCustomSpawnRules().get();
 
-                            if (!mobspawnerdata_a.isValidPosition(blockposition1, worldserver)) {
+                            if (!mobspawnerdata_a.isValidPosition(blockposition1, world)) {
                                 return Optional.empty();
                             }
                         }
 
-                        Entity entity = EntityTypes.loadEntityRecursive(nbttagcompound, worldserver, (entity1) -> {
+                        Entity entity = EntityType.loadEntityRecursive(nbttagcompound, world, (entity1) -> {
                             entity1.moveTo(d0, d1, d2, randomsource.nextFloat() * 360.0F, 0.0F);
                             return entity1;
                         });
@@ -211,17 +210,17 @@ public final class TrialSpawner {
                         if (entity == null) {
                             return Optional.empty();
                         } else {
-                            if (entity instanceof EntityInsentient) {
-                                EntityInsentient entityinsentient = (EntityInsentient) entity;
+                            if (entity instanceof Mob) {
+                                Mob entityinsentient = (Mob) entity;
 
-                                if (!entityinsentient.checkSpawnObstruction(worldserver)) {
+                                if (!entityinsentient.checkSpawnObstruction(world)) {
                                     return Optional.empty();
                                 }
 
                                 boolean flag = mobspawnerdata.getEntityToSpawn().size() == 1 && mobspawnerdata.getEntityToSpawn().contains("id", 8);
 
                                 if (flag) {
-                                    entityinsentient.finalizeSpawn(worldserver, worldserver.getCurrentDifficultyAt(entityinsentient.blockPosition()), EnumMobSpawn.TRIAL_SPAWNER, (GroupDataEntity) null);
+                                    entityinsentient.finalizeSpawn(world, world.getCurrentDifficultyAt(entityinsentient.blockPosition()), MobSpawnType.TRIAL_SPAWNER, (SpawnGroupData) null);
                                 }
 
                                 entityinsentient.setPersistenceRequired();
@@ -232,18 +231,18 @@ public final class TrialSpawner {
                             }
 
                             // CraftBukkit start
-                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, blockposition).isCancelled()) {
+                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callTrialSpawnerSpawnEvent(entity, pos).isCancelled()) {
                                 return Optional.empty();
                             }
-                            if (!worldserver.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
+                            if (!world.tryAddFreshEntityWithPassengers(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER)) {
                                 // CraftBukkit end
                                 return Optional.empty();
                             } else {
-                                TrialSpawner.a trialspawner_a = this.isOminous ? TrialSpawner.a.OMINOUS : TrialSpawner.a.NORMAL;
+                                TrialSpawner.FlameParticle trialspawner_a = this.isOminous ? TrialSpawner.FlameParticle.OMINOUS : TrialSpawner.FlameParticle.NORMAL;
 
-                                worldserver.levelEvent(3011, blockposition, trialspawner_a.encode());
-                                worldserver.levelEvent(3012, blockposition1, trialspawner_a.encode());
-                                worldserver.gameEvent(entity, (Holder) GameEvent.ENTITY_PLACE, blockposition1);
+                                world.levelEvent(3011, pos, trialspawner_a.encode());
+                                world.levelEvent(3012, blockposition1, trialspawner_a.encode());
+                                world.gameEvent(entity, (Holder) GameEvent.ENTITY_PLACE, blockposition1);
                                 return Optional.of(entity.getUUID());
                             }
                         }
@@ -253,14 +252,14 @@ public final class TrialSpawner {
         }
     }
 
-    public void ejectReward(WorldServer worldserver, BlockPosition blockposition, ResourceKey<LootTable> resourcekey) {
-        LootTable loottable = worldserver.getServer().reloadableRegistries().getLootTable(resourcekey);
-        LootParams lootparams = (new LootParams.a(worldserver)).create(LootContextParameterSets.EMPTY);
+    public void ejectReward(ServerLevel world, BlockPos pos, ResourceKey<LootTable> lootTable) {
+        LootTable loottable = world.getServer().reloadableRegistries().getLootTable(lootTable);
+        LootParams lootparams = (new LootParams.Builder(world)).create(LootContextParamSets.EMPTY);
         ObjectArrayList<ItemStack> objectarraylist = loottable.getRandomItems(lootparams);
 
         if (!objectarraylist.isEmpty()) {
             // CraftBukkit start
-            BlockDispenseLootEvent spawnerDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(worldserver, blockposition, null, objectarraylist);
+            BlockDispenseLootEvent spawnerDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(world, pos, null, objectarraylist);
             if (spawnerDispenseLootEvent.isCancelled()) {
                 return;
             }
@@ -273,18 +272,18 @@ public final class TrialSpawner {
             while (objectlistiterator.hasNext()) {
                 ItemStack itemstack = (ItemStack) objectlistiterator.next();
 
-                DispenseBehaviorItem.spawnItem(worldserver, itemstack, 2, EnumDirection.UP, Vec3D.atBottomCenterOf(blockposition).relative(EnumDirection.UP, 1.2D));
+                DefaultDispenseItemBehavior.spawnItem(world, itemstack, 2, Direction.UP, Vec3.atBottomCenterOf(pos).relative(Direction.UP, 1.2D));
             }
 
-            worldserver.levelEvent(3014, blockposition, 0);
+            world.levelEvent(3014, pos, 0);
         }
 
     }
 
-    public void tickClient(World world, BlockPosition blockposition, boolean flag) {
+    public void tickClient(Level world, BlockPos pos, boolean ominous) {
         TrialSpawnerState trialspawnerstate = this.getState();
 
-        trialspawnerstate.emitParticles(world, blockposition, flag);
+        trialspawnerstate.emitParticles(world, pos, ominous);
         if (trialspawnerstate.hasSpinningMob()) {
             double d0 = (double) Math.max(0L, this.data.nextMobSpawnsAt - world.getGameTime());
 
@@ -296,95 +295,95 @@ public final class TrialSpawner {
             RandomSource randomsource = world.getRandom();
 
             if (randomsource.nextFloat() <= 0.02F) {
-                SoundEffect soundeffect = flag ? SoundEffects.TRIAL_SPAWNER_AMBIENT_OMINOUS : SoundEffects.TRIAL_SPAWNER_AMBIENT;
+                SoundEvent soundeffect = ominous ? SoundEvents.TRIAL_SPAWNER_AMBIENT_OMINOUS : SoundEvents.TRIAL_SPAWNER_AMBIENT;
 
-                world.playLocalSound(blockposition, soundeffect, SoundCategory.BLOCKS, randomsource.nextFloat() * 0.25F + 0.75F, randomsource.nextFloat() + 0.5F, false);
+                world.playLocalSound(pos, soundeffect, SoundSource.BLOCKS, randomsource.nextFloat() * 0.25F + 0.75F, randomsource.nextFloat() + 0.5F, false);
             }
         }
 
     }
 
-    public void tickServer(WorldServer worldserver, BlockPosition blockposition, boolean flag) {
-        this.isOminous = flag;
+    public void tickServer(ServerLevel world, BlockPos pos, boolean ominous) {
+        this.isOminous = ominous;
         TrialSpawnerState trialspawnerstate = this.getState();
 
         if (this.data.currentMobs.removeIf((uuid) -> {
-            return shouldMobBeUntracked(worldserver, blockposition, uuid);
+            return TrialSpawner.shouldMobBeUntracked(world, pos, uuid);
         })) {
-            this.data.nextMobSpawnsAt = worldserver.getGameTime() + (long) this.getConfig().ticksBetweenSpawn();
+            this.data.nextMobSpawnsAt = world.getGameTime() + (long) this.getConfig().ticksBetweenSpawn();
         }
 
-        TrialSpawnerState trialspawnerstate1 = trialspawnerstate.tickAndGetNext(blockposition, this, worldserver);
+        TrialSpawnerState trialspawnerstate1 = trialspawnerstate.tickAndGetNext(pos, this, world);
 
         if (trialspawnerstate1 != trialspawnerstate) {
-            this.setState(worldserver, trialspawnerstate1);
+            this.setState(world, trialspawnerstate1);
         }
 
     }
 
-    private static boolean shouldMobBeUntracked(WorldServer worldserver, BlockPosition blockposition, UUID uuid) {
-        Entity entity = worldserver.getEntity(uuid);
+    private static boolean shouldMobBeUntracked(ServerLevel world, BlockPos pos, UUID uuid) {
+        Entity entity = world.getEntity(uuid);
 
-        return entity == null || !entity.isAlive() || !entity.level().dimension().equals(worldserver.dimension()) || entity.blockPosition().distSqr(blockposition) > (double) TrialSpawner.MAX_MOB_TRACKING_DISTANCE_SQR;
+        return entity == null || !entity.isAlive() || !entity.level().dimension().equals(world.dimension()) || entity.blockPosition().distSqr(pos) > (double) TrialSpawner.MAX_MOB_TRACKING_DISTANCE_SQR;
     }
 
-    private static boolean inLineOfSight(World world, Vec3D vec3d, Vec3D vec3d1) {
-        MovingObjectPositionBlock movingobjectpositionblock = world.clip(new RayTrace(vec3d1, vec3d, RayTrace.BlockCollisionOption.VISUAL, RayTrace.FluidCollisionOption.NONE, VoxelShapeCollision.empty()));
+    private static boolean inLineOfSight(Level world, Vec3 spawnerPos, Vec3 spawnPos) {
+        BlockHitResult movingobjectpositionblock = world.clip(new ClipContext(spawnPos, spawnerPos, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, CollisionContext.empty()));
 
-        return movingobjectpositionblock.getBlockPos().equals(BlockPosition.containing(vec3d)) || movingobjectpositionblock.getType() == MovingObjectPosition.EnumMovingObjectType.MISS;
+        return movingobjectpositionblock.getBlockPos().equals(BlockPos.containing(spawnerPos)) || movingobjectpositionblock.getType() == HitResult.Type.MISS;
     }
 
-    public static void addSpawnParticles(World world, BlockPosition blockposition, RandomSource randomsource, ParticleType particletype) {
+    public static void addSpawnParticles(Level world, BlockPos pos, RandomSource random, SimpleParticleType particle) {
         for (int i = 0; i < 20; ++i) {
-            double d0 = (double) blockposition.getX() + 0.5D + (randomsource.nextDouble() - 0.5D) * 2.0D;
-            double d1 = (double) blockposition.getY() + 0.5D + (randomsource.nextDouble() - 0.5D) * 2.0D;
-            double d2 = (double) blockposition.getZ() + 0.5D + (randomsource.nextDouble() - 0.5D) * 2.0D;
+            double d0 = (double) pos.getX() + 0.5D + (random.nextDouble() - 0.5D) * 2.0D;
+            double d1 = (double) pos.getY() + 0.5D + (random.nextDouble() - 0.5D) * 2.0D;
+            double d2 = (double) pos.getZ() + 0.5D + (random.nextDouble() - 0.5D) * 2.0D;
 
-            world.addParticle(Particles.SMOKE, d0, d1, d2, 0.0D, 0.0D, 0.0D);
-            world.addParticle(particletype, d0, d1, d2, 0.0D, 0.0D, 0.0D);
+            world.addParticle(ParticleTypes.SMOKE, d0, d1, d2, 0.0D, 0.0D, 0.0D);
+            world.addParticle(particle, d0, d1, d2, 0.0D, 0.0D, 0.0D);
         }
 
     }
 
-    public static void addBecomeOminousParticles(World world, BlockPosition blockposition, RandomSource randomsource) {
+    public static void addBecomeOminousParticles(Level world, BlockPos pos, RandomSource random) {
         for (int i = 0; i < 20; ++i) {
-            double d0 = (double) blockposition.getX() + 0.5D + (randomsource.nextDouble() - 0.5D) * 2.0D;
-            double d1 = (double) blockposition.getY() + 0.5D + (randomsource.nextDouble() - 0.5D) * 2.0D;
-            double d2 = (double) blockposition.getZ() + 0.5D + (randomsource.nextDouble() - 0.5D) * 2.0D;
-            double d3 = randomsource.nextGaussian() * 0.02D;
-            double d4 = randomsource.nextGaussian() * 0.02D;
-            double d5 = randomsource.nextGaussian() * 0.02D;
+            double d0 = (double) pos.getX() + 0.5D + (random.nextDouble() - 0.5D) * 2.0D;
+            double d1 = (double) pos.getY() + 0.5D + (random.nextDouble() - 0.5D) * 2.0D;
+            double d2 = (double) pos.getZ() + 0.5D + (random.nextDouble() - 0.5D) * 2.0D;
+            double d3 = random.nextGaussian() * 0.02D;
+            double d4 = random.nextGaussian() * 0.02D;
+            double d5 = random.nextGaussian() * 0.02D;
 
-            world.addParticle(Particles.TRIAL_OMEN, d0, d1, d2, d3, d4, d5);
-            world.addParticle(Particles.SOUL_FIRE_FLAME, d0, d1, d2, d3, d4, d5);
+            world.addParticle(ParticleTypes.TRIAL_OMEN, d0, d1, d2, d3, d4, d5);
+            world.addParticle(ParticleTypes.SOUL_FIRE_FLAME, d0, d1, d2, d3, d4, d5);
         }
 
     }
 
-    public static void addDetectPlayerParticles(World world, BlockPosition blockposition, RandomSource randomsource, int i, ParticleParam particleparam) {
-        for (int j = 0; j < 30 + Math.min(i, 10) * 5; ++j) {
-            double d0 = (double) (2.0F * randomsource.nextFloat() - 1.0F) * 0.65D;
-            double d1 = (double) (2.0F * randomsource.nextFloat() - 1.0F) * 0.65D;
-            double d2 = (double) blockposition.getX() + 0.5D + d0;
-            double d3 = (double) blockposition.getY() + 0.1D + (double) randomsource.nextFloat() * 0.8D;
-            double d4 = (double) blockposition.getZ() + 0.5D + d1;
+    public static void addDetectPlayerParticles(Level world, BlockPos pos, RandomSource random, int playerCount, ParticleOptions particle) {
+        for (int j = 0; j < 30 + Math.min(playerCount, 10) * 5; ++j) {
+            double d0 = (double) (2.0F * random.nextFloat() - 1.0F) * 0.65D;
+            double d1 = (double) (2.0F * random.nextFloat() - 1.0F) * 0.65D;
+            double d2 = (double) pos.getX() + 0.5D + d0;
+            double d3 = (double) pos.getY() + 0.1D + (double) random.nextFloat() * 0.8D;
+            double d4 = (double) pos.getZ() + 0.5D + d1;
 
-            world.addParticle(particleparam, d2, d3, d4, 0.0D, 0.0D, 0.0D);
+            world.addParticle(particle, d2, d3, d4, 0.0D, 0.0D, 0.0D);
         }
 
     }
 
-    public static void addEjectItemParticles(World world, BlockPosition blockposition, RandomSource randomsource) {
+    public static void addEjectItemParticles(Level world, BlockPos pos, RandomSource random) {
         for (int i = 0; i < 20; ++i) {
-            double d0 = (double) blockposition.getX() + 0.4D + randomsource.nextDouble() * 0.2D;
-            double d1 = (double) blockposition.getY() + 0.4D + randomsource.nextDouble() * 0.2D;
-            double d2 = (double) blockposition.getZ() + 0.4D + randomsource.nextDouble() * 0.2D;
-            double d3 = randomsource.nextGaussian() * 0.02D;
-            double d4 = randomsource.nextGaussian() * 0.02D;
-            double d5 = randomsource.nextGaussian() * 0.02D;
+            double d0 = (double) pos.getX() + 0.4D + random.nextDouble() * 0.2D;
+            double d1 = (double) pos.getY() + 0.4D + random.nextDouble() * 0.2D;
+            double d2 = (double) pos.getZ() + 0.4D + random.nextDouble() * 0.2D;
+            double d3 = random.nextGaussian() * 0.02D;
+            double d4 = random.nextGaussian() * 0.02D;
+            double d5 = random.nextGaussian() * 0.02D;
 
-            world.addParticle(Particles.SMALL_FLAME, d0, d1, d2, d3, d4, d5 * 0.25D);
-            world.addParticle(Particles.SMOKE, d0, d1, d2, d3, d4, d5);
+            world.addParticle(ParticleTypes.SMALL_FLAME, d0, d1, d2, d3, d4, d5 * 0.25D);
+            world.addParticle(ParticleTypes.SMOKE, d0, d1, d2, d3, d4, d5);
         }
 
     }
@@ -392,8 +391,8 @@ public final class TrialSpawner {
     /** @deprecated */
     @Deprecated(forRemoval = true)
     @VisibleForTesting
-    public void setPlayerDetector(PlayerDetector playerdetector) {
-        this.playerDetector = playerdetector;
+    public void setPlayerDetector(PlayerDetector detector) {
+        this.playerDetector = detector;
     }
 
     /** @deprecated */
@@ -403,29 +402,29 @@ public final class TrialSpawner {
         this.overridePeacefulAndMobSpawnRule = true;
     }
 
-    public interface b {
+    public interface StateAccessor {
 
-        void setState(World world, TrialSpawnerState trialspawnerstate);
+        void setState(Level world, TrialSpawnerState spawnerState);
 
         TrialSpawnerState getState();
 
         void markUpdated();
     }
 
-    public static enum a {
+    public static enum FlameParticle {
 
-        NORMAL(Particles.FLAME), OMINOUS(Particles.SOUL_FIRE_FLAME);
+        NORMAL(ParticleTypes.FLAME), OMINOUS(ParticleTypes.SOUL_FIRE_FLAME);
 
-        public final ParticleType particleType;
+        public final SimpleParticleType particleType;
 
-        private a(final ParticleType particletype) {
+        private FlameParticle(final SimpleParticleType particletype) {
             this.particleType = particletype;
         }
 
-        public static TrialSpawner.a decode(int i) {
-            TrialSpawner.a[] atrialspawner_a = values();
+        public static TrialSpawner.FlameParticle decode(int index) {
+            TrialSpawner.FlameParticle[] atrialspawner_a = values();
 
-            return i <= atrialspawner_a.length && i >= 0 ? atrialspawner_a[i] : TrialSpawner.a.NORMAL;
+            return index <= atrialspawner_a.length && index >= 0 ? atrialspawner_a[index] : TrialSpawner.FlameParticle.NORMAL;
         }
 
         public int encode() {

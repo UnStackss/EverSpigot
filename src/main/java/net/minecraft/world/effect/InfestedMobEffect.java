@@ -1,58 +1,58 @@
 package net.minecraft.world.effect;
 
 import java.util.function.ToIntFunction;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.util.MathHelper;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.monster.EntitySilverfish;
-import net.minecraft.world.level.World;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Silverfish;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
-class InfestedMobEffect extends MobEffectList {
+class InfestedMobEffect extends MobEffect {
 
     private final float chanceToSpawn;
     private final ToIntFunction<RandomSource> spawnedCount;
 
-    protected InfestedMobEffect(MobEffectInfo mobeffectinfo, int i, float f, ToIntFunction<RandomSource> tointfunction) {
-        super(mobeffectinfo, i, Particles.INFESTED);
-        this.chanceToSpawn = f;
-        this.spawnedCount = tointfunction;
+    protected InfestedMobEffect(MobEffectCategory category, int color, float silverfishChance, ToIntFunction<RandomSource> silverfishCountFunction) {
+        super(category, color, ParticleTypes.INFESTED);
+        this.chanceToSpawn = silverfishChance;
+        this.spawnedCount = silverfishCountFunction;
     }
 
     @Override
-    public void onMobHurt(EntityLiving entityliving, int i, DamageSource damagesource, float f) {
-        if (entityliving.getRandom().nextFloat() <= this.chanceToSpawn) {
-            int j = this.spawnedCount.applyAsInt(entityliving.getRandom());
+    public void onMobHurt(LivingEntity entity, int amplifier, DamageSource source, float amount) {
+        if (entity.getRandom().nextFloat() <= this.chanceToSpawn) {
+            int j = this.spawnedCount.applyAsInt(entity.getRandom());
 
             for (int k = 0; k < j; ++k) {
-                this.spawnSilverfish(entityliving.level(), entityliving, entityliving.getX(), entityliving.getY() + (double) entityliving.getBbHeight() / 2.0D, entityliving.getZ());
+                this.spawnSilverfish(entity.level(), entity, entity.getX(), entity.getY() + (double) entity.getBbHeight() / 2.0D, entity.getZ());
             }
         }
 
     }
 
-    private void spawnSilverfish(World world, EntityLiving entityliving, double d0, double d1, double d2) {
-        EntitySilverfish entitysilverfish = (EntitySilverfish) EntityTypes.SILVERFISH.create(world);
+    private void spawnSilverfish(Level world, LivingEntity entity, double x, double y, double z) {
+        Silverfish entitysilverfish = (Silverfish) EntityType.SILVERFISH.create(world);
 
         if (entitysilverfish != null) {
-            RandomSource randomsource = entityliving.getRandom();
+            RandomSource randomsource = entity.getRandom();
             float f = 1.5707964F;
-            float f1 = MathHelper.randomBetween(randomsource, -1.5707964F, 1.5707964F);
-            Vector3f vector3f = entityliving.getLookAngle().toVector3f().mul(0.3F).mul(1.0F, 1.5F, 1.0F).rotateY(f1);
+            float f1 = Mth.randomBetween(randomsource, -1.5707964F, 1.5707964F);
+            Vector3f vector3f = entity.getLookAngle().toVector3f().mul(0.3F).mul(1.0F, 1.5F, 1.0F).rotateY(f1);
 
-            entitysilverfish.moveTo(d0, d1, d2, world.getRandom().nextFloat() * 360.0F, 0.0F);
-            entitysilverfish.setDeltaMovement(new Vec3D(vector3f));
+            entitysilverfish.moveTo(x, y, z, world.getRandom().nextFloat() * 360.0F, 0.0F);
+            entitysilverfish.setDeltaMovement(new Vec3(vector3f));
             // CraftBukkit start
             if (!world.addFreshEntity(entitysilverfish, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.POTION_EFFECT)) {
                 return;
             }
             // CraftBukkit end
-            entitysilverfish.playSound(SoundEffects.SILVERFISH_HURT);
+            entitysilverfish.playSound(SoundEvents.SILVERFISH_HURT);
         }
     }
 }

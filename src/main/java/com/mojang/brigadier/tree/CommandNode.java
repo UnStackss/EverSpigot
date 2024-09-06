@@ -23,23 +23,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
-
-import net.minecraft.commands.CommandListenerWrapper; // CraftBukkit
+import net.minecraft.commands.CommandSourceStack;
 
 public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     private final Map<String, CommandNode<S>> children = new LinkedHashMap<>();
     private final Map<String, LiteralCommandNode<S>> literals = new LinkedHashMap<>();
     private final Map<String, ArgumentCommandNode<S, ?>> arguments = new LinkedHashMap<>();
-    private final Predicate<S> requirement;
+    public Predicate<S> requirement;
     private final CommandNode<S> redirect;
     private final RedirectModifier<S> modifier;
     private final boolean forks;
     private Command<S> command;
     // CraftBukkit start
     public void removeCommand(String name) {
-        children.remove(name);
-        literals.remove(name);
-        arguments.remove(name);
+        this.children.remove(name);
+        this.literals.remove(name);
+        this.arguments.remove(name);
     }
     // CraftBukkit end
 
@@ -52,37 +51,37 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     }
 
     public Command<S> getCommand() {
-        return command;
+        return this.command;
     }
 
     public Collection<CommandNode<S>> getChildren() {
-        return children.values();
+        return this.children.values();
     }
 
     public CommandNode<S> getChild(final String name) {
-        return children.get(name);
+        return this.children.get(name);
     }
 
     public CommandNode<S> getRedirect() {
-        return redirect;
+        return this.redirect;
     }
 
     public RedirectModifier<S> getRedirectModifier() {
-        return modifier;
+        return this.modifier;
     }
 
     // CraftBukkit start
     public synchronized boolean canUse(final S source) {
-        if (source instanceof CommandListenerWrapper) {
+        if (source instanceof CommandSourceStack) {
             try {
-                ((CommandListenerWrapper) source).currentCommand = this;
-                return requirement.test(source);
+                ((CommandSourceStack) source).currentCommand = this;
+                return this.requirement.test(source);
             } finally {
-                ((CommandListenerWrapper) source).currentCommand = null;
+                ((CommandSourceStack) source).currentCommand = null;
             }
         }
         // CraftBukkit end
-        return requirement.test(source);
+        return this.requirement.test(source);
     }
 
     public void addChild(final CommandNode<S> node) {
@@ -90,7 +89,7 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
             throw new UnsupportedOperationException("Cannot add a RootCommandNode as a child to any other CommandNode");
         }
 
-        final CommandNode<S> child = children.get(node.getName());
+        final CommandNode<S> child = this.children.get(node.getName());
         if (child != null) {
             // We've found something to merge onto
             if (node.getCommand() != null) {
@@ -100,11 +99,11 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
                 child.addChild(grandchild);
             }
         } else {
-            children.put(node.getName(), node);
+            this.children.put(node.getName(), node);
             if (node instanceof LiteralCommandNode) {
-                literals.put(node.getName(), (LiteralCommandNode<S>) node);
+                this.literals.put(node.getName(), (LiteralCommandNode<S>) node);
             } else if (node instanceof ArgumentCommandNode) {
-                arguments.put(node.getName(), (ArgumentCommandNode<S, ?>) node);
+                this.arguments.put(node.getName(), (ArgumentCommandNode<S, ?>) node);
             }
         }
     }
@@ -112,8 +111,8 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     public void findAmbiguities(final AmbiguityConsumer<S> consumer) {
         Set<String> matches = new HashSet<>();
 
-        for (final CommandNode<S> child : children.values()) {
-            for (final CommandNode<S> sibling : children.values()) {
+        for (final CommandNode<S> child : this.children.values()) {
+            for (final CommandNode<S> sibling : this.children.values()) {
                 if (child == sibling) {
                     continue;
                 }
@@ -143,19 +142,19 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
 
         final CommandNode<S> that = (CommandNode<S>) o;
 
-        if (!children.equals(that.children)) return false;
-        if (command != null ? !command.equals(that.command) : that.command != null) return false;
+        if (!this.children.equals(that.children)) return false;
+        if (this.command != null ? !this.command.equals(that.command) : that.command != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return 31 * children.hashCode() + (command != null ? command.hashCode() : 0);
+        return 31 * this.children.hashCode() + (this.command != null ? this.command.hashCode() : 0);
     }
 
     public Predicate<S> getRequirement() {
-        return requirement;
+        return this.requirement;
     }
 
     public abstract String getName();
@@ -171,35 +170,35 @@ public abstract class CommandNode<S> implements Comparable<CommandNode<S>> {
     protected abstract String getSortedKey();
 
     public Collection<? extends CommandNode<S>> getRelevantNodes(final StringReader input) {
-        if (literals.size() > 0) {
+        if (this.literals.size() > 0) {
             final int cursor = input.getCursor();
             while (input.canRead() && input.peek() != ' ') {
                 input.skip();
             }
             final String text = input.getString().substring(cursor, input.getCursor());
             input.setCursor(cursor);
-            final LiteralCommandNode<S> literal = literals.get(text);
+            final LiteralCommandNode<S> literal = this.literals.get(text);
             if (literal != null) {
                 return Collections.singleton(literal);
             } else {
-                return arguments.values();
+                return this.arguments.values();
             }
         } else {
-            return arguments.values();
+            return this.arguments.values();
         }
     }
 
     @Override
     public int compareTo(final CommandNode<S> o) {
         if (this instanceof LiteralCommandNode == o instanceof LiteralCommandNode) {
-            return getSortedKey().compareTo(o.getSortedKey());
+            return this.getSortedKey().compareTo(o.getSortedKey());
         }
 
         return (o instanceof LiteralCommandNode) ? 1 : -1;
     }
 
     public boolean isFork() {
-        return forks;
+        return this.forks;
     }
 
     public abstract Collection<String> getExamples();

@@ -1,14 +1,14 @@
 package net.minecraft.network.protocol.game;
 
-import net.minecraft.network.PacketDataSerializer;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketType;
 import net.minecraft.world.level.border.WorldBorder;
 
-public class ClientboundInitializeBorderPacket implements Packet<PacketListenerPlayOut> {
+public class ClientboundInitializeBorderPacket implements Packet<ClientGamePacketListener> {
 
-    public static final StreamCodec<PacketDataSerializer, ClientboundInitializeBorderPacket> STREAM_CODEC = Packet.codec(ClientboundInitializeBorderPacket::write, ClientboundInitializeBorderPacket::new);
+    public static final StreamCodec<FriendlyByteBuf, ClientboundInitializeBorderPacket> STREAM_CODEC = Packet.codec(ClientboundInitializeBorderPacket::write, ClientboundInitializeBorderPacket::new);
     private final double newCenterX;
     private final double newCenterZ;
     private final double oldSize;
@@ -18,39 +18,39 @@ public class ClientboundInitializeBorderPacket implements Packet<PacketListenerP
     private final int warningBlocks;
     private final int warningTime;
 
-    private ClientboundInitializeBorderPacket(PacketDataSerializer packetdataserializer) {
-        this.newCenterX = packetdataserializer.readDouble();
-        this.newCenterZ = packetdataserializer.readDouble();
-        this.oldSize = packetdataserializer.readDouble();
-        this.newSize = packetdataserializer.readDouble();
-        this.lerpTime = packetdataserializer.readVarLong();
-        this.newAbsoluteMaxSize = packetdataserializer.readVarInt();
-        this.warningBlocks = packetdataserializer.readVarInt();
-        this.warningTime = packetdataserializer.readVarInt();
+    private ClientboundInitializeBorderPacket(FriendlyByteBuf buf) {
+        this.newCenterX = buf.readDouble();
+        this.newCenterZ = buf.readDouble();
+        this.oldSize = buf.readDouble();
+        this.newSize = buf.readDouble();
+        this.lerpTime = buf.readVarLong();
+        this.newAbsoluteMaxSize = buf.readVarInt();
+        this.warningBlocks = buf.readVarInt();
+        this.warningTime = buf.readVarInt();
     }
 
-    public ClientboundInitializeBorderPacket(WorldBorder worldborder) {
+    public ClientboundInitializeBorderPacket(WorldBorder worldBorder) {
         // CraftBukkit start - multiply out nether border
-        this.newCenterX = worldborder.getCenterX() * worldborder.world.dimensionType().coordinateScale();
-        this.newCenterZ = worldborder.getCenterZ() * worldborder.world.dimensionType().coordinateScale();
+        this.newCenterX = worldBorder.getCenterX() * worldBorder.world.dimensionType().coordinateScale();
+        this.newCenterZ = worldBorder.getCenterZ() * worldBorder.world.dimensionType().coordinateScale();
         // CraftBukkit end
-        this.oldSize = worldborder.getSize();
-        this.newSize = worldborder.getLerpTarget();
-        this.lerpTime = worldborder.getLerpRemainingTime();
-        this.newAbsoluteMaxSize = worldborder.getAbsoluteMaxSize();
-        this.warningBlocks = worldborder.getWarningBlocks();
-        this.warningTime = worldborder.getWarningTime();
+        this.oldSize = worldBorder.getSize();
+        this.newSize = worldBorder.getLerpTarget();
+        this.lerpTime = worldBorder.getLerpRemainingTime();
+        this.newAbsoluteMaxSize = worldBorder.getAbsoluteMaxSize();
+        this.warningBlocks = worldBorder.getWarningBlocks();
+        this.warningTime = worldBorder.getWarningTime();
     }
 
-    private void write(PacketDataSerializer packetdataserializer) {
-        packetdataserializer.writeDouble(this.newCenterX);
-        packetdataserializer.writeDouble(this.newCenterZ);
-        packetdataserializer.writeDouble(this.oldSize);
-        packetdataserializer.writeDouble(this.newSize);
-        packetdataserializer.writeVarLong(this.lerpTime);
-        packetdataserializer.writeVarInt(this.newAbsoluteMaxSize);
-        packetdataserializer.writeVarInt(this.warningBlocks);
-        packetdataserializer.writeVarInt(this.warningTime);
+    private void write(FriendlyByteBuf buf) {
+        buf.writeDouble(this.newCenterX);
+        buf.writeDouble(this.newCenterZ);
+        buf.writeDouble(this.oldSize);
+        buf.writeDouble(this.newSize);
+        buf.writeVarLong(this.lerpTime);
+        buf.writeVarInt(this.newAbsoluteMaxSize);
+        buf.writeVarInt(this.warningBlocks);
+        buf.writeVarInt(this.warningTime);
     }
 
     @Override
@@ -58,8 +58,8 @@ public class ClientboundInitializeBorderPacket implements Packet<PacketListenerP
         return GamePacketTypes.CLIENTBOUND_INITIALIZE_BORDER;
     }
 
-    public void handle(PacketListenerPlayOut packetlistenerplayout) {
-        packetlistenerplayout.handleInitializeBorder(this);
+    public void handle(ClientGamePacketListener listener) {
+        listener.handleInitializeBorder(this);
     }
 
     public double getNewCenterX() {

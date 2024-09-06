@@ -3,65 +3,64 @@ package net.minecraft.world.level.block;
 import com.google.common.annotations.VisibleForTesting;
 import com.mojang.serialization.MapCodec;
 import javax.annotation.Nullable;
-import net.minecraft.SystemUtils;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.DustColorTransitionOptions;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.tags.TagsBlock;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.BlockActionContext;
-import net.minecraft.world.level.GeneratorAccess;
-import net.minecraft.world.level.IBlockAccess;
-import net.minecraft.world.level.World;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.SculkSensorBlockEntity;
-import net.minecraft.world.level.block.entity.TileEntity;
-import net.minecraft.world.level.block.entity.TileEntityTypes;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.level.block.state.BlockStateList;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockProperties;
-import net.minecraft.world.level.block.state.properties.BlockStateBoolean;
-import net.minecraft.world.level.block.state.properties.BlockStateEnum;
-import net.minecraft.world.level.block.state.properties.BlockStateInteger;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.SculkSensorPhase;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.gameevent.vibrations.VibrationSystem;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidType;
-import net.minecraft.world.level.material.FluidTypes;
-import net.minecraft.world.level.pathfinder.PathMode;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraft.world.phys.shapes.VoxelShapeCollision;
-
 // CraftBukkit start
 import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.event.block.BlockRedstoneEvent;
 // CraftBukkit end
 
-public class SculkSensorBlock extends BlockTileEntity implements IBlockWaterlogged {
+public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
 
     public static final MapCodec<SculkSensorBlock> CODEC = simpleCodec(SculkSensorBlock::new);
     public static final int ACTIVE_TICKS = 30;
     public static final int COOLDOWN_TICKS = 10;
-    public static final BlockStateEnum<SculkSensorPhase> PHASE = BlockProperties.SCULK_SENSOR_PHASE;
-    public static final BlockStateInteger POWER = BlockProperties.POWER;
-    public static final BlockStateBoolean WATERLOGGED = BlockProperties.WATERLOGGED;
+    public static final EnumProperty<SculkSensorPhase> PHASE = BlockStateProperties.SCULK_SENSOR_PHASE;
+    public static final IntegerProperty POWER = BlockStateProperties.POWER;
+    public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     protected static final VoxelShape SHAPE = Block.box(0.0D, 0.0D, 0.0D, 16.0D, 8.0D, 16.0D);
-    private static final float[] RESONANCE_PITCH_BEND = (float[]) SystemUtils.make(new float[16], (afloat) -> {
+    private static final float[] RESONANCE_PITCH_BEND = (float[]) Util.make(new float[16], (afloat) -> {
         int[] aint = new int[]{0, 0, 2, 4, 6, 7, 9, 10, 12, 14, 15, 18, 19, 21, 22, 24};
 
         for (int i = 0; i < 16; ++i) {
-            afloat[i] = BlockNote.getPitchFromNote(aint[i]);
+            afloat[i] = NoteBlock.getPitchFromNote(aint[i]);
         }
 
     });
@@ -71,170 +70,170 @@ public class SculkSensorBlock extends BlockTileEntity implements IBlockWaterlogg
         return SculkSensorBlock.CODEC;
     }
 
-    public SculkSensorBlock(BlockBase.Info blockbase_info) {
-        super(blockbase_info);
-        this.registerDefaultState((IBlockData) ((IBlockData) ((IBlockData) ((IBlockData) this.stateDefinition.any()).setValue(SculkSensorBlock.PHASE, SculkSensorPhase.INACTIVE)).setValue(SculkSensorBlock.POWER, 0)).setValue(SculkSensorBlock.WATERLOGGED, false));
+    public SculkSensorBlock(BlockBehaviour.Properties settings) {
+        super(settings);
+        this.registerDefaultState((BlockState) ((BlockState) ((BlockState) ((BlockState) this.stateDefinition.any()).setValue(SculkSensorBlock.PHASE, SculkSensorPhase.INACTIVE)).setValue(SculkSensorBlock.POWER, 0)).setValue(SculkSensorBlock.WATERLOGGED, false));
     }
 
     @Nullable
     @Override
-    public IBlockData getStateForPlacement(BlockActionContext blockactioncontext) {
-        BlockPosition blockposition = blockactioncontext.getClickedPos();
-        Fluid fluid = blockactioncontext.getLevel().getFluidState(blockposition);
+    public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        BlockPos blockposition = ctx.getClickedPos();
+        FluidState fluid = ctx.getLevel().getFluidState(blockposition);
 
-        return (IBlockData) this.defaultBlockState().setValue(SculkSensorBlock.WATERLOGGED, fluid.getType() == FluidTypes.WATER);
+        return (BlockState) this.defaultBlockState().setValue(SculkSensorBlock.WATERLOGGED, fluid.getType() == Fluids.WATER);
     }
 
     @Override
-    protected Fluid getFluidState(IBlockData iblockdata) {
-        return (Boolean) iblockdata.getValue(SculkSensorBlock.WATERLOGGED) ? FluidTypes.WATER.getSource(false) : super.getFluidState(iblockdata);
+    protected FluidState getFluidState(BlockState state) {
+        return (Boolean) state.getValue(SculkSensorBlock.WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
     @Override
-    protected void tick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
-        if (getPhase(iblockdata) != SculkSensorPhase.ACTIVE) {
-            if (getPhase(iblockdata) == SculkSensorPhase.COOLDOWN) {
-                worldserver.setBlock(blockposition, (IBlockData) iblockdata.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.INACTIVE), 3);
-                if (!(Boolean) iblockdata.getValue(SculkSensorBlock.WATERLOGGED)) {
-                    worldserver.playSound((EntityHuman) null, blockposition, SoundEffects.SCULK_CLICKING_STOP, SoundCategory.BLOCKS, 1.0F, worldserver.random.nextFloat() * 0.2F + 0.8F);
+    protected void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+        if (SculkSensorBlock.getPhase(state) != SculkSensorPhase.ACTIVE) {
+            if (SculkSensorBlock.getPhase(state) == SculkSensorPhase.COOLDOWN) {
+                world.setBlock(pos, (BlockState) state.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.INACTIVE), 3);
+                if (!(Boolean) state.getValue(SculkSensorBlock.WATERLOGGED)) {
+                    world.playSound((Player) null, pos, SoundEvents.SCULK_CLICKING_STOP, SoundSource.BLOCKS, 1.0F, world.random.nextFloat() * 0.2F + 0.8F);
                 }
             }
 
         } else {
-            deactivate(worldserver, blockposition, iblockdata);
+            SculkSensorBlock.deactivate(world, pos, state);
         }
     }
 
     @Override
-    public void stepOn(World world, BlockPosition blockposition, IBlockData iblockdata, Entity entity) {
-        if (!world.isClientSide() && canActivate(iblockdata) && entity.getType() != EntityTypes.WARDEN) {
+    public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
+        if (!world.isClientSide() && SculkSensorBlock.canActivate(state) && entity.getType() != EntityType.WARDEN) {
             // CraftBukkit start
             org.bukkit.event.Cancellable cancellable;
-            if (entity instanceof EntityHuman) {
-                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((EntityHuman) entity, org.bukkit.event.block.Action.PHYSICAL, blockposition, null, null, null);
+            if (entity instanceof Player) {
+                cancellable = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
             } else {
-                cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), world.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+                cancellable = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
                 world.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
             }
             if (cancellable.isCancelled()) {
                 return;
             }
             // CraftBukkit end
-            TileEntity tileentity = world.getBlockEntity(blockposition);
+            BlockEntity tileentity = world.getBlockEntity(pos);
 
             if (tileentity instanceof SculkSensorBlockEntity) {
                 SculkSensorBlockEntity sculksensorblockentity = (SculkSensorBlockEntity) tileentity;
 
-                if (world instanceof WorldServer) {
-                    WorldServer worldserver = (WorldServer) world;
+                if (world instanceof ServerLevel) {
+                    ServerLevel worldserver = (ServerLevel) world;
 
-                    if (sculksensorblockentity.getVibrationUser().canReceiveVibration(worldserver, blockposition, GameEvent.STEP, GameEvent.a.of(iblockdata))) {
-                        sculksensorblockentity.getListener().forceScheduleVibration(worldserver, GameEvent.STEP, GameEvent.a.of(entity), entity.position());
+                    if (sculksensorblockentity.getVibrationUser().canReceiveVibration(worldserver, pos, GameEvent.STEP, GameEvent.Context.of(state))) {
+                        sculksensorblockentity.getListener().forceScheduleVibration(worldserver, GameEvent.STEP, GameEvent.Context.of(entity), entity.position());
                     }
                 }
             }
         }
 
-        super.stepOn(world, blockposition, iblockdata, entity);
+        super.stepOn(world, pos, state, entity);
     }
 
     @Override
-    protected void onPlace(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
-        if (!world.isClientSide() && !iblockdata.is(iblockdata1.getBlock())) {
-            if ((Integer) iblockdata.getValue(SculkSensorBlock.POWER) > 0 && !world.getBlockTicks().hasScheduledTick(blockposition, this)) {
-                world.setBlock(blockposition, (IBlockData) iblockdata.setValue(SculkSensorBlock.POWER, 0), 18);
+    protected void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
+        if (!world.isClientSide() && !state.is(oldState.getBlock())) {
+            if ((Integer) state.getValue(SculkSensorBlock.POWER) > 0 && !world.getBlockTicks().hasScheduledTick(pos, this)) {
+                world.setBlock(pos, (BlockState) state.setValue(SculkSensorBlock.POWER, 0), 18);
             }
 
         }
     }
 
     @Override
-    protected void onRemove(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
-        if (!iblockdata.is(iblockdata1.getBlock())) {
-            super.onRemove(iblockdata, world, blockposition, iblockdata1, flag);
-            if (getPhase(iblockdata) == SculkSensorPhase.ACTIVE) {
-                updateNeighbours(world, blockposition, iblockdata);
+    protected void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
+        if (!state.is(newState.getBlock())) {
+            super.onRemove(state, world, pos, newState, moved);
+            if (SculkSensorBlock.getPhase(state) == SculkSensorPhase.ACTIVE) {
+                SculkSensorBlock.updateNeighbours(world, pos, state);
             }
 
         }
     }
 
     @Override
-    protected IBlockData updateShape(IBlockData iblockdata, EnumDirection enumdirection, IBlockData iblockdata1, GeneratorAccess generatoraccess, BlockPosition blockposition, BlockPosition blockposition1) {
-        if ((Boolean) iblockdata.getValue(SculkSensorBlock.WATERLOGGED)) {
-            generatoraccess.scheduleTick(blockposition, (FluidType) FluidTypes.WATER, FluidTypes.WATER.getTickDelay(generatoraccess));
+    protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+        if ((Boolean) state.getValue(SculkSensorBlock.WATERLOGGED)) {
+            world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
 
-        return super.updateShape(iblockdata, enumdirection, iblockdata1, generatoraccess, blockposition, blockposition1);
+        return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
     }
 
-    private static void updateNeighbours(World world, BlockPosition blockposition, IBlockData iblockdata) {
-        Block block = iblockdata.getBlock();
+    private static void updateNeighbours(Level world, BlockPos pos, BlockState state) {
+        Block block = state.getBlock();
 
-        world.updateNeighborsAt(blockposition, block);
-        world.updateNeighborsAt(blockposition.below(), block);
-    }
-
-    @Nullable
-    @Override
-    public TileEntity newBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
-        return new SculkSensorBlockEntity(blockposition, iblockdata);
+        world.updateNeighborsAt(pos, block);
+        world.updateNeighborsAt(pos.below(), block);
     }
 
     @Nullable
     @Override
-    public <T extends TileEntity> BlockEntityTicker<T> getTicker(World world, IBlockData iblockdata, TileEntityTypes<T> tileentitytypes) {
-        return !world.isClientSide ? createTickerHelper(tileentitytypes, TileEntityTypes.SCULK_SENSOR, (world1, blockposition, iblockdata1, sculksensorblockentity) -> {
-            VibrationSystem.c.tick(world1, sculksensorblockentity.getVibrationData(), sculksensorblockentity.getVibrationUser());
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new SculkSensorBlockEntity(pos, state);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
+        return !world.isClientSide ? createTickerHelper(type, BlockEntityType.SCULK_SENSOR, (world1, blockposition, iblockdata1, sculksensorblockentity) -> {
+            VibrationSystem.Ticker.tick(world1, sculksensorblockentity.getVibrationData(), sculksensorblockentity.getVibrationUser());
         }) : null;
     }
 
     @Override
-    protected EnumRenderType getRenderShape(IBlockData iblockdata) {
-        return EnumRenderType.MODEL;
+    protected RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Override
-    protected VoxelShape getShape(IBlockData iblockdata, IBlockAccess iblockaccess, BlockPosition blockposition, VoxelShapeCollision voxelshapecollision) {
+    protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return SculkSensorBlock.SHAPE;
     }
 
     @Override
-    protected boolean isSignalSource(IBlockData iblockdata) {
+    protected boolean isSignalSource(BlockState state) {
         return true;
     }
 
     @Override
-    protected int getSignal(IBlockData iblockdata, IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection) {
-        return (Integer) iblockdata.getValue(SculkSensorBlock.POWER);
+    protected int getSignal(BlockState state, BlockGetter world, BlockPos pos, Direction direction) {
+        return (Integer) state.getValue(SculkSensorBlock.POWER);
     }
 
     @Override
-    public int getDirectSignal(IBlockData iblockdata, IBlockAccess iblockaccess, BlockPosition blockposition, EnumDirection enumdirection) {
-        return enumdirection == EnumDirection.UP ? iblockdata.getSignal(iblockaccess, blockposition, enumdirection) : 0;
+    public int getDirectSignal(BlockState state, BlockGetter world, BlockPos pos, Direction direction) {
+        return direction == Direction.UP ? state.getSignal(world, pos, direction) : 0;
     }
 
-    public static SculkSensorPhase getPhase(IBlockData iblockdata) {
-        return (SculkSensorPhase) iblockdata.getValue(SculkSensorBlock.PHASE);
+    public static SculkSensorPhase getPhase(BlockState state) {
+        return (SculkSensorPhase) state.getValue(SculkSensorBlock.PHASE);
     }
 
-    public static boolean canActivate(IBlockData iblockdata) {
-        return getPhase(iblockdata) == SculkSensorPhase.INACTIVE;
+    public static boolean canActivate(BlockState state) {
+        return SculkSensorBlock.getPhase(state) == SculkSensorPhase.INACTIVE;
     }
 
-    public static void deactivate(World world, BlockPosition blockposition, IBlockData iblockdata) {
+    public static void deactivate(Level world, BlockPos pos, BlockState state) {
         // CraftBukkit start
-        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, blockposition), iblockdata.getValue(SculkSensorBlock.POWER), 0);
+        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, pos), state.getValue(SculkSensorBlock.POWER), 0);
         world.getCraftServer().getPluginManager().callEvent(eventRedstone);
 
         if (eventRedstone.getNewCurrent() > 0) {
-            world.setBlock(blockposition, iblockdata.setValue(SculkSensorBlock.POWER, eventRedstone.getNewCurrent()), 3);
+            world.setBlock(pos, state.setValue(SculkSensorBlock.POWER, eventRedstone.getNewCurrent()), 3);
             return;
         }
         // CraftBukkit end
-        world.setBlock(blockposition, (IBlockData) ((IBlockData) iblockdata.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.COOLDOWN)).setValue(SculkSensorBlock.POWER, 0), 3);
-        world.scheduleTick(blockposition, iblockdata.getBlock(), 10);
-        updateNeighbours(world, blockposition, iblockdata);
+        world.setBlock(pos, (BlockState) ((BlockState) state.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.COOLDOWN)).setValue(SculkSensorBlock.POWER, 0), 3);
+        world.scheduleTick(pos, state.getBlock(), 10);
+        SculkSensorBlock.updateNeighbours(world, pos, state);
     }
 
     @VisibleForTesting
@@ -242,56 +241,56 @@ public class SculkSensorBlock extends BlockTileEntity implements IBlockWaterlogg
         return 30;
     }
 
-    public void activate(@Nullable Entity entity, World world, BlockPosition blockposition, IBlockData iblockdata, int i, int j) {
+    public void activate(@Nullable Entity sourceEntity, Level world, BlockPos pos, BlockState state, int power, int frequency) {
         // CraftBukkit start
-        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, blockposition), iblockdata.getValue(SculkSensorBlock.POWER), i);
+        BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(CraftBlock.at(world, pos), state.getValue(SculkSensorBlock.POWER), power);
         world.getCraftServer().getPluginManager().callEvent(eventRedstone);
 
         if (eventRedstone.getNewCurrent() <= 0) {
             return;
         }
-        i = eventRedstone.getNewCurrent();
+        power = eventRedstone.getNewCurrent();
         // CraftBukkit end
-        world.setBlock(blockposition, (IBlockData) ((IBlockData) iblockdata.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.ACTIVE)).setValue(SculkSensorBlock.POWER, i), 3);
-        world.scheduleTick(blockposition, iblockdata.getBlock(), this.getActiveTicks());
-        updateNeighbours(world, blockposition, iblockdata);
-        tryResonateVibration(entity, world, blockposition, j);
-        world.gameEvent(entity, (Holder) GameEvent.SCULK_SENSOR_TENDRILS_CLICKING, blockposition);
-        if (!(Boolean) iblockdata.getValue(SculkSensorBlock.WATERLOGGED)) {
-            world.playSound((EntityHuman) null, (double) blockposition.getX() + 0.5D, (double) blockposition.getY() + 0.5D, (double) blockposition.getZ() + 0.5D, SoundEffects.SCULK_CLICKING, SoundCategory.BLOCKS, 1.0F, world.random.nextFloat() * 0.2F + 0.8F);
+        world.setBlock(pos, (BlockState) ((BlockState) state.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.ACTIVE)).setValue(SculkSensorBlock.POWER, power), 3);
+        world.scheduleTick(pos, state.getBlock(), this.getActiveTicks());
+        SculkSensorBlock.updateNeighbours(world, pos, state);
+        SculkSensorBlock.tryResonateVibration(sourceEntity, world, pos, frequency);
+        world.gameEvent(sourceEntity, (Holder) GameEvent.SCULK_SENSOR_TENDRILS_CLICKING, pos);
+        if (!(Boolean) state.getValue(SculkSensorBlock.WATERLOGGED)) {
+            world.playSound((Player) null, (double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, SoundEvents.SCULK_CLICKING, SoundSource.BLOCKS, 1.0F, world.random.nextFloat() * 0.2F + 0.8F);
         }
 
     }
 
-    public static void tryResonateVibration(@Nullable Entity entity, World world, BlockPosition blockposition, int i) {
-        EnumDirection[] aenumdirection = EnumDirection.values();
+    public static void tryResonateVibration(@Nullable Entity sourceEntity, Level world, BlockPos pos, int frequency) {
+        Direction[] aenumdirection = Direction.values();
         int j = aenumdirection.length;
 
         for (int k = 0; k < j; ++k) {
-            EnumDirection enumdirection = aenumdirection[k];
-            BlockPosition blockposition1 = blockposition.relative(enumdirection);
-            IBlockData iblockdata = world.getBlockState(blockposition1);
+            Direction enumdirection = aenumdirection[k];
+            BlockPos blockposition1 = pos.relative(enumdirection);
+            BlockState iblockdata = world.getBlockState(blockposition1);
 
-            if (iblockdata.is(TagsBlock.VIBRATION_RESONATORS)) {
-                world.gameEvent(VibrationSystem.getResonanceEventByFrequency(i), blockposition1, GameEvent.a.of(entity, iblockdata));
-                float f = SculkSensorBlock.RESONANCE_PITCH_BEND[i];
+            if (iblockdata.is(BlockTags.VIBRATION_RESONATORS)) {
+                world.gameEvent(VibrationSystem.getResonanceEventByFrequency(frequency), blockposition1, GameEvent.Context.of(sourceEntity, iblockdata));
+                float f = SculkSensorBlock.RESONANCE_PITCH_BEND[frequency];
 
-                world.playSound((EntityHuman) null, blockposition1, SoundEffects.AMETHYST_BLOCK_RESONATE, SoundCategory.BLOCKS, 1.0F, f);
+                world.playSound((Player) null, blockposition1, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.0F, f);
             }
         }
 
     }
 
     @Override
-    public void animateTick(IBlockData iblockdata, World world, BlockPosition blockposition, RandomSource randomsource) {
-        if (getPhase(iblockdata) == SculkSensorPhase.ACTIVE) {
-            EnumDirection enumdirection = EnumDirection.getRandom(randomsource);
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {
+        if (SculkSensorBlock.getPhase(state) == SculkSensorPhase.ACTIVE) {
+            Direction enumdirection = Direction.getRandom(random);
 
-            if (enumdirection != EnumDirection.UP && enumdirection != EnumDirection.DOWN) {
-                double d0 = (double) blockposition.getX() + 0.5D + (enumdirection.getStepX() == 0 ? 0.5D - randomsource.nextDouble() : (double) enumdirection.getStepX() * 0.6D);
-                double d1 = (double) blockposition.getY() + 0.25D;
-                double d2 = (double) blockposition.getZ() + 0.5D + (enumdirection.getStepZ() == 0 ? 0.5D - randomsource.nextDouble() : (double) enumdirection.getStepZ() * 0.6D);
-                double d3 = (double) randomsource.nextFloat() * 0.04D;
+            if (enumdirection != Direction.UP && enumdirection != Direction.DOWN) {
+                double d0 = (double) pos.getX() + 0.5D + (enumdirection.getStepX() == 0 ? 0.5D - random.nextDouble() : (double) enumdirection.getStepX() * 0.6D);
+                double d1 = (double) pos.getY() + 0.25D;
+                double d2 = (double) pos.getZ() + 0.5D + (enumdirection.getStepZ() == 0 ? 0.5D - random.nextDouble() : (double) enumdirection.getStepZ() * 0.6D);
+                double d3 = (double) random.nextFloat() * 0.04D;
 
                 world.addParticle(DustColorTransitionOptions.SCULK_TO_REDSTONE, d0, d1, d2, 0.0D, d3, 0.0D);
             }
@@ -299,44 +298,44 @@ public class SculkSensorBlock extends BlockTileEntity implements IBlockWaterlogg
     }
 
     @Override
-    protected void createBlockStateDefinition(BlockStateList.a<Block, IBlockData> blockstatelist_a) {
-        blockstatelist_a.add(SculkSensorBlock.PHASE, SculkSensorBlock.POWER, SculkSensorBlock.WATERLOGGED);
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(SculkSensorBlock.PHASE, SculkSensorBlock.POWER, SculkSensorBlock.WATERLOGGED);
     }
 
     @Override
-    protected boolean hasAnalogOutputSignal(IBlockData iblockdata) {
+    protected boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
     @Override
-    protected int getAnalogOutputSignal(IBlockData iblockdata, World world, BlockPosition blockposition) {
-        TileEntity tileentity = world.getBlockEntity(blockposition);
+    protected int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos) {
+        BlockEntity tileentity = world.getBlockEntity(pos);
 
         if (tileentity instanceof SculkSensorBlockEntity sculksensorblockentity) {
-            return getPhase(iblockdata) == SculkSensorPhase.ACTIVE ? sculksensorblockentity.getLastVibrationFrequency() : 0;
+            return SculkSensorBlock.getPhase(state) == SculkSensorPhase.ACTIVE ? sculksensorblockentity.getLastVibrationFrequency() : 0;
         } else {
             return 0;
         }
     }
 
     @Override
-    protected boolean isPathfindable(IBlockData iblockdata, PathMode pathmode) {
+    protected boolean isPathfindable(BlockState state, PathComputationType type) {
         return false;
     }
 
     @Override
-    protected boolean useShapeForLightOcclusion(IBlockData iblockdata) {
+    protected boolean useShapeForLightOcclusion(BlockState state) {
         return true;
     }
 
     @Override
-    protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
-        super.spawnAfterBreak(iblockdata, worldserver, blockposition, itemstack, flag);
+    protected void spawnAfterBreak(BlockState state, ServerLevel world, BlockPos pos, ItemStack tool, boolean dropExperience) {
+        super.spawnAfterBreak(state, world, pos, tool, dropExperience);
         // CraftBukkit start - Delegate to getExpDrop
     }
 
     @Override
-    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
+    public int getExpDrop(BlockState iblockdata, ServerLevel worldserver, BlockPos blockposition, ItemStack itemstack, boolean flag) {
         if (flag) {
             return this.tryDropExperience(worldserver, blockposition, itemstack, ConstantInt.of(5));
         }

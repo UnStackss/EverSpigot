@@ -3,107 +3,107 @@ package net.minecraft.world.level.block;
 import com.mojang.serialization.MapCodec;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.tags.TagsBlock;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.entity.projectile.IProjectile;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
-import net.minecraft.world.level.GeneratorAccess;
-import net.minecraft.world.level.World;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockProperties;
-import net.minecraft.world.level.block.state.properties.BlockStateBoolean;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.phys.MovingObjectPositionBlock;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public abstract class AbstractCandleBlock extends Block {
 
     public static final int LIGHT_PER_CANDLE = 3;
-    public static final BlockStateBoolean LIT = BlockProperties.LIT;
+    public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
     @Override
     protected abstract MapCodec<? extends AbstractCandleBlock> codec();
 
-    protected AbstractCandleBlock(BlockBase.Info blockbase_info) {
-        super(blockbase_info);
+    protected AbstractCandleBlock(BlockBehaviour.Properties settings) {
+        super(settings);
     }
 
-    protected abstract Iterable<Vec3D> getParticleOffsets(IBlockData iblockdata);
+    protected abstract Iterable<Vec3> getParticleOffsets(BlockState state);
 
-    public static boolean isLit(IBlockData iblockdata) {
-        return iblockdata.hasProperty(AbstractCandleBlock.LIT) && (iblockdata.is(TagsBlock.CANDLES) || iblockdata.is(TagsBlock.CANDLE_CAKES)) && (Boolean) iblockdata.getValue(AbstractCandleBlock.LIT);
+    public static boolean isLit(BlockState state) {
+        return state.hasProperty(AbstractCandleBlock.LIT) && (state.is(BlockTags.CANDLES) || state.is(BlockTags.CANDLE_CAKES)) && (Boolean) state.getValue(AbstractCandleBlock.LIT);
     }
 
     @Override
-    protected void onProjectileHit(World world, IBlockData iblockdata, MovingObjectPositionBlock movingobjectpositionblock, IProjectile iprojectile) {
-        if (!world.isClientSide && iprojectile.isOnFire() && this.canBeLit(iblockdata)) {
+    protected void onProjectileHit(Level world, BlockState state, BlockHitResult hit, Projectile projectile) {
+        if (!world.isClientSide && projectile.isOnFire() && this.canBeLit(state)) {
             // CraftBukkit start
-            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(world, movingobjectpositionblock.getBlockPos(), iprojectile).isCancelled()) {
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(world, hit.getBlockPos(), projectile).isCancelled()) {
                 return;
             }
             // CraftBukkit end
-            setLit(world, iblockdata, movingobjectpositionblock.getBlockPos(), true);
+            AbstractCandleBlock.setLit(world, state, hit.getBlockPos(), true);
         }
 
     }
 
-    protected boolean canBeLit(IBlockData iblockdata) {
-        return !(Boolean) iblockdata.getValue(AbstractCandleBlock.LIT);
+    protected boolean canBeLit(BlockState state) {
+        return !(Boolean) state.getValue(AbstractCandleBlock.LIT);
     }
 
     @Override
-    public void animateTick(IBlockData iblockdata, World world, BlockPosition blockposition, RandomSource randomsource) {
-        if ((Boolean) iblockdata.getValue(AbstractCandleBlock.LIT)) {
-            this.getParticleOffsets(iblockdata).forEach((vec3d) -> {
-                addParticlesAndSound(world, vec3d.add((double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ()), randomsource);
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {
+        if ((Boolean) state.getValue(AbstractCandleBlock.LIT)) {
+            this.getParticleOffsets(state).forEach((vec3d) -> {
+                AbstractCandleBlock.addParticlesAndSound(world, vec3d.add((double) pos.getX(), (double) pos.getY(), (double) pos.getZ()), random);
             });
         }
     }
 
-    private static void addParticlesAndSound(World world, Vec3D vec3d, RandomSource randomsource) {
-        float f = randomsource.nextFloat();
+    private static void addParticlesAndSound(Level world, Vec3 vec3d, RandomSource random) {
+        float f = random.nextFloat();
 
         if (f < 0.3F) {
-            world.addParticle(Particles.SMOKE, vec3d.x, vec3d.y, vec3d.z, 0.0D, 0.0D, 0.0D);
+            world.addParticle(ParticleTypes.SMOKE, vec3d.x, vec3d.y, vec3d.z, 0.0D, 0.0D, 0.0D);
             if (f < 0.17F) {
-                world.playLocalSound(vec3d.x + 0.5D, vec3d.y + 0.5D, vec3d.z + 0.5D, SoundEffects.CANDLE_AMBIENT, SoundCategory.BLOCKS, 1.0F + randomsource.nextFloat(), randomsource.nextFloat() * 0.7F + 0.3F, false);
+                world.playLocalSound(vec3d.x + 0.5D, vec3d.y + 0.5D, vec3d.z + 0.5D, SoundEvents.CANDLE_AMBIENT, SoundSource.BLOCKS, 1.0F + random.nextFloat(), random.nextFloat() * 0.7F + 0.3F, false);
             }
         }
 
-        world.addParticle(Particles.SMALL_FLAME, vec3d.x, vec3d.y, vec3d.z, 0.0D, 0.0D, 0.0D);
+        world.addParticle(ParticleTypes.SMALL_FLAME, vec3d.x, vec3d.y, vec3d.z, 0.0D, 0.0D, 0.0D);
     }
 
-    public static void extinguish(@Nullable EntityHuman entityhuman, IBlockData iblockdata, GeneratorAccess generatoraccess, BlockPosition blockposition) {
-        setLit(generatoraccess, iblockdata, blockposition, false);
-        if (iblockdata.getBlock() instanceof AbstractCandleBlock) {
-            ((AbstractCandleBlock) iblockdata.getBlock()).getParticleOffsets(iblockdata).forEach((vec3d) -> {
-                generatoraccess.addParticle(Particles.SMOKE, (double) blockposition.getX() + vec3d.x(), (double) blockposition.getY() + vec3d.y(), (double) blockposition.getZ() + vec3d.z(), 0.0D, 0.10000000149011612D, 0.0D);
+    public static void extinguish(@Nullable Player player, BlockState state, LevelAccessor world, BlockPos pos) {
+        AbstractCandleBlock.setLit(world, state, pos, false);
+        if (state.getBlock() instanceof AbstractCandleBlock) {
+            ((AbstractCandleBlock) state.getBlock()).getParticleOffsets(state).forEach((vec3d) -> {
+                world.addParticle(ParticleTypes.SMOKE, (double) pos.getX() + vec3d.x(), (double) pos.getY() + vec3d.y(), (double) pos.getZ() + vec3d.z(), 0.0D, 0.10000000149011612D, 0.0D);
             });
         }
 
-        generatoraccess.playSound((EntityHuman) null, blockposition, SoundEffects.CANDLE_EXTINGUISH, SoundCategory.BLOCKS, 1.0F, 1.0F);
-        generatoraccess.gameEvent((Entity) entityhuman, (Holder) GameEvent.BLOCK_CHANGE, blockposition);
+        world.playSound((Player) null, pos, SoundEvents.CANDLE_EXTINGUISH, SoundSource.BLOCKS, 1.0F, 1.0F);
+        world.gameEvent((Entity) player, (Holder) GameEvent.BLOCK_CHANGE, pos);
     }
 
-    private static void setLit(GeneratorAccess generatoraccess, IBlockData iblockdata, BlockPosition blockposition, boolean flag) {
-        generatoraccess.setBlock(blockposition, (IBlockData) iblockdata.setValue(AbstractCandleBlock.LIT, flag), 11);
+    private static void setLit(LevelAccessor world, BlockState state, BlockPos pos, boolean lit) {
+        world.setBlock(pos, (BlockState) state.setValue(AbstractCandleBlock.LIT, lit), 11);
     }
 
     @Override
-    protected void onExplosionHit(IBlockData iblockdata, World world, BlockPosition blockposition, Explosion explosion, BiConsumer<ItemStack, BlockPosition> biconsumer) {
-        if (explosion.canTriggerBlocks() && (Boolean) iblockdata.getValue(AbstractCandleBlock.LIT)) {
-            extinguish((EntityHuman) null, iblockdata, world, blockposition);
+    protected void onExplosionHit(BlockState state, Level world, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> stackMerger) {
+        if (explosion.canTriggerBlocks() && (Boolean) state.getValue(AbstractCandleBlock.LIT)) {
+            AbstractCandleBlock.extinguish((Player) null, state, world, pos);
         }
 
-        super.onExplosionHit(iblockdata, world, blockposition, explosion, biconsumer);
+        super.onExplosionHit(state, world, pos, explosion, stackMerger);
     }
 }

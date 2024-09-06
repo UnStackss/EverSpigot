@@ -1,24 +1,21 @@
 package net.minecraft.world.entity.animal;
 
 import java.util.Optional;
-import net.minecraft.advancements.CriterionTriggers;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.world.EnumHand;
-import net.minecraft.world.EnumInteractionResult;
-import net.minecraft.world.entity.EntityInsentient;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.item.ItemLiquidUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.level.World;
-
-// CraftBukkit start
-import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
+import net.minecraft.world.level.Level;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.event.entity.EntityRemoveEvent;
@@ -29,105 +26,105 @@ public interface Bucketable {
 
     boolean fromBucket();
 
-    void setFromBucket(boolean flag);
+    void setFromBucket(boolean fromBucket);
 
-    void saveToBucketTag(ItemStack itemstack);
+    void saveToBucketTag(ItemStack stack);
 
-    void loadFromBucketTag(NBTTagCompound nbttagcompound);
+    void loadFromBucketTag(CompoundTag nbt);
 
     ItemStack getBucketItemStack();
 
-    SoundEffect getPickupSound();
+    SoundEvent getPickupSound();
 
     /** @deprecated */
     @Deprecated
-    static void saveDefaultDataToBucketTag(EntityInsentient entityinsentient, ItemStack itemstack) {
-        itemstack.set(DataComponents.CUSTOM_NAME, entityinsentient.getCustomName());
-        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, itemstack, (nbttagcompound) -> {
-            if (entityinsentient.isNoAi()) {
-                nbttagcompound.putBoolean("NoAI", entityinsentient.isNoAi());
+    static void saveDefaultDataToBucketTag(Mob entity, ItemStack stack) {
+        stack.set(DataComponents.CUSTOM_NAME, entity.getCustomName());
+        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, stack, (nbttagcompound) -> {
+            if (entity.isNoAi()) {
+                nbttagcompound.putBoolean("NoAI", entity.isNoAi());
             }
 
-            if (entityinsentient.isSilent()) {
-                nbttagcompound.putBoolean("Silent", entityinsentient.isSilent());
+            if (entity.isSilent()) {
+                nbttagcompound.putBoolean("Silent", entity.isSilent());
             }
 
-            if (entityinsentient.isNoGravity()) {
-                nbttagcompound.putBoolean("NoGravity", entityinsentient.isNoGravity());
+            if (entity.isNoGravity()) {
+                nbttagcompound.putBoolean("NoGravity", entity.isNoGravity());
             }
 
-            if (entityinsentient.hasGlowingTag()) {
-                nbttagcompound.putBoolean("Glowing", entityinsentient.hasGlowingTag());
+            if (entity.hasGlowingTag()) {
+                nbttagcompound.putBoolean("Glowing", entity.hasGlowingTag());
             }
 
-            if (entityinsentient.isInvulnerable()) {
-                nbttagcompound.putBoolean("Invulnerable", entityinsentient.isInvulnerable());
+            if (entity.isInvulnerable()) {
+                nbttagcompound.putBoolean("Invulnerable", entity.isInvulnerable());
             }
 
-            nbttagcompound.putFloat("Health", entityinsentient.getHealth());
+            nbttagcompound.putFloat("Health", entity.getHealth());
         });
     }
 
     /** @deprecated */
     @Deprecated
-    static void loadDefaultDataFromBucketTag(EntityInsentient entityinsentient, NBTTagCompound nbttagcompound) {
-        if (nbttagcompound.contains("NoAI")) {
-            entityinsentient.setNoAi(nbttagcompound.getBoolean("NoAI"));
+    static void loadDefaultDataFromBucketTag(Mob entity, CompoundTag nbt) {
+        if (nbt.contains("NoAI")) {
+            entity.setNoAi(nbt.getBoolean("NoAI"));
         }
 
-        if (nbttagcompound.contains("Silent")) {
-            entityinsentient.setSilent(nbttagcompound.getBoolean("Silent"));
+        if (nbt.contains("Silent")) {
+            entity.setSilent(nbt.getBoolean("Silent"));
         }
 
-        if (nbttagcompound.contains("NoGravity")) {
-            entityinsentient.setNoGravity(nbttagcompound.getBoolean("NoGravity"));
+        if (nbt.contains("NoGravity")) {
+            entity.setNoGravity(nbt.getBoolean("NoGravity"));
         }
 
-        if (nbttagcompound.contains("Glowing")) {
-            entityinsentient.setGlowingTag(nbttagcompound.getBoolean("Glowing"));
+        if (nbt.contains("Glowing")) {
+            entity.setGlowingTag(nbt.getBoolean("Glowing"));
         }
 
-        if (nbttagcompound.contains("Invulnerable")) {
-            entityinsentient.setInvulnerable(nbttagcompound.getBoolean("Invulnerable"));
+        if (nbt.contains("Invulnerable")) {
+            entity.setInvulnerable(nbt.getBoolean("Invulnerable"));
         }
 
-        if (nbttagcompound.contains("Health", 99)) {
-            entityinsentient.setHealth(nbttagcompound.getFloat("Health"));
+        if (nbt.contains("Health", 99)) {
+            entity.setHealth(nbt.getFloat("Health"));
         }
 
     }
 
-    static <T extends EntityLiving & Bucketable> Optional<EnumInteractionResult> bucketMobPickup(EntityHuman entityhuman, EnumHand enumhand, T t0) {
-        ItemStack itemstack = entityhuman.getItemInHand(enumhand);
+    static <T extends LivingEntity & Bucketable> Optional<InteractionResult> bucketMobPickup(Player player, InteractionHand hand, T entity) {
+        ItemStack itemstack = player.getItemInHand(hand);
 
-        if (itemstack.getItem() == Items.WATER_BUCKET && t0.isAlive()) {
+        if (itemstack.getItem() == Items.WATER_BUCKET && entity.isAlive()) {
             // CraftBukkit start
             // t0.playSound(((Bucketable) t0).getPickupSound(), 1.0F, 1.0F); // CraftBukkit - moved down
-            ItemStack itemstack1 = ((Bucketable) t0).getBucketItemStack();
+            ItemStack itemstack1 = ((Bucketable) entity).getBucketItemStack();
 
-            ((Bucketable) t0).saveToBucketTag(itemstack1);
+            ((Bucketable) entity).saveToBucketTag(itemstack1);
 
-            PlayerBucketEntityEvent playerBucketFishEvent = CraftEventFactory.callPlayerFishBucketEvent(t0, entityhuman, itemstack, itemstack1, enumhand);
+            PlayerBucketEntityEvent playerBucketFishEvent = CraftEventFactory.callPlayerFishBucketEvent(entity, player, itemstack, itemstack1, hand);
             itemstack1 = CraftItemStack.asNMSCopy(playerBucketFishEvent.getEntityBucket());
             if (playerBucketFishEvent.isCancelled()) {
-                ((EntityPlayer) entityhuman).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
-                t0.getBukkitEntity().update((EntityPlayer) entityhuman); // We need to play out these packets as the client assumes the fish is gone
-                t0.refreshEntityData((EntityPlayer) entityhuman); // Need to send data such as the display name to client
-                return Optional.of(EnumInteractionResult.FAIL);
+                ((ServerPlayer) player).containerMenu.sendAllDataToRemote(); // We need to update inventory to resync client's bucket
+                entity.getBukkitEntity().update((ServerPlayer) player); // We need to play out these packets as the client assumes the fish is gone
+                entity.refreshEntityData((ServerPlayer) player); // Need to send data such as the display name to client
+                return Optional.of(InteractionResult.FAIL);
             }
-            t0.playSound(((Bucketable) t0).getPickupSound(), 1.0F, 1.0F);
+            entity.playSound(((Bucketable) entity).getPickupSound(), 1.0F, 1.0F);
             // CraftBukkit end
-            ItemStack itemstack2 = ItemLiquidUtil.createFilledResult(itemstack, entityhuman, itemstack1, false);
+            ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, player, itemstack1, false);
 
-            entityhuman.setItemInHand(enumhand, itemstack2);
-            World world = t0.level();
+            player.setItemInHand(hand, itemstack2);
+            Level world = entity.level();
 
             if (!world.isClientSide) {
-                CriterionTriggers.FILLED_BUCKET.trigger((EntityPlayer) entityhuman, itemstack1);
+                CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer) player, itemstack1);
             }
 
-            t0.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
-            return Optional.of(EnumInteractionResult.sidedSuccess(world.isClientSide));
+            entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+            return Optional.of(InteractionResult.sidedSuccess(world.isClientSide));
         } else {
             return Optional.empty();
         }

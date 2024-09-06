@@ -4,43 +4,41 @@ import com.mojang.serialization.MapCodec;
 import java.util.Iterator;
 import java.util.Optional;
 import javax.annotation.Nullable;
-import net.minecraft.advancements.CriterionTriggers;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.BlockPropertyJigsawOrientation;
-import net.minecraft.core.EnumDirection;
-import net.minecraft.core.dispenser.DispenseBehaviorItem;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.FrontAndTop;
+import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.EnumInteractionResult;
-import net.minecraft.world.IInventory;
-import net.minecraft.world.InventoryUtils;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.CompoundContainer;
+import net.minecraft.world.Container;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.BlockActionContext;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeCache;
-import net.minecraft.world.item.crafting.RecipeCrafting;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.CrafterBlockEntity;
-import net.minecraft.world.level.block.entity.TileEntity;
-import net.minecraft.world.level.block.entity.TileEntityHopper;
-import net.minecraft.world.level.block.entity.TileEntityTypes;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.level.block.state.BlockStateList;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockProperties;
-import net.minecraft.world.level.block.state.properties.BlockStateBoolean;
-import net.minecraft.world.level.block.state.properties.BlockStateEnum;
-import net.minecraft.world.phys.AxisAlignedBB;
-import net.minecraft.world.phys.MovingObjectPositionBlock;
-import net.minecraft.world.phys.Vec3D;
-
-// CraftBukkit start
-import net.minecraft.world.InventoryLargeChest;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.event.block.CrafterCraftEvent;
@@ -48,20 +46,20 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.inventory.Inventory;
 // CraftBukkit end
 
-public class CrafterBlock extends BlockTileEntity {
+public class CrafterBlock extends BaseEntityBlock {
 
     public static final MapCodec<CrafterBlock> CODEC = simpleCodec(CrafterBlock::new);
-    public static final BlockStateBoolean CRAFTING = BlockProperties.CRAFTING;
-    public static final BlockStateBoolean TRIGGERED = BlockProperties.TRIGGERED;
-    private static final BlockStateEnum<BlockPropertyJigsawOrientation> ORIENTATION = BlockProperties.ORIENTATION;
+    public static final BooleanProperty CRAFTING = BlockStateProperties.CRAFTING;
+    public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
+    private static final EnumProperty<FrontAndTop> ORIENTATION = BlockStateProperties.ORIENTATION;
     private static final int MAX_CRAFTING_TICKS = 6;
     private static final int CRAFTING_TICK_DELAY = 4;
     private static final RecipeCache RECIPE_CACHE = new RecipeCache(10);
     private static final int CRAFTER_ADVANCEMENT_DIAMETER = 17;
 
-    public CrafterBlock(BlockBase.Info blockbase_info) {
-        super(blockbase_info);
-        this.registerDefaultState((IBlockData) ((IBlockData) ((IBlockData) ((IBlockData) this.stateDefinition.any()).setValue(CrafterBlock.ORIENTATION, BlockPropertyJigsawOrientation.NORTH_UP)).setValue(CrafterBlock.TRIGGERED, false)).setValue(CrafterBlock.CRAFTING, false));
+    public CrafterBlock(BlockBehaviour.Properties settings) {
+        super(settings);
+        this.registerDefaultState((BlockState) ((BlockState) ((BlockState) ((BlockState) this.stateDefinition.any()).setValue(CrafterBlock.ORIENTATION, FrontAndTop.NORTH_UP)).setValue(CrafterBlock.TRIGGERED, false)).setValue(CrafterBlock.CRAFTING, false));
     }
 
     @Override
@@ -70,13 +68,13 @@ public class CrafterBlock extends BlockTileEntity {
     }
 
     @Override
-    protected boolean hasAnalogOutputSignal(IBlockData iblockdata) {
+    protected boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
     @Override
-    protected int getAnalogOutputSignal(IBlockData iblockdata, World world, BlockPosition blockposition) {
-        TileEntity tileentity = world.getBlockEntity(blockposition);
+    protected int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos) {
+        BlockEntity tileentity = world.getBlockEntity(pos);
 
         if (tileentity instanceof CrafterBlockEntity crafterblockentity) {
             return crafterblockentity.getRedstoneSignal();
@@ -86,138 +84,138 @@ public class CrafterBlock extends BlockTileEntity {
     }
 
     @Override
-    protected void neighborChanged(IBlockData iblockdata, World world, BlockPosition blockposition, Block block, BlockPosition blockposition1, boolean flag) {
-        boolean flag1 = world.hasNeighborSignal(blockposition);
-        boolean flag2 = (Boolean) iblockdata.getValue(CrafterBlock.TRIGGERED);
-        TileEntity tileentity = world.getBlockEntity(blockposition);
+    protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+        boolean flag1 = world.hasNeighborSignal(pos);
+        boolean flag2 = (Boolean) state.getValue(CrafterBlock.TRIGGERED);
+        BlockEntity tileentity = world.getBlockEntity(pos);
 
         if (flag1 && !flag2) {
-            world.scheduleTick(blockposition, (Block) this, 4);
-            world.setBlock(blockposition, (IBlockData) iblockdata.setValue(CrafterBlock.TRIGGERED, true), 2);
+            world.scheduleTick(pos, (Block) this, 4);
+            world.setBlock(pos, (BlockState) state.setValue(CrafterBlock.TRIGGERED, true), 2);
             this.setBlockEntityTriggered(tileentity, true);
         } else if (!flag1 && flag2) {
-            world.setBlock(blockposition, (IBlockData) ((IBlockData) iblockdata.setValue(CrafterBlock.TRIGGERED, false)).setValue(CrafterBlock.CRAFTING, false), 2);
+            world.setBlock(pos, (BlockState) ((BlockState) state.setValue(CrafterBlock.TRIGGERED, false)).setValue(CrafterBlock.CRAFTING, false), 2);
             this.setBlockEntityTriggered(tileentity, false);
         }
 
     }
 
     @Override
-    protected void tick(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
-        this.dispenseFrom(iblockdata, worldserver, blockposition);
+    protected void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+        this.dispenseFrom(state, world, pos);
     }
 
     @Nullable
     @Override
-    public <T extends TileEntity> BlockEntityTicker<T> getTicker(World world, IBlockData iblockdata, TileEntityTypes<T> tileentitytypes) {
-        return world.isClientSide ? null : createTickerHelper(tileentitytypes, TileEntityTypes.CRAFTER, CrafterBlockEntity::serverTick);
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
+        return world.isClientSide ? null : createTickerHelper(type, BlockEntityType.CRAFTER, CrafterBlockEntity::serverTick);
     }
 
-    private void setBlockEntityTriggered(@Nullable TileEntity tileentity, boolean flag) {
-        if (tileentity instanceof CrafterBlockEntity crafterblockentity) {
-            crafterblockentity.setTriggered(flag);
+    private void setBlockEntityTriggered(@Nullable BlockEntity blockEntity, boolean triggered) {
+        if (blockEntity instanceof CrafterBlockEntity crafterblockentity) {
+            crafterblockentity.setTriggered(triggered);
         }
 
     }
 
     @Override
-    public TileEntity newBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
-        CrafterBlockEntity crafterblockentity = new CrafterBlockEntity(blockposition, iblockdata);
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        CrafterBlockEntity crafterblockentity = new CrafterBlockEntity(pos, state);
 
-        crafterblockentity.setTriggered(iblockdata.hasProperty(CrafterBlock.TRIGGERED) && (Boolean) iblockdata.getValue(CrafterBlock.TRIGGERED));
+        crafterblockentity.setTriggered(state.hasProperty(CrafterBlock.TRIGGERED) && (Boolean) state.getValue(CrafterBlock.TRIGGERED));
         return crafterblockentity;
     }
 
     @Override
-    public IBlockData getStateForPlacement(BlockActionContext blockactioncontext) {
-        EnumDirection enumdirection = blockactioncontext.getNearestLookingDirection().getOpposite();
-        EnumDirection enumdirection1;
+    public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        Direction enumdirection = ctx.getNearestLookingDirection().getOpposite();
+        Direction enumdirection1;
 
         switch (enumdirection) {
             case DOWN:
-                enumdirection1 = blockactioncontext.getHorizontalDirection().getOpposite();
+                enumdirection1 = ctx.getHorizontalDirection().getOpposite();
                 break;
             case UP:
-                enumdirection1 = blockactioncontext.getHorizontalDirection();
+                enumdirection1 = ctx.getHorizontalDirection();
                 break;
             case NORTH:
             case SOUTH:
             case WEST:
             case EAST:
-                enumdirection1 = EnumDirection.UP;
+                enumdirection1 = Direction.UP;
                 break;
             default:
                 throw new MatchException((String) null, (Throwable) null);
         }
 
-        EnumDirection enumdirection2 = enumdirection1;
+        Direction enumdirection2 = enumdirection1;
 
-        return (IBlockData) ((IBlockData) this.defaultBlockState().setValue(CrafterBlock.ORIENTATION, BlockPropertyJigsawOrientation.fromFrontAndTop(enumdirection, enumdirection2))).setValue(CrafterBlock.TRIGGERED, blockactioncontext.getLevel().hasNeighborSignal(blockactioncontext.getClickedPos()));
+        return (BlockState) ((BlockState) this.defaultBlockState().setValue(CrafterBlock.ORIENTATION, FrontAndTop.fromFrontAndTop(enumdirection, enumdirection2))).setValue(CrafterBlock.TRIGGERED, ctx.getLevel().hasNeighborSignal(ctx.getClickedPos()));
     }
 
     @Override
-    public void setPlacedBy(World world, BlockPosition blockposition, IBlockData iblockdata, EntityLiving entityliving, ItemStack itemstack) {
-        if ((Boolean) iblockdata.getValue(CrafterBlock.TRIGGERED)) {
-            world.scheduleTick(blockposition, (Block) this, 4);
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, LivingEntity placer, ItemStack itemStack) {
+        if ((Boolean) state.getValue(CrafterBlock.TRIGGERED)) {
+            world.scheduleTick(pos, (Block) this, 4);
         }
 
     }
 
     @Override
-    protected void onRemove(IBlockData iblockdata, World world, BlockPosition blockposition, IBlockData iblockdata1, boolean flag) {
-        InventoryUtils.dropContentsOnDestroy(iblockdata, iblockdata1, world, blockposition);
-        super.onRemove(iblockdata, world, blockposition, iblockdata1, flag);
+    protected void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
+        Containers.dropContentsOnDestroy(state, newState, world, pos);
+        super.onRemove(state, world, pos, newState, moved);
     }
 
     @Override
-    protected EnumInteractionResult useWithoutItem(IBlockData iblockdata, World world, BlockPosition blockposition, EntityHuman entityhuman, MovingObjectPositionBlock movingobjectpositionblock) {
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
         if (world.isClientSide) {
-            return EnumInteractionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         } else {
-            TileEntity tileentity = world.getBlockEntity(blockposition);
+            BlockEntity tileentity = world.getBlockEntity(pos);
 
             if (tileentity instanceof CrafterBlockEntity) {
-                entityhuman.openMenu((CrafterBlockEntity) tileentity);
+                player.openMenu((CrafterBlockEntity) tileentity);
             }
 
-            return EnumInteractionResult.CONSUME;
+            return InteractionResult.CONSUME;
         }
     }
 
-    protected void dispenseFrom(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition) {
-        TileEntity tileentity = worldserver.getBlockEntity(blockposition);
+    protected void dispenseFrom(BlockState state, ServerLevel world, BlockPos pos) {
+        BlockEntity tileentity = world.getBlockEntity(pos);
 
         if (tileentity instanceof CrafterBlockEntity crafterblockentity) {
             CraftingInput craftinginput = crafterblockentity.asCraftInput();
-            Optional optional = getPotentialResults(worldserver, craftinginput);
+            Optional optional = CrafterBlock.getPotentialResults(world, craftinginput);
 
             if (optional.isEmpty()) {
-                worldserver.levelEvent(1050, blockposition, 0);
+                world.levelEvent(1050, pos, 0);
             } else {
-                RecipeHolder<RecipeCrafting> recipeholder = (RecipeHolder) optional.get();
-                ItemStack itemstack = ((RecipeCrafting) recipeholder.value()).assemble(craftinginput, worldserver.registryAccess());
+                RecipeHolder<CraftingRecipe> recipeholder = (RecipeHolder) optional.get();
+                ItemStack itemstack = ((CraftingRecipe) recipeholder.value()).assemble(craftinginput, world.registryAccess());
 
                 // CraftBukkit start
-                CrafterCraftEvent event = CraftEventFactory.callCrafterCraftEvent(blockposition, worldserver, crafterblockentity, itemstack, recipeholder);
+                CrafterCraftEvent event = CraftEventFactory.callCrafterCraftEvent(pos, world, crafterblockentity, itemstack, recipeholder);
                 if (event.isCancelled()) {
                     return;
                 }
                 itemstack = CraftItemStack.asNMSCopy(event.getResult());
                 // CraftBukkit end
                 if (itemstack.isEmpty()) {
-                    worldserver.levelEvent(1050, blockposition, 0);
+                    world.levelEvent(1050, pos, 0);
                 } else {
                     crafterblockentity.setCraftingTicksRemaining(6);
-                    worldserver.setBlock(blockposition, (IBlockData) iblockdata.setValue(CrafterBlock.CRAFTING, true), 2);
-                    itemstack.onCraftedBySystem(worldserver);
-                    this.dispenseItem(worldserver, blockposition, crafterblockentity, itemstack, iblockdata, recipeholder);
-                    Iterator iterator = ((RecipeCrafting) recipeholder.value()).getRemainingItems(craftinginput).iterator();
+                    world.setBlock(pos, (BlockState) state.setValue(CrafterBlock.CRAFTING, true), 2);
+                    itemstack.onCraftedBySystem(world);
+                    this.dispenseItem(world, pos, crafterblockentity, itemstack, state, recipeholder);
+                    Iterator iterator = ((CraftingRecipe) recipeholder.value()).getRemainingItems(craftinginput).iterator();
 
                     while (iterator.hasNext()) {
                         ItemStack itemstack1 = (ItemStack) iterator.next();
 
                         if (!itemstack1.isEmpty()) {
-                            this.dispenseItem(worldserver, blockposition, crafterblockentity, itemstack1, iblockdata, recipeholder);
+                            this.dispenseItem(world, pos, crafterblockentity, itemstack1, state, recipeholder);
                         }
                     }
 
@@ -232,29 +230,29 @@ public class CrafterBlock extends BlockTileEntity {
         }
     }
 
-    public static Optional<RecipeHolder<RecipeCrafting>> getPotentialResults(World world, CraftingInput craftinginput) {
-        return CrafterBlock.RECIPE_CACHE.get(world, craftinginput);
+    public static Optional<RecipeHolder<CraftingRecipe>> getPotentialResults(Level world, CraftingInput input) {
+        return CrafterBlock.RECIPE_CACHE.get(world, input);
     }
 
-    private void dispenseItem(WorldServer worldserver, BlockPosition blockposition, CrafterBlockEntity crafterblockentity, ItemStack itemstack, IBlockData iblockdata, RecipeHolder<RecipeCrafting> recipeholder) {
-        EnumDirection enumdirection = ((BlockPropertyJigsawOrientation) iblockdata.getValue(CrafterBlock.ORIENTATION)).front();
-        IInventory iinventory = TileEntityHopper.getContainerAt(worldserver, blockposition.relative(enumdirection));
-        ItemStack itemstack1 = itemstack.copy();
+    private void dispenseItem(ServerLevel world, BlockPos pos, CrafterBlockEntity blockEntity, ItemStack stack, BlockState state, RecipeHolder<CraftingRecipe> recipe) {
+        Direction enumdirection = ((FrontAndTop) state.getValue(CrafterBlock.ORIENTATION)).front();
+        Container iinventory = HopperBlockEntity.getContainerAt(world, pos.relative(enumdirection));
+        ItemStack itemstack1 = stack.copy();
 
-        if (iinventory != null && (iinventory instanceof CrafterBlockEntity || itemstack.getCount() > iinventory.getMaxStackSize(itemstack))) {
+        if (iinventory != null && (iinventory instanceof CrafterBlockEntity || stack.getCount() > iinventory.getMaxStackSize(stack))) {
             // CraftBukkit start - InventoryMoveItemEvent
             CraftItemStack oitemstack = CraftItemStack.asCraftMirror(itemstack1);
 
             Inventory destinationInventory;
             // Have to special case large chests as they work oddly
-            if (iinventory instanceof InventoryLargeChest) {
-                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((InventoryLargeChest) iinventory);
+            if (iinventory instanceof CompoundContainer) {
+                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((CompoundContainer) iinventory);
             } else {
                 destinationInventory = iinventory.getOwner().getInventory();
             }
 
-            InventoryMoveItemEvent event = new InventoryMoveItemEvent(crafterblockentity.getOwner().getInventory(), oitemstack, destinationInventory, true);
-            worldserver.getCraftServer().getPluginManager().callEvent(event);
+            InventoryMoveItemEvent event = new InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
+            world.getCraftServer().getPluginManager().callEvent(event);
             itemstack1 = CraftItemStack.asNMSCopy(event.getItem());
             while (!itemstack1.isEmpty()) {
                 if (event.isCancelled()) {
@@ -262,7 +260,7 @@ public class CrafterBlock extends BlockTileEntity {
                 }
                 // CraftBukkit end
                 ItemStack itemstack2 = itemstack1.copyWithCount(1);
-                ItemStack itemstack3 = TileEntityHopper.addItem(crafterblockentity, iinventory, itemstack2, enumdirection.getOpposite());
+                ItemStack itemstack3 = HopperBlockEntity.addItem(blockEntity, iinventory, itemstack2, enumdirection.getOpposite());
 
                 if (!itemstack3.isEmpty()) {
                     break;
@@ -276,14 +274,14 @@ public class CrafterBlock extends BlockTileEntity {
 
             Inventory destinationInventory;
             // Have to special case large chests as they work oddly
-            if (iinventory instanceof InventoryLargeChest) {
-                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((InventoryLargeChest) iinventory);
+            if (iinventory instanceof CompoundContainer) {
+                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((CompoundContainer) iinventory);
             } else {
                 destinationInventory = iinventory.getOwner().getInventory();
             }
 
-            InventoryMoveItemEvent event = new InventoryMoveItemEvent(crafterblockentity.getOwner().getInventory(), oitemstack, destinationInventory, true);
-            worldserver.getCraftServer().getPluginManager().callEvent(event);
+            InventoryMoveItemEvent event = new InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
+            world.getCraftServer().getPluginManager().callEvent(event);
             itemstack1 = CraftItemStack.asNMSCopy(event.getItem());
             while (!itemstack1.isEmpty()) {
                 if (event.isCancelled()) {
@@ -292,7 +290,7 @@ public class CrafterBlock extends BlockTileEntity {
                 // CraftBukkit end
                 int i = itemstack1.getCount();
 
-                itemstack1 = TileEntityHopper.addItem(crafterblockentity, iinventory, itemstack1, enumdirection.getOpposite());
+                itemstack1 = HopperBlockEntity.addItem(blockEntity, iinventory, itemstack1, enumdirection.getOpposite());
                 if (i == itemstack1.getCount()) {
                     break;
                 }
@@ -300,41 +298,41 @@ public class CrafterBlock extends BlockTileEntity {
         }
 
         if (!itemstack1.isEmpty()) {
-            Vec3D vec3d = Vec3D.atCenterOf(blockposition);
-            Vec3D vec3d1 = vec3d.relative(enumdirection, 0.7D);
+            Vec3 vec3d = Vec3.atCenterOf(pos);
+            Vec3 vec3d1 = vec3d.relative(enumdirection, 0.7D);
 
-            DispenseBehaviorItem.spawnItem(worldserver, itemstack1, 6, enumdirection, vec3d1);
-            Iterator iterator = worldserver.getEntitiesOfClass(EntityPlayer.class, AxisAlignedBB.ofSize(vec3d, 17.0D, 17.0D, 17.0D)).iterator();
+            DefaultDispenseItemBehavior.spawnItem(world, itemstack1, 6, enumdirection, vec3d1);
+            Iterator iterator = world.getEntitiesOfClass(ServerPlayer.class, AABB.ofSize(vec3d, 17.0D, 17.0D, 17.0D)).iterator();
 
             while (iterator.hasNext()) {
-                EntityPlayer entityplayer = (EntityPlayer) iterator.next();
+                ServerPlayer entityplayer = (ServerPlayer) iterator.next();
 
-                CriterionTriggers.CRAFTER_RECIPE_CRAFTED.trigger(entityplayer, recipeholder.id(), crafterblockentity.getItems());
+                CriteriaTriggers.CRAFTER_RECIPE_CRAFTED.trigger(entityplayer, recipe.id(), blockEntity.getItems());
             }
 
-            worldserver.levelEvent(1049, blockposition, 0);
-            worldserver.levelEvent(2010, blockposition, enumdirection.get3DDataValue());
+            world.levelEvent(1049, pos, 0);
+            world.levelEvent(2010, pos, enumdirection.get3DDataValue());
         }
 
     }
 
     @Override
-    protected EnumRenderType getRenderShape(IBlockData iblockdata) {
-        return EnumRenderType.MODEL;
+    protected RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Override
-    protected IBlockData rotate(IBlockData iblockdata, EnumBlockRotation enumblockrotation) {
-        return (IBlockData) iblockdata.setValue(CrafterBlock.ORIENTATION, enumblockrotation.rotation().rotate((BlockPropertyJigsawOrientation) iblockdata.getValue(CrafterBlock.ORIENTATION)));
+    protected BlockState rotate(BlockState state, Rotation rotation) {
+        return (BlockState) state.setValue(CrafterBlock.ORIENTATION, rotation.rotation().rotate((FrontAndTop) state.getValue(CrafterBlock.ORIENTATION)));
     }
 
     @Override
-    protected IBlockData mirror(IBlockData iblockdata, EnumBlockMirror enumblockmirror) {
-        return (IBlockData) iblockdata.setValue(CrafterBlock.ORIENTATION, enumblockmirror.rotation().rotate((BlockPropertyJigsawOrientation) iblockdata.getValue(CrafterBlock.ORIENTATION)));
+    protected BlockState mirror(BlockState state, Mirror mirror) {
+        return (BlockState) state.setValue(CrafterBlock.ORIENTATION, mirror.rotation().rotate((FrontAndTop) state.getValue(CrafterBlock.ORIENTATION)));
     }
 
     @Override
-    protected void createBlockStateDefinition(BlockStateList.a<Block, IBlockData> blockstatelist_a) {
-        blockstatelist_a.add(CrafterBlock.ORIENTATION, CrafterBlock.TRIGGERED, CrafterBlock.CRAFTING);
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(CrafterBlock.ORIENTATION, CrafterBlock.TRIGGERED, CrafterBlock.CRAFTING);
     }
 }

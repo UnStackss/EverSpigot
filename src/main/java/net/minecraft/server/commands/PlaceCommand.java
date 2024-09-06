@@ -10,122 +10,122 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.Optional;
-import net.minecraft.ResourceKeyInvalidException;
-import net.minecraft.commands.CommandListenerWrapper;
-import net.minecraft.commands.ICompletionProvider;
-import net.minecraft.commands.arguments.ArgumentMinecraftKeyRegistered;
+import net.minecraft.ResourceLocationException;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ResourceKeyArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.commands.arguments.TemplateMirrorArgument;
 import net.minecraft.commands.arguments.TemplateRotationArgument;
-import net.minecraft.commands.arguments.coordinates.ArgumentPosition;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.SectionPosition;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.resources.MinecraftKey;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.world.level.ChunkCoordIntPair;
-import net.minecraft.world.level.block.EnumBlockMirror;
-import net.minecraft.world.level.block.EnumBlockRotation;
-import net.minecraft.world.level.block.entity.TileEntityStructure;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.StructureBlockEntity;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.feature.WorldGenFeatureConfigured;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureBoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.world.level.levelgen.structure.pools.WorldGenFeatureDefinedStructureJigsawPlacement;
-import net.minecraft.world.level.levelgen.structure.pools.WorldGenFeatureDefinedStructurePoolTemplate;
-import net.minecraft.world.level.levelgen.structure.templatesystem.DefinedStructure;
-import net.minecraft.world.level.levelgen.structure.templatesystem.DefinedStructureInfo;
-import net.minecraft.world.level.levelgen.structure.templatesystem.DefinedStructureProcessorRotation;
+import net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement;
+import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
+import net.minecraft.world.level.levelgen.structure.templatesystem.BlockRotProcessor;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 public class PlaceCommand {
 
-    private static final SimpleCommandExceptionType ERROR_FEATURE_FAILED = new SimpleCommandExceptionType(IChatBaseComponent.translatable("commands.place.feature.failed"));
-    private static final SimpleCommandExceptionType ERROR_JIGSAW_FAILED = new SimpleCommandExceptionType(IChatBaseComponent.translatable("commands.place.jigsaw.failed"));
-    private static final SimpleCommandExceptionType ERROR_STRUCTURE_FAILED = new SimpleCommandExceptionType(IChatBaseComponent.translatable("commands.place.structure.failed"));
+    private static final SimpleCommandExceptionType ERROR_FEATURE_FAILED = new SimpleCommandExceptionType(Component.translatable("commands.place.feature.failed"));
+    private static final SimpleCommandExceptionType ERROR_JIGSAW_FAILED = new SimpleCommandExceptionType(Component.translatable("commands.place.jigsaw.failed"));
+    private static final SimpleCommandExceptionType ERROR_STRUCTURE_FAILED = new SimpleCommandExceptionType(Component.translatable("commands.place.structure.failed"));
     private static final DynamicCommandExceptionType ERROR_TEMPLATE_INVALID = new DynamicCommandExceptionType((object) -> {
-        return IChatBaseComponent.translatableEscape("commands.place.template.invalid", object);
+        return Component.translatableEscape("commands.place.template.invalid", object);
     });
-    private static final SimpleCommandExceptionType ERROR_TEMPLATE_FAILED = new SimpleCommandExceptionType(IChatBaseComponent.translatable("commands.place.template.failed"));
-    private static final SuggestionProvider<CommandListenerWrapper> SUGGEST_TEMPLATES = (commandcontext, suggestionsbuilder) -> {
-        StructureTemplateManager structuretemplatemanager = ((CommandListenerWrapper) commandcontext.getSource()).getLevel().getStructureManager();
+    private static final SimpleCommandExceptionType ERROR_TEMPLATE_FAILED = new SimpleCommandExceptionType(Component.translatable("commands.place.template.failed"));
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_TEMPLATES = (commandcontext, suggestionsbuilder) -> {
+        StructureTemplateManager structuretemplatemanager = ((CommandSourceStack) commandcontext.getSource()).getLevel().getStructureManager();
 
-        return ICompletionProvider.suggestResource(structuretemplatemanager.listTemplates(), suggestionsbuilder);
+        return SharedSuggestionProvider.suggestResource(structuretemplatemanager.listTemplates(), suggestionsbuilder);
     };
 
     public PlaceCommand() {}
 
-    public static void register(CommandDispatcher<CommandListenerWrapper> commanddispatcher) {
-        commanddispatcher.register((LiteralArgumentBuilder) ((LiteralArgumentBuilder) ((LiteralArgumentBuilder) ((LiteralArgumentBuilder) ((LiteralArgumentBuilder) net.minecraft.commands.CommandDispatcher.literal("place").requires((commandlistenerwrapper) -> {
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register((LiteralArgumentBuilder) ((LiteralArgumentBuilder) ((LiteralArgumentBuilder) ((LiteralArgumentBuilder) ((LiteralArgumentBuilder) net.minecraft.commands.Commands.literal("place").requires((commandlistenerwrapper) -> {
             return commandlistenerwrapper.hasPermission(2);
-        })).then(net.minecraft.commands.CommandDispatcher.literal("feature").then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("feature", ResourceKeyArgument.key(Registries.CONFIGURED_FEATURE)).executes((commandcontext) -> {
-            return placeFeature((CommandListenerWrapper) commandcontext.getSource(), ResourceKeyArgument.getConfiguredFeature(commandcontext, "feature"), BlockPosition.containing(((CommandListenerWrapper) commandcontext.getSource()).getPosition()));
-        })).then(net.minecraft.commands.CommandDispatcher.argument("pos", ArgumentPosition.blockPos()).executes((commandcontext) -> {
-            return placeFeature((CommandListenerWrapper) commandcontext.getSource(), ResourceKeyArgument.getConfiguredFeature(commandcontext, "feature"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"));
-        }))))).then(net.minecraft.commands.CommandDispatcher.literal("jigsaw").then(net.minecraft.commands.CommandDispatcher.argument("pool", ResourceKeyArgument.key(Registries.TEMPLATE_POOL)).then(net.minecraft.commands.CommandDispatcher.argument("target", ArgumentMinecraftKeyRegistered.id()).then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("max_depth", IntegerArgumentType.integer(1, 20)).executes((commandcontext) -> {
-            return placeJigsaw((CommandListenerWrapper) commandcontext.getSource(), ResourceKeyArgument.getStructureTemplatePool(commandcontext, "pool"), ArgumentMinecraftKeyRegistered.getId(commandcontext, "target"), IntegerArgumentType.getInteger(commandcontext, "max_depth"), BlockPosition.containing(((CommandListenerWrapper) commandcontext.getSource()).getPosition()));
-        })).then(net.minecraft.commands.CommandDispatcher.argument("position", ArgumentPosition.blockPos()).executes((commandcontext) -> {
-            return placeJigsaw((CommandListenerWrapper) commandcontext.getSource(), ResourceKeyArgument.getStructureTemplatePool(commandcontext, "pool"), ArgumentMinecraftKeyRegistered.getId(commandcontext, "target"), IntegerArgumentType.getInteger(commandcontext, "max_depth"), ArgumentPosition.getLoadedBlockPos(commandcontext, "position"));
-        }))))))).then(net.minecraft.commands.CommandDispatcher.literal("structure").then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("structure", ResourceKeyArgument.key(Registries.STRUCTURE)).executes((commandcontext) -> {
-            return placeStructure((CommandListenerWrapper) commandcontext.getSource(), ResourceKeyArgument.getStructure(commandcontext, "structure"), BlockPosition.containing(((CommandListenerWrapper) commandcontext.getSource()).getPosition()));
-        })).then(net.minecraft.commands.CommandDispatcher.argument("pos", ArgumentPosition.blockPos()).executes((commandcontext) -> {
-            return placeStructure((CommandListenerWrapper) commandcontext.getSource(), ResourceKeyArgument.getStructure(commandcontext, "structure"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"));
-        }))))).then(net.minecraft.commands.CommandDispatcher.literal("template").then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("template", ArgumentMinecraftKeyRegistered.id()).suggests(PlaceCommand.SUGGEST_TEMPLATES).executes((commandcontext) -> {
-            return placeTemplate((CommandListenerWrapper) commandcontext.getSource(), ArgumentMinecraftKeyRegistered.getId(commandcontext, "template"), BlockPosition.containing(((CommandListenerWrapper) commandcontext.getSource()).getPosition()), EnumBlockRotation.NONE, EnumBlockMirror.NONE, 1.0F, 0);
-        })).then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("pos", ArgumentPosition.blockPos()).executes((commandcontext) -> {
-            return placeTemplate((CommandListenerWrapper) commandcontext.getSource(), ArgumentMinecraftKeyRegistered.getId(commandcontext, "template"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"), EnumBlockRotation.NONE, EnumBlockMirror.NONE, 1.0F, 0);
-        })).then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("rotation", TemplateRotationArgument.templateRotation()).executes((commandcontext) -> {
-            return placeTemplate((CommandListenerWrapper) commandcontext.getSource(), ArgumentMinecraftKeyRegistered.getId(commandcontext, "template"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), EnumBlockMirror.NONE, 1.0F, 0);
-        })).then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("mirror", TemplateMirrorArgument.templateMirror()).executes((commandcontext) -> {
-            return placeTemplate((CommandListenerWrapper) commandcontext.getSource(), ArgumentMinecraftKeyRegistered.getId(commandcontext, "template"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), TemplateMirrorArgument.getMirror(commandcontext, "mirror"), 1.0F, 0);
-        })).then(((RequiredArgumentBuilder) net.minecraft.commands.CommandDispatcher.argument("integrity", FloatArgumentType.floatArg(0.0F, 1.0F)).executes((commandcontext) -> {
-            return placeTemplate((CommandListenerWrapper) commandcontext.getSource(), ArgumentMinecraftKeyRegistered.getId(commandcontext, "template"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), TemplateMirrorArgument.getMirror(commandcontext, "mirror"), FloatArgumentType.getFloat(commandcontext, "integrity"), 0);
-        })).then(net.minecraft.commands.CommandDispatcher.argument("seed", IntegerArgumentType.integer()).executes((commandcontext) -> {
-            return placeTemplate((CommandListenerWrapper) commandcontext.getSource(), ArgumentMinecraftKeyRegistered.getId(commandcontext, "template"), ArgumentPosition.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), TemplateMirrorArgument.getMirror(commandcontext, "mirror"), FloatArgumentType.getFloat(commandcontext, "integrity"), IntegerArgumentType.getInteger(commandcontext, "seed"));
+        })).then(net.minecraft.commands.Commands.literal("feature").then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("feature", ResourceKeyArgument.key(Registries.CONFIGURED_FEATURE)).executes((commandcontext) -> {
+            return PlaceCommand.placeFeature((CommandSourceStack) commandcontext.getSource(), ResourceKeyArgument.getConfiguredFeature(commandcontext, "feature"), BlockPos.containing(((CommandSourceStack) commandcontext.getSource()).getPosition()));
+        })).then(net.minecraft.commands.Commands.argument("pos", BlockPosArgument.blockPos()).executes((commandcontext) -> {
+            return PlaceCommand.placeFeature((CommandSourceStack) commandcontext.getSource(), ResourceKeyArgument.getConfiguredFeature(commandcontext, "feature"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"));
+        }))))).then(net.minecraft.commands.Commands.literal("jigsaw").then(net.minecraft.commands.Commands.argument("pool", ResourceKeyArgument.key(Registries.TEMPLATE_POOL)).then(net.minecraft.commands.Commands.argument("target", ResourceLocationArgument.id()).then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("max_depth", IntegerArgumentType.integer(1, 20)).executes((commandcontext) -> {
+            return PlaceCommand.placeJigsaw((CommandSourceStack) commandcontext.getSource(), ResourceKeyArgument.getStructureTemplatePool(commandcontext, "pool"), ResourceLocationArgument.getId(commandcontext, "target"), IntegerArgumentType.getInteger(commandcontext, "max_depth"), BlockPos.containing(((CommandSourceStack) commandcontext.getSource()).getPosition()));
+        })).then(net.minecraft.commands.Commands.argument("position", BlockPosArgument.blockPos()).executes((commandcontext) -> {
+            return PlaceCommand.placeJigsaw((CommandSourceStack) commandcontext.getSource(), ResourceKeyArgument.getStructureTemplatePool(commandcontext, "pool"), ResourceLocationArgument.getId(commandcontext, "target"), IntegerArgumentType.getInteger(commandcontext, "max_depth"), BlockPosArgument.getLoadedBlockPos(commandcontext, "position"));
+        }))))))).then(net.minecraft.commands.Commands.literal("structure").then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("structure", ResourceKeyArgument.key(Registries.STRUCTURE)).executes((commandcontext) -> {
+            return PlaceCommand.placeStructure((CommandSourceStack) commandcontext.getSource(), ResourceKeyArgument.getStructure(commandcontext, "structure"), BlockPos.containing(((CommandSourceStack) commandcontext.getSource()).getPosition()));
+        })).then(net.minecraft.commands.Commands.argument("pos", BlockPosArgument.blockPos()).executes((commandcontext) -> {
+            return PlaceCommand.placeStructure((CommandSourceStack) commandcontext.getSource(), ResourceKeyArgument.getStructure(commandcontext, "structure"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"));
+        }))))).then(net.minecraft.commands.Commands.literal("template").then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("template", ResourceLocationArgument.id()).suggests(PlaceCommand.SUGGEST_TEMPLATES).executes((commandcontext) -> {
+            return PlaceCommand.placeTemplate((CommandSourceStack) commandcontext.getSource(), ResourceLocationArgument.getId(commandcontext, "template"), BlockPos.containing(((CommandSourceStack) commandcontext.getSource()).getPosition()), Rotation.NONE, Mirror.NONE, 1.0F, 0);
+        })).then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("pos", BlockPosArgument.blockPos()).executes((commandcontext) -> {
+            return PlaceCommand.placeTemplate((CommandSourceStack) commandcontext.getSource(), ResourceLocationArgument.getId(commandcontext, "template"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"), Rotation.NONE, Mirror.NONE, 1.0F, 0);
+        })).then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("rotation", TemplateRotationArgument.templateRotation()).executes((commandcontext) -> {
+            return PlaceCommand.placeTemplate((CommandSourceStack) commandcontext.getSource(), ResourceLocationArgument.getId(commandcontext, "template"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), Mirror.NONE, 1.0F, 0);
+        })).then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("mirror", TemplateMirrorArgument.templateMirror()).executes((commandcontext) -> {
+            return PlaceCommand.placeTemplate((CommandSourceStack) commandcontext.getSource(), ResourceLocationArgument.getId(commandcontext, "template"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), TemplateMirrorArgument.getMirror(commandcontext, "mirror"), 1.0F, 0);
+        })).then(((RequiredArgumentBuilder) net.minecraft.commands.Commands.argument("integrity", FloatArgumentType.floatArg(0.0F, 1.0F)).executes((commandcontext) -> {
+            return PlaceCommand.placeTemplate((CommandSourceStack) commandcontext.getSource(), ResourceLocationArgument.getId(commandcontext, "template"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), TemplateMirrorArgument.getMirror(commandcontext, "mirror"), FloatArgumentType.getFloat(commandcontext, "integrity"), 0);
+        })).then(net.minecraft.commands.Commands.argument("seed", IntegerArgumentType.integer()).executes((commandcontext) -> {
+            return PlaceCommand.placeTemplate((CommandSourceStack) commandcontext.getSource(), ResourceLocationArgument.getId(commandcontext, "template"), BlockPosArgument.getLoadedBlockPos(commandcontext, "pos"), TemplateRotationArgument.getRotation(commandcontext, "rotation"), TemplateMirrorArgument.getMirror(commandcontext, "mirror"), FloatArgumentType.getFloat(commandcontext, "integrity"), IntegerArgumentType.getInteger(commandcontext, "seed"));
         })))))))));
     }
 
-    public static int placeFeature(CommandListenerWrapper commandlistenerwrapper, Holder.c<WorldGenFeatureConfigured<?, ?>> holder_c, BlockPosition blockposition) throws CommandSyntaxException {
-        WorldServer worldserver = commandlistenerwrapper.getLevel();
-        WorldGenFeatureConfigured<?, ?> worldgenfeatureconfigured = (WorldGenFeatureConfigured) holder_c.value();
-        ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(blockposition);
+    public static int placeFeature(CommandSourceStack source, Holder.Reference<ConfiguredFeature<?, ?>> feature, BlockPos pos) throws CommandSyntaxException {
+        ServerLevel worldserver = source.getLevel();
+        ConfiguredFeature<?, ?> worldgenfeatureconfigured = (ConfiguredFeature) feature.value();
+        ChunkPos chunkcoordintpair = new ChunkPos(pos);
 
-        checkLoaded(worldserver, new ChunkCoordIntPair(chunkcoordintpair.x - 1, chunkcoordintpair.z - 1), new ChunkCoordIntPair(chunkcoordintpair.x + 1, chunkcoordintpair.z + 1));
-        if (!worldgenfeatureconfigured.place(worldserver, worldserver.getChunkSource().getGenerator(), worldserver.getRandom(), blockposition)) {
+        PlaceCommand.checkLoaded(worldserver, new ChunkPos(chunkcoordintpair.x - 1, chunkcoordintpair.z - 1), new ChunkPos(chunkcoordintpair.x + 1, chunkcoordintpair.z + 1));
+        if (!worldgenfeatureconfigured.place(worldserver, worldserver.getChunkSource().getGenerator(), worldserver.getRandom(), pos)) {
             throw PlaceCommand.ERROR_FEATURE_FAILED.create();
         } else {
-            String s = holder_c.key().location().toString();
+            String s = feature.key().location().toString();
 
-            commandlistenerwrapper.sendSuccess(() -> {
-                return IChatBaseComponent.translatable("commands.place.feature.success", s, blockposition.getX(), blockposition.getY(), blockposition.getZ());
+            source.sendSuccess(() -> {
+                return Component.translatable("commands.place.feature.success", s, pos.getX(), pos.getY(), pos.getZ());
             }, true);
             return 1;
         }
     }
 
-    public static int placeJigsaw(CommandListenerWrapper commandlistenerwrapper, Holder<WorldGenFeatureDefinedStructurePoolTemplate> holder, MinecraftKey minecraftkey, int i, BlockPosition blockposition) throws CommandSyntaxException {
-        WorldServer worldserver = commandlistenerwrapper.getLevel();
-        ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(blockposition);
+    public static int placeJigsaw(CommandSourceStack source, Holder<StructureTemplatePool> structurePool, ResourceLocation id, int maxDepth, BlockPos pos) throws CommandSyntaxException {
+        ServerLevel worldserver = source.getLevel();
+        ChunkPos chunkcoordintpair = new ChunkPos(pos);
 
-        checkLoaded(worldserver, chunkcoordintpair, chunkcoordintpair);
-        if (!WorldGenFeatureDefinedStructureJigsawPlacement.generateJigsaw(worldserver, holder, minecraftkey, i, blockposition, false)) {
+        PlaceCommand.checkLoaded(worldserver, chunkcoordintpair, chunkcoordintpair);
+        if (!JigsawPlacement.generateJigsaw(worldserver, structurePool, id, maxDepth, pos, false)) {
             throw PlaceCommand.ERROR_JIGSAW_FAILED.create();
         } else {
-            commandlistenerwrapper.sendSuccess(() -> {
-                return IChatBaseComponent.translatable("commands.place.jigsaw.success", blockposition.getX(), blockposition.getY(), blockposition.getZ());
+            source.sendSuccess(() -> {
+                return Component.translatable("commands.place.jigsaw.success", pos.getX(), pos.getY(), pos.getZ());
             }, true);
             return 1;
         }
     }
 
-    public static int placeStructure(CommandListenerWrapper commandlistenerwrapper, Holder.c<Structure> holder_c, BlockPosition blockposition) throws CommandSyntaxException {
-        WorldServer worldserver = commandlistenerwrapper.getLevel();
-        Structure structure = (Structure) holder_c.value();
+    public static int placeStructure(CommandSourceStack source, Holder.Reference<Structure> structure, BlockPos pos) throws CommandSyntaxException {
+        ServerLevel worldserver = source.getLevel();
+        Structure structure1 = (Structure) structure.value();
         ChunkGenerator chunkgenerator = worldserver.getChunkSource().getGenerator();
-        StructureStart structurestart = structure.generate(commandlistenerwrapper.registryAccess(), chunkgenerator, chunkgenerator.getBiomeSource(), worldserver.getChunkSource().randomState(), worldserver.getStructureManager(), worldserver.getSeed(), new ChunkCoordIntPair(blockposition), 0, worldserver, (holder) -> {
+        StructureStart structurestart = structure1.generate(source.registryAccess(), chunkgenerator, chunkgenerator.getBiomeSource(), worldserver.getChunkSource().randomState(), worldserver.getStructureManager(), worldserver.getSeed(), new ChunkPos(pos), 0, worldserver, (holder) -> {
             return true;
         });
 
@@ -133,65 +133,65 @@ public class PlaceCommand {
             throw PlaceCommand.ERROR_STRUCTURE_FAILED.create();
         } else {
             structurestart.generationEventCause = org.bukkit.event.world.AsyncStructureGenerateEvent.Cause.COMMAND; // CraftBukkit - set AsyncStructureGenerateEvent.Cause.COMMAND as generation cause
-            StructureBoundingBox structureboundingbox = structurestart.getBoundingBox();
-            ChunkCoordIntPair chunkcoordintpair = new ChunkCoordIntPair(SectionPosition.blockToSectionCoord(structureboundingbox.minX()), SectionPosition.blockToSectionCoord(structureboundingbox.minZ()));
-            ChunkCoordIntPair chunkcoordintpair1 = new ChunkCoordIntPair(SectionPosition.blockToSectionCoord(structureboundingbox.maxX()), SectionPosition.blockToSectionCoord(structureboundingbox.maxZ()));
+            BoundingBox structureboundingbox = structurestart.getBoundingBox();
+            ChunkPos chunkcoordintpair = new ChunkPos(SectionPos.blockToSectionCoord(structureboundingbox.minX()), SectionPos.blockToSectionCoord(structureboundingbox.minZ()));
+            ChunkPos chunkcoordintpair1 = new ChunkPos(SectionPos.blockToSectionCoord(structureboundingbox.maxX()), SectionPos.blockToSectionCoord(structureboundingbox.maxZ()));
 
-            checkLoaded(worldserver, chunkcoordintpair, chunkcoordintpair1);
-            ChunkCoordIntPair.rangeClosed(chunkcoordintpair, chunkcoordintpair1).forEach((chunkcoordintpair2) -> {
-                structurestart.placeInChunk(worldserver, worldserver.structureManager(), chunkgenerator, worldserver.getRandom(), new StructureBoundingBox(chunkcoordintpair2.getMinBlockX(), worldserver.getMinBuildHeight(), chunkcoordintpair2.getMinBlockZ(), chunkcoordintpair2.getMaxBlockX(), worldserver.getMaxBuildHeight(), chunkcoordintpair2.getMaxBlockZ()), chunkcoordintpair2);
+            PlaceCommand.checkLoaded(worldserver, chunkcoordintpair, chunkcoordintpair1);
+            ChunkPos.rangeClosed(chunkcoordintpair, chunkcoordintpair1).forEach((chunkcoordintpair2) -> {
+                structurestart.placeInChunk(worldserver, worldserver.structureManager(), chunkgenerator, worldserver.getRandom(), new BoundingBox(chunkcoordintpair2.getMinBlockX(), worldserver.getMinBuildHeight(), chunkcoordintpair2.getMinBlockZ(), chunkcoordintpair2.getMaxBlockX(), worldserver.getMaxBuildHeight(), chunkcoordintpair2.getMaxBlockZ()), chunkcoordintpair2);
             });
-            String s = holder_c.key().location().toString();
+            String s = structure.key().location().toString();
 
-            commandlistenerwrapper.sendSuccess(() -> {
-                return IChatBaseComponent.translatable("commands.place.structure.success", s, blockposition.getX(), blockposition.getY(), blockposition.getZ());
+            source.sendSuccess(() -> {
+                return Component.translatable("commands.place.structure.success", s, pos.getX(), pos.getY(), pos.getZ());
             }, true);
             return 1;
         }
     }
 
-    public static int placeTemplate(CommandListenerWrapper commandlistenerwrapper, MinecraftKey minecraftkey, BlockPosition blockposition, EnumBlockRotation enumblockrotation, EnumBlockMirror enumblockmirror, float f, int i) throws CommandSyntaxException {
-        WorldServer worldserver = commandlistenerwrapper.getLevel();
+    public static int placeTemplate(CommandSourceStack source, ResourceLocation id, BlockPos pos, Rotation rotation, Mirror mirror, float integrity, int seed) throws CommandSyntaxException {
+        ServerLevel worldserver = source.getLevel();
         StructureTemplateManager structuretemplatemanager = worldserver.getStructureManager();
 
         Optional optional;
 
         try {
-            optional = structuretemplatemanager.get(minecraftkey);
-        } catch (ResourceKeyInvalidException resourcekeyinvalidexception) {
-            throw PlaceCommand.ERROR_TEMPLATE_INVALID.create(minecraftkey);
+            optional = structuretemplatemanager.get(id);
+        } catch (ResourceLocationException resourcekeyinvalidexception) {
+            throw PlaceCommand.ERROR_TEMPLATE_INVALID.create(id);
         }
 
         if (optional.isEmpty()) {
-            throw PlaceCommand.ERROR_TEMPLATE_INVALID.create(minecraftkey);
+            throw PlaceCommand.ERROR_TEMPLATE_INVALID.create(id);
         } else {
-            DefinedStructure definedstructure = (DefinedStructure) optional.get();
+            StructureTemplate definedstructure = (StructureTemplate) optional.get();
 
-            checkLoaded(worldserver, new ChunkCoordIntPair(blockposition), new ChunkCoordIntPair(blockposition.offset(definedstructure.getSize())));
-            DefinedStructureInfo definedstructureinfo = (new DefinedStructureInfo()).setMirror(enumblockmirror).setRotation(enumblockrotation);
+            PlaceCommand.checkLoaded(worldserver, new ChunkPos(pos), new ChunkPos(pos.offset(definedstructure.getSize())));
+            StructurePlaceSettings definedstructureinfo = (new StructurePlaceSettings()).setMirror(mirror).setRotation(rotation);
 
-            if (f < 1.0F) {
-                definedstructureinfo.clearProcessors().addProcessor(new DefinedStructureProcessorRotation(f)).setRandom(TileEntityStructure.createRandom((long) i));
+            if (integrity < 1.0F) {
+                definedstructureinfo.clearProcessors().addProcessor(new BlockRotProcessor(integrity)).setRandom(StructureBlockEntity.createRandom((long) seed));
             }
 
-            boolean flag = definedstructure.placeInWorld(worldserver, blockposition, blockposition, definedstructureinfo, TileEntityStructure.createRandom((long) i), 2);
+            boolean flag = definedstructure.placeInWorld(worldserver, pos, pos, definedstructureinfo, StructureBlockEntity.createRandom((long) seed), 2);
 
             if (!flag) {
                 throw PlaceCommand.ERROR_TEMPLATE_FAILED.create();
             } else {
-                commandlistenerwrapper.sendSuccess(() -> {
-                    return IChatBaseComponent.translatable("commands.place.template.success", IChatBaseComponent.translationArg(minecraftkey), blockposition.getX(), blockposition.getY(), blockposition.getZ());
+                source.sendSuccess(() -> {
+                    return Component.translatable("commands.place.template.success", Component.translationArg(id), pos.getX(), pos.getY(), pos.getZ());
                 }, true);
                 return 1;
             }
         }
     }
 
-    private static void checkLoaded(WorldServer worldserver, ChunkCoordIntPair chunkcoordintpair, ChunkCoordIntPair chunkcoordintpair1) throws CommandSyntaxException {
-        if (ChunkCoordIntPair.rangeClosed(chunkcoordintpair, chunkcoordintpair1).filter((chunkcoordintpair2) -> {
-            return !worldserver.isLoaded(chunkcoordintpair2.getWorldPosition());
+    private static void checkLoaded(ServerLevel world, ChunkPos pos1, ChunkPos pos2) throws CommandSyntaxException {
+        if (ChunkPos.rangeClosed(pos1, pos2).filter((chunkcoordintpair2) -> {
+            return !world.isLoaded(chunkcoordintpair2.getWorldPosition());
         }).findAny().isPresent()) {
-            throw ArgumentPosition.ERROR_NOT_LOADED.create();
+            throw BlockPosArgument.ERROR_NOT_LOADED.create();
         }
     }
 }

@@ -1,45 +1,44 @@
 package net.minecraft.world.level.levelgen.feature;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.WorldAccess;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.levelgen.feature.configurations.WorldGenFeatureEmptyConfiguration;
-
+import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 // CraftBukkit start
 import java.util.List;
 import org.bukkit.block.BlockState;
 import org.bukkit.event.world.PortalCreateEvent;
 // CraftBukkit end
 
-public class EndPlatformFeature extends WorldGenerator<WorldGenFeatureEmptyConfiguration> {
+public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
 
-    public EndPlatformFeature(Codec<WorldGenFeatureEmptyConfiguration> codec) {
-        super(codec);
+    public EndPlatformFeature(Codec<NoneFeatureConfiguration> configCodec) {
+        super(configCodec);
     }
 
     @Override
-    public boolean place(FeaturePlaceContext<WorldGenFeatureEmptyConfiguration> featureplacecontext) {
-        createEndPlatform(featureplacecontext.level(), featureplacecontext.origin(), false);
+    public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
+        EndPlatformFeature.createEndPlatform(context.level(), context.origin(), false);
         return true;
     }
 
-    public static void createEndPlatform(WorldAccess worldaccess, BlockPosition blockposition, boolean flag) {
-        createEndPlatform(worldaccess, blockposition, flag, null);
+    public static void createEndPlatform(ServerLevelAccessor world, BlockPos pos, boolean breakBlocks) {
+        EndPlatformFeature.createEndPlatform(world, pos, breakBlocks, null);
         // CraftBukkit start
     }
 
-    public static void createEndPlatform(WorldAccess worldaccess, BlockPosition blockposition, boolean flag, Entity entity) {
+    public static void createEndPlatform(ServerLevelAccessor worldaccess, BlockPos blockposition, boolean flag, Entity entity) {
         org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(worldaccess);
         // CraftBukkit end
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = blockposition.mutable();
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = blockposition.mutable();
 
         for (int i = -2; i <= 2; ++i) {
             for (int j = -2; j <= 2; ++j) {
                 for (int k = -1; k < 3; ++k) {
-                    BlockPosition.MutableBlockPosition blockposition_mutableblockposition1 = blockposition_mutableblockposition.set(blockposition).move(j, k, i);
+                    BlockPos.MutableBlockPos blockposition_mutableblockposition1 = blockposition_mutableblockposition.set(blockposition).move(j, k, i);
                     Block block = k == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
 
                     // CraftBukkit start

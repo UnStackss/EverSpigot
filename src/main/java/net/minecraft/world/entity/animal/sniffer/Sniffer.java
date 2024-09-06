@@ -12,60 +12,60 @@ import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.particles.ParticleParamBlock;
-import net.minecraft.core.particles.Particles;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.game.PacketDebug;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.tags.TagsBlock;
-import net.minecraft.tags.TagsItem;
+import net.minecraft.network.protocol.game.DebugPackets;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.ByIdMap;
-import net.minecraft.util.MathHelper;
-import net.minecraft.world.EnumHand;
-import net.minecraft.world.EnumInteractionResult;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityAgeable;
-import net.minecraft.world.entity.EntityInsentient;
-import net.minecraft.world.entity.EntityPose;
-import net.minecraft.world.entity.EntitySize;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.ai.BehaviorController;
-import net.minecraft.world.entity.ai.attributes.AttributeProvider;
-import net.minecraft.world.entity.ai.attributes.GenericAttributes;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
-import net.minecraft.world.entity.animal.EntityAnimal;
-import net.minecraft.world.entity.item.EntityItem;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.World;
-import net.minecraft.world.level.block.EnumRenderType;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.level.pathfinder.PathEntity;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathType;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.LootTables;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameterSets;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameters;
-import net.minecraft.world.phys.AxisAlignedBB;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
-public class Sniffer extends EntityAnimal {
+public class Sniffer extends Animal {
 
     private static final int DIGGING_PARTICLES_DELAY_TICKS = 1700;
     private static final int DIGGING_PARTICLES_DURATION_TICKS = 6000;
@@ -73,21 +73,21 @@ public class Sniffer extends EntityAnimal {
     private static final int DIGGING_DROP_SEED_OFFSET_TICKS = 120;
     private static final int SNIFFER_BABY_AGE_TICKS = 48000;
     private static final float DIGGING_BB_HEIGHT_OFFSET = 0.4F;
-    private static final EntitySize DIGGING_DIMENSIONS = EntitySize.scalable(EntityTypes.SNIFFER.getWidth(), EntityTypes.SNIFFER.getHeight() - 0.4F).withEyeHeight(0.81F);
-    private static final DataWatcherObject<Sniffer.State> DATA_STATE = DataWatcher.defineId(Sniffer.class, DataWatcherRegistry.SNIFFER_STATE);
-    private static final DataWatcherObject<Integer> DATA_DROP_SEED_AT_TICK = DataWatcher.defineId(Sniffer.class, DataWatcherRegistry.INT);
+    private static final EntityDimensions DIGGING_DIMENSIONS = EntityDimensions.scalable(EntityType.SNIFFER.getWidth(), EntityType.SNIFFER.getHeight() - 0.4F).withEyeHeight(0.81F);
+    private static final EntityDataAccessor<Sniffer.State> DATA_STATE = SynchedEntityData.defineId(Sniffer.class, EntityDataSerializers.SNIFFER_STATE);
+    private static final EntityDataAccessor<Integer> DATA_DROP_SEED_AT_TICK = SynchedEntityData.defineId(Sniffer.class, EntityDataSerializers.INT);
     public final AnimationState feelingHappyAnimationState = new AnimationState();
     public final AnimationState scentingAnimationState = new AnimationState();
     public final AnimationState sniffingAnimationState = new AnimationState();
     public final AnimationState diggingAnimationState = new AnimationState();
     public final AnimationState risingAnimationState = new AnimationState();
 
-    public static AttributeProvider.Builder createAttributes() {
-        return EntityInsentient.createMobAttributes().add(GenericAttributes.MOVEMENT_SPEED, 0.10000000149011612D).add(GenericAttributes.MAX_HEALTH, 14.0D);
+    public static AttributeSupplier.Builder createAttributes() {
+        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.10000000149011612D).add(Attributes.MAX_HEALTH, 14.0D);
     }
 
-    public Sniffer(EntityTypes<? extends EntityAnimal> entitytypes, World world) {
-        super(entitytypes, world);
+    public Sniffer(EntityType<? extends Animal> type, Level world) {
+        super(type, world);
         this.getNavigation().setCanFloat(true);
         this.setPathfindingMalus(PathType.WATER, -1.0F);
         this.setPathfindingMalus(PathType.DANGER_POWDER_SNOW, -1.0F);
@@ -95,10 +95,10 @@ public class Sniffer extends EntityAnimal {
     }
 
     @Override
-    protected void defineSynchedData(DataWatcher.a datawatcher_a) {
-        super.defineSynchedData(datawatcher_a);
-        datawatcher_a.define(Sniffer.DATA_STATE, Sniffer.State.IDLING);
-        datawatcher_a.define(Sniffer.DATA_DROP_SEED_AT_TICK, 0);
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(Sniffer.DATA_STATE, Sniffer.State.IDLING);
+        builder.define(Sniffer.DATA_DROP_SEED_AT_TICK, 0);
     }
 
     @Override
@@ -116,8 +116,8 @@ public class Sniffer extends EntityAnimal {
     }
 
     @Override
-    public EntitySize getDefaultDimensions(EntityPose entitypose) {
-        return this.getState() == Sniffer.State.DIGGING ? Sniffer.DIGGING_DIMENSIONS.scale(this.getAgeScale()) : super.getDefaultDimensions(entitypose);
+    public EntityDimensions getDefaultDimensions(Pose pose) {
+        return this.getState() == Sniffer.State.DIGGING ? Sniffer.DIGGING_DIMENSIONS.scale(this.getAgeScale()) : super.getDefaultDimensions(pose);
     }
 
     public boolean isSearching() {
@@ -136,13 +136,13 @@ public class Sniffer extends EntityAnimal {
         return this.getState() == Sniffer.State.DIGGING || this.getState() == Sniffer.State.SEARCHING;
     }
 
-    private BlockPosition getHeadBlock() {
-        Vec3D vec3d = this.getHeadPosition();
+    private BlockPos getHeadBlock() {
+        Vec3 vec3d = this.getHeadPosition();
 
-        return BlockPosition.containing(vec3d.x(), this.getY() + 0.20000000298023224D, vec3d.z());
+        return BlockPos.containing(vec3d.x(), this.getY() + 0.20000000298023224D, vec3d.z());
     }
 
-    private Vec3D getHeadPosition() {
+    private Vec3 getHeadPosition() {
         return this.position().add(this.getForward().scale(2.25D));
     }
 
@@ -150,14 +150,14 @@ public class Sniffer extends EntityAnimal {
         return (Sniffer.State) this.entityData.get(Sniffer.DATA_STATE);
     }
 
-    private Sniffer setState(Sniffer.State sniffer_state) {
-        this.entityData.set(Sniffer.DATA_STATE, sniffer_state);
+    private Sniffer setState(Sniffer.State state) {
+        this.entityData.set(Sniffer.DATA_STATE, state);
         return this;
     }
 
     @Override
-    public void onSyncedDataUpdated(DataWatcherObject<?> datawatcherobject) {
-        if (Sniffer.DATA_STATE.equals(datawatcherobject)) {
+    public void onSyncedDataUpdated(EntityDataAccessor<?> data) {
+        if (Sniffer.DATA_STATE.equals(data)) {
             Sniffer.State sniffer_state = this.getState();
 
             this.resetAnimations();
@@ -183,7 +183,7 @@ public class Sniffer extends EntityAnimal {
             this.refreshDimensions();
         }
 
-        super.onSyncedDataUpdated(datawatcherobject);
+        super.onSyncedDataUpdated(data);
     }
 
     private void resetAnimations() {
@@ -194,20 +194,20 @@ public class Sniffer extends EntityAnimal {
         this.scentingAnimationState.stop();
     }
 
-    public Sniffer transitionTo(Sniffer.State sniffer_state) {
-        switch (sniffer_state.ordinal()) {
+    public Sniffer transitionTo(Sniffer.State state) {
+        switch (state.ordinal()) {
             case 0:
                 this.setState(Sniffer.State.IDLING);
                 break;
             case 1:
-                this.playSound(SoundEffects.SNIFFER_HAPPY, 1.0F, 1.0F);
+                this.playSound(SoundEvents.SNIFFER_HAPPY, 1.0F, 1.0F);
                 this.setState(Sniffer.State.FEELING_HAPPY);
                 break;
             case 2:
                 this.setState(Sniffer.State.SCENTING).onScentingStart();
                 break;
             case 3:
-                this.playSound(SoundEffects.SNIFFER_SNIFFING, 1.0F, 1.0F);
+                this.playSound(SoundEvents.SNIFFER_SNIFFING, 1.0F, 1.0F);
                 this.setState(Sniffer.State.SNIFFING);
                 break;
             case 4:
@@ -217,7 +217,7 @@ public class Sniffer extends EntityAnimal {
                 this.setState(Sniffer.State.DIGGING).onDiggingStart();
                 break;
             case 6:
-                this.playSound(SoundEffects.SNIFFER_DIGGING_STOP, 1.0F, 1.0F);
+                this.playSound(SoundEvents.SNIFFER_DIGGING_STOP, 1.0F, 1.0F);
                 this.setState(Sniffer.State.RISING);
         }
 
@@ -225,7 +225,7 @@ public class Sniffer extends EntityAnimal {
     }
 
     private Sniffer onScentingStart() {
-        this.playSound(SoundEffects.SNIFFER_SCENTING, 1.0F, this.isBaby() ? 1.3F : 1.0F);
+        this.playSound(SoundEvents.SNIFFER_SCENTING, 1.0F, this.isBaby() ? 1.3F : 1.0F);
         return this;
     }
 
@@ -235,44 +235,44 @@ public class Sniffer extends EntityAnimal {
         return this;
     }
 
-    public Sniffer onDiggingComplete(boolean flag) {
-        if (flag) {
+    public Sniffer onDiggingComplete(boolean explored) {
+        if (explored) {
             this.storeExploredPosition(this.getOnPos());
         }
 
         return this;
     }
 
-    public Optional<BlockPosition> calculateDigPosition() {
+    public Optional<BlockPos> calculateDigPosition() {
         return IntStream.range(0, 5).mapToObj((i) -> {
             return LandRandomPos.getPos(this, 10 + 2 * i, 3);
-        }).filter(Objects::nonNull).map(BlockPosition::containing).filter((blockposition) -> {
+        }).filter(Objects::nonNull).map(BlockPos::containing).filter((blockposition) -> {
             return this.level().getWorldBorder().isWithinBounds(blockposition);
-        }).map(BlockPosition::below).filter(this::canDig).findFirst();
+        }).map(BlockPos::below).filter(this::canDig).findFirst();
     }
 
     public boolean canDig() {
         return !this.isPanicking() && !this.isTempted() && !this.isBaby() && !this.isInWater() && this.onGround() && !this.isPassenger() && this.canDig(this.getHeadBlock().below());
     }
 
-    private boolean canDig(BlockPosition blockposition) {
-        return this.level().getBlockState(blockposition).is(TagsBlock.SNIFFER_DIGGABLE_BLOCK) && this.getExploredPositions().noneMatch((globalpos) -> {
-            return GlobalPos.of(this.level().dimension(), blockposition).equals(globalpos);
-        }) && (Boolean) Optional.ofNullable(this.getNavigation().createPath(blockposition, 1)).map(PathEntity::canReach).orElse(false);
+    private boolean canDig(BlockPos pos) {
+        return this.level().getBlockState(pos).is(BlockTags.SNIFFER_DIGGABLE_BLOCK) && this.getExploredPositions().noneMatch((globalpos) -> {
+            return GlobalPos.of(this.level().dimension(), pos).equals(globalpos);
+        }) && (Boolean) Optional.ofNullable(this.getNavigation().createPath(pos, 1)).map(Path::canReach).orElse(false);
     }
 
     private void dropSeed() {
         if (!this.level().isClientSide() && (Integer) this.entityData.get(Sniffer.DATA_DROP_SEED_AT_TICK) == this.tickCount) {
-            WorldServer worldserver = (WorldServer) this.level();
-            LootTable loottable = worldserver.getServer().reloadableRegistries().getLootTable(LootTables.SNIFFER_DIGGING);
-            LootParams lootparams = (new LootParams.a(worldserver)).withParameter(LootContextParameters.ORIGIN, this.getHeadPosition()).withParameter(LootContextParameters.THIS_ENTITY, this).create(LootContextParameterSets.GIFT);
+            ServerLevel worldserver = (ServerLevel) this.level();
+            LootTable loottable = worldserver.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.SNIFFER_DIGGING);
+            LootParams lootparams = (new LootParams.Builder(worldserver)).withParameter(LootContextParams.ORIGIN, this.getHeadPosition()).withParameter(LootContextParams.THIS_ENTITY, this).create(LootContextParamSets.GIFT);
             List<ItemStack> list = loottable.getRandomItems(lootparams);
-            BlockPosition blockposition = this.getHeadBlock();
+            BlockPos blockposition = this.getHeadBlock();
             Iterator iterator = list.iterator();
 
             while (iterator.hasNext()) {
                 ItemStack itemstack = (ItemStack) iterator.next();
-                EntityItem entityitem = new EntityItem(worldserver, (double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ(), itemstack);
+                ItemEntity entityitem = new ItemEntity(worldserver, (double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ(), itemstack);
 
                 // CraftBukkit start - handle EntityDropItemEvent
                 org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entityitem.getBukkitEntity());
@@ -285,22 +285,22 @@ public class Sniffer extends EntityAnimal {
                 worldserver.addFreshEntity(entityitem);
             }
 
-            this.playSound(SoundEffects.SNIFFER_DROP_SEED, 1.0F, 1.0F);
+            this.playSound(SoundEvents.SNIFFER_DROP_SEED, 1.0F, 1.0F);
         }
     }
 
-    private Sniffer emitDiggingParticles(AnimationState animationstate) {
-        boolean flag = animationstate.getAccumulatedTime() > 1700L && animationstate.getAccumulatedTime() < 6000L;
+    private Sniffer emitDiggingParticles(AnimationState diggingAnimationState) {
+        boolean flag = diggingAnimationState.getAccumulatedTime() > 1700L && diggingAnimationState.getAccumulatedTime() < 6000L;
 
         if (flag) {
-            BlockPosition blockposition = this.getHeadBlock();
-            IBlockData iblockdata = this.level().getBlockState(blockposition.below());
+            BlockPos blockposition = this.getHeadBlock();
+            BlockState iblockdata = this.level().getBlockState(blockposition.below());
 
-            if (iblockdata.getRenderShape() != EnumRenderType.INVISIBLE) {
+            if (iblockdata.getRenderShape() != RenderShape.INVISIBLE) {
                 for (int i = 0; i < 30; ++i) {
-                    Vec3D vec3d = Vec3D.atCenterOf(blockposition).add(0.0D, -0.6499999761581421D, 0.0D);
+                    Vec3 vec3d = Vec3.atCenterOf(blockposition).add(0.0D, -0.6499999761581421D, 0.0D);
 
-                    this.level().addParticle(new ParticleParamBlock(Particles.BLOCK, iblockdata), vec3d.x, vec3d.y, vec3d.z, 0.0D, 0.0D, 0.0D);
+                    this.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, iblockdata), vec3d.x, vec3d.y, vec3d.z, 0.0D, 0.0D, 0.0D);
                 }
 
                 if (this.tickCount % 10 == 0) {
@@ -310,16 +310,16 @@ public class Sniffer extends EntityAnimal {
         }
 
         if (this.tickCount % 10 == 0) {
-            this.level().gameEvent((Holder) GameEvent.ENTITY_ACTION, this.getHeadBlock(), GameEvent.a.of((Entity) this));
+            this.level().gameEvent((Holder) GameEvent.ENTITY_ACTION, this.getHeadBlock(), GameEvent.Context.of((Entity) this));
         }
 
         return this;
     }
 
-    public Sniffer storeExploredPosition(BlockPosition blockposition) {
+    public Sniffer storeExploredPosition(BlockPos pos) {
         List<GlobalPos> list = (List) this.getExploredPositions().limit(20L).collect(Collectors.toList());
 
-        list.add(0, GlobalPos.of(this.level().dimension(), blockposition));
+        list.add(0, GlobalPos.of(this.level().dimension(), pos));
         this.getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, list); // CraftBukkit - decompile error
         return this;
     }
@@ -337,27 +337,27 @@ public class Sniffer extends EntityAnimal {
             double d1 = this.getDeltaMovement().horizontalDistanceSqr();
 
             if (d1 < 0.01D) {
-                this.moveRelative(0.1F, new Vec3D(0.0D, 0.0D, 1.0D));
+                this.moveRelative(0.1F, new Vec3(0.0D, 0.0D, 1.0D));
             }
         }
 
     }
 
     @Override
-    public void spawnChildFromBreeding(WorldServer worldserver, EntityAnimal entityanimal) {
+    public void spawnChildFromBreeding(ServerLevel world, Animal other) {
         ItemStack itemstack = new ItemStack(Items.SNIFFER_EGG);
-        EntityItem entityitem = new EntityItem(worldserver, this.position().x(), this.position().y(), this.position().z(), itemstack);
+        ItemEntity entityitem = new ItemEntity(world, this.position().x(), this.position().y(), this.position().z(), itemstack);
 
         entityitem.setDefaultPickUpDelay();
-        this.finalizeSpawnChildFromBreeding(worldserver, entityanimal, (EntityAgeable) null);
-        this.playSound(SoundEffects.SNIFFER_EGG_PLOP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 0.5F);
-        worldserver.addFreshEntity(entityitem);
+        this.finalizeSpawnChildFromBreeding(world, other, (AgeableMob) null);
+        this.playSound(SoundEvents.SNIFFER_EGG_PLOP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 0.5F);
+        world.addFreshEntity(entityitem);
     }
 
     @Override
-    public void die(DamageSource damagesource) {
+    public void die(DamageSource damageSource) {
         this.transitionTo(Sniffer.State.IDLING);
-        super.die(damagesource);
+        super.die(damageSource);
     }
 
     @Override
@@ -374,13 +374,13 @@ public class Sniffer extends EntityAnimal {
     }
 
     @Override
-    public EnumInteractionResult mobInteract(EntityHuman entityhuman, EnumHand enumhand) {
-        ItemStack itemstack = entityhuman.getItemInHand(enumhand);
+    public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        ItemStack itemstack = player.getItemInHand(hand);
         boolean flag = this.isFood(itemstack);
-        EnumInteractionResult enuminteractionresult = super.mobInteract(entityhuman, enumhand);
+        InteractionResult enuminteractionresult = super.mobInteract(player, hand);
 
         if (enuminteractionresult.consumesAction() && flag) {
-            this.level().playSound((EntityHuman) null, (Entity) this, this.getEatingSound(itemstack), SoundCategory.NEUTRAL, 1.0F, MathHelper.randomBetween(this.level().random, 0.8F, 1.2F));
+            this.level().playSound((Player) null, (Entity) this, this.getEatingSound(itemstack), SoundSource.NEUTRAL, 1.0F, Mth.randomBetween(this.level().random, 0.8F, 1.2F));
         }
 
         return enuminteractionresult;
@@ -388,34 +388,34 @@ public class Sniffer extends EntityAnimal {
 
     private void playSearchingSound() {
         if (this.level().isClientSide() && this.tickCount % 20 == 0) {
-            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEffects.SNIFFER_SEARCHING, this.getSoundSource(), 1.0F, 1.0F, false);
+            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.SNIFFER_SEARCHING, this.getSoundSource(), 1.0F, 1.0F, false);
         }
 
     }
 
     @Override
-    protected void playStepSound(BlockPosition blockposition, IBlockData iblockdata) {
-        this.playSound(SoundEffects.SNIFFER_STEP, 0.15F, 1.0F);
+    protected void playStepSound(BlockPos pos, BlockState state) {
+        this.playSound(SoundEvents.SNIFFER_STEP, 0.15F, 1.0F);
     }
 
     @Override
-    public SoundEffect getEatingSound(ItemStack itemstack) {
-        return SoundEffects.SNIFFER_EAT;
+    public SoundEvent getEatingSound(ItemStack stack) {
+        return SoundEvents.SNIFFER_EAT;
     }
 
     @Override
-    protected SoundEffect getAmbientSound() {
-        return Set.of(Sniffer.State.DIGGING, Sniffer.State.SEARCHING).contains(this.getState()) ? null : SoundEffects.SNIFFER_IDLE;
+    protected SoundEvent getAmbientSound() {
+        return Set.of(Sniffer.State.DIGGING, Sniffer.State.SEARCHING).contains(this.getState()) ? null : SoundEvents.SNIFFER_IDLE;
     }
 
     @Override
-    protected SoundEffect getHurtSound(DamageSource damagesource) {
-        return SoundEffects.SNIFFER_HURT;
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.SNIFFER_HURT;
     }
 
     @Override
-    protected SoundEffect getDeathSound() {
-        return SoundEffects.SNIFFER_DEATH;
+    public SoundEvent getDeathSound() {
+        return SoundEvents.SNIFFER_DEATH;
     }
 
     @Override
@@ -424,55 +424,55 @@ public class Sniffer extends EntityAnimal {
     }
 
     @Override
-    public void setBaby(boolean flag) {
-        this.setAge(flag ? -48000 : 0);
+    public void setBaby(boolean baby) {
+        this.setAge(baby ? -48000 : 0);
     }
 
     @Override
-    public EntityAgeable getBreedOffspring(WorldServer worldserver, EntityAgeable entityageable) {
-        return (EntityAgeable) EntityTypes.SNIFFER.create(worldserver);
+    public AgeableMob getBreedOffspring(ServerLevel world, AgeableMob entity) {
+        return (AgeableMob) EntityType.SNIFFER.create(world);
     }
 
     @Override
-    public boolean canMate(EntityAnimal entityanimal) {
-        if (!(entityanimal instanceof Sniffer sniffer)) {
+    public boolean canMate(Animal other) {
+        if (!(other instanceof Sniffer sniffer)) {
             return false;
         } else {
             Set<Sniffer.State> set = Set.of(Sniffer.State.IDLING, Sniffer.State.SCENTING, Sniffer.State.FEELING_HAPPY);
 
-            return set.contains(this.getState()) && set.contains(sniffer.getState()) && super.canMate(entityanimal);
+            return set.contains(this.getState()) && set.contains(sniffer.getState()) && super.canMate(other);
         }
     }
 
     @Override
-    public AxisAlignedBB getBoundingBoxForCulling() {
+    public AABB getBoundingBoxForCulling() {
         return super.getBoundingBoxForCulling().inflate(0.6000000238418579D);
     }
 
     @Override
-    public boolean isFood(ItemStack itemstack) {
-        return itemstack.is(TagsItem.SNIFFER_FOOD);
+    public boolean isFood(ItemStack stack) {
+        return stack.is(ItemTags.SNIFFER_FOOD);
     }
 
     @Override
-    protected BehaviorController<?> makeBrain(Dynamic<?> dynamic) {
+    protected Brain<?> makeBrain(Dynamic<?> dynamic) {
         return SnifferAi.makeBrain(this.brainProvider().makeBrain(dynamic));
     }
 
     @Override
-    public BehaviorController<Sniffer> getBrain() {
-        return (BehaviorController<Sniffer>) super.getBrain(); // CraftBukkit - decompile error
+    public Brain<Sniffer> getBrain() {
+        return (Brain<Sniffer>) super.getBrain(); // CraftBukkit - decompile error
     }
 
     @Override
-    protected BehaviorController.b<Sniffer> brainProvider() {
-        return BehaviorController.provider(SnifferAi.MEMORY_TYPES, SnifferAi.SENSOR_TYPES);
+    protected Brain.Provider<Sniffer> brainProvider() {
+        return Brain.provider(SnifferAi.MEMORY_TYPES, SnifferAi.SENSOR_TYPES);
     }
 
     @Override
     protected void customServerAiStep() {
         this.level().getProfiler().push("snifferBrain");
-        this.getBrain().tick((WorldServer) this.level(), this);
+        this.getBrain().tick((ServerLevel) this.level(), this);
         this.level().getProfiler().popPush("snifferActivityUpdate");
         SnifferAi.updateActivity(this);
         this.level().getProfiler().pop();
@@ -482,14 +482,14 @@ public class Sniffer extends EntityAnimal {
     @Override
     protected void sendDebugPackets() {
         super.sendDebugPackets();
-        PacketDebug.sendEntityBrain(this);
+        DebugPackets.sendEntityBrain(this);
     }
 
     public static enum State {
 
         IDLING(0), FEELING_HAPPY(1), SCENTING(2), SNIFFING(3), SEARCHING(4), DIGGING(5), RISING(6);
 
-        public static final IntFunction<Sniffer.State> BY_ID = ByIdMap.continuous(Sniffer.State::id, values(), ByIdMap.a.ZERO);
+        public static final IntFunction<Sniffer.State> BY_ID = ByIdMap.continuous(Sniffer.State::id, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
         public static final StreamCodec<ByteBuf, Sniffer.State> STREAM_CODEC = ByteBufCodecs.idMapper(Sniffer.State.BY_ID, Sniffer.State::id);
         private final int id;
 

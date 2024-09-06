@@ -21,43 +21,42 @@ import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 import net.minecraft.DefaultUncaughtExceptionHandler;
+import net.minecraft.DefaultUncaughtExceptionHandlerWithName;
 import net.minecraft.SharedConstants;
 import net.minecraft.SystemReport;
-import net.minecraft.SystemUtils;
-import net.minecraft.ThreadNamedUncaughtExceptionHandler;
-import net.minecraft.commands.CommandListenerWrapper;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.server.IMinecraftServer;
+import net.minecraft.Util;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.ConsoleInput;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.ServerCommand;
+import net.minecraft.server.ServerInterface;
 import net.minecraft.server.ServerLinks;
 import net.minecraft.server.Services;
 import net.minecraft.server.WorldStem;
-import net.minecraft.server.gui.ServerGUI;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.server.level.progress.WorldLoadListenerFactory;
-import net.minecraft.server.network.ITextFilter;
+import net.minecraft.server.gui.MinecraftServerGui;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.progress.ChunkProgressListenerFactory;
 import net.minecraft.server.network.TextFilter;
-import net.minecraft.server.packs.repository.ResourcePackRepository;
-import net.minecraft.server.players.NameReferencingFileConverter;
-import net.minecraft.server.players.UserCache;
-import net.minecraft.server.rcon.RemoteControlCommandListener;
-import net.minecraft.server.rcon.thread.RemoteControlListener;
-import net.minecraft.server.rcon.thread.RemoteStatusListener;
-import net.minecraft.util.MathHelper;
+import net.minecraft.server.network.TextFilterClient;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.server.players.GameProfileCache;
+import net.minecraft.server.players.OldUsersConverter;
+import net.minecraft.server.rcon.RconConsoleSource;
+import net.minecraft.server.rcon.thread.QueryThreadGs4;
+import net.minecraft.server.rcon.thread.RconThread;
+import net.minecraft.util.Mth;
 import net.minecraft.util.debugchart.DebugSampleSubscriptionTracker;
 import net.minecraft.util.debugchart.RemoteDebugSampleType;
 import net.minecraft.util.debugchart.RemoteSampleLogger;
 import net.minecraft.util.debugchart.SampleLogger;
 import net.minecraft.util.debugchart.TpsDebugDimensions;
-import net.minecraft.util.monitoring.jmx.MinecraftServerBeans;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.level.EnumGamemode;
+import net.minecraft.util.monitoring.jmx.MinecraftServerStatistics;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameRules;
-import net.minecraft.world.level.World;
-import net.minecraft.world.level.block.entity.TileEntitySkull;
-import net.minecraft.world.level.storage.Convertable;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.entity.SkullBlockEntity;
+import net.minecraft.world.level.storage.LevelStorageSource;
 import org.slf4j.Logger;
 
 // CraftBukkit start
@@ -73,22 +72,22 @@ import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.server.RemoteServerCommandEvent;
 // CraftBukkit end
 
-public class DedicatedServer extends MinecraftServer implements IMinecraftServer {
+public class DedicatedServer extends MinecraftServer implements ServerInterface {
 
     static final Logger LOGGER = LogUtils.getLogger();
     private static final int CONVERSION_RETRY_DELAY_MS = 5000;
     private static final int CONVERSION_RETRIES = 2;
-    private final List<ServerCommand> consoleInput = Collections.synchronizedList(Lists.newArrayList());
+    private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
     @Nullable
-    private RemoteStatusListener queryThreadGs4;
+    private QueryThreadGs4 queryThreadGs4;
     // private final RemoteControlCommandListener rconConsoleSource; // CraftBukkit - remove field
     @Nullable
-    private RemoteControlListener rconThread;
+    private RconThread rconThread;
     public DedicatedServerSettings settings;
     @Nullable
-    private ServerGUI gui;
+    private MinecraftServerGui gui;
     @Nullable
-    private final TextFilter textFilterClient;
+    private final TextFilterClient textFilterClient;
     @Nullable
     private RemoteSampleLogger tickTimeLogger;
     @Nullable
@@ -96,13 +95,13 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     public ServerLinks serverLinks;
 
     // CraftBukkit start - Signature changed
-    public DedicatedServer(joptsimple.OptionSet options, WorldLoader.a worldLoader, Thread thread, Convertable.ConversionSession convertable_conversionsession, ResourcePackRepository resourcepackrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services, WorldLoadListenerFactory worldloadlistenerfactory) {
+    public DedicatedServer(joptsimple.OptionSet options, WorldLoader.DataLoadContext worldLoader, Thread thread, LevelStorageSource.LevelStorageAccess convertable_conversionsession, PackRepository resourcepackrepository, WorldStem worldstem, DedicatedServerSettings dedicatedserversettings, DataFixer datafixer, Services services, ChunkProgressListenerFactory worldloadlistenerfactory) {
         super(options, worldLoader, thread, convertable_conversionsession, resourcepackrepository, worldstem, Proxy.NO_PROXY, datafixer, services, worldloadlistenerfactory);
         // CraftBukkit end
         this.settings = dedicatedserversettings;
         // this.rconConsoleSource = new RemoteControlCommandListener(this); // CraftBukkit - remove field
-        this.textFilterClient = TextFilter.createFromConfig(dedicatedserversettings.getProperties().textFilteringConfig);
-        this.serverLinks = createServerLinks(dedicatedserversettings);
+        this.textFilterClient = TextFilterClient.createFromConfig(dedicatedserversettings.getProperties().textFilteringConfig);
+        this.serverLinks = DedicatedServer.createServerLinks(dedicatedserversettings);
     }
 
     @Override
@@ -113,7 +112,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
                 if (!org.bukkit.craftbukkit.Main.useConsole) {
                     return;
                 }
-                jline.console.ConsoleReader bufferedreader = reader;
+                jline.console.ConsoleReader bufferedreader = DedicatedServer.this.reader;
 
                 // MC-33041, SPIGOT-5538: if System.in is not valid due to javaw, then return
                 try {
@@ -198,7 +197,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
         }
         // Spigot start
         this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage));
-        org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
+        org.spigotmc.SpigotConfig.init((java.io.File) this.options.valueOf("spigot-settings"));
         org.spigotmc.SpigotConfig.registerCommands();
         // Spigot end
 
@@ -233,8 +232,8 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
 
         // CraftBukkit start
         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
-        server.loadPlugins();
-        server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
+        this.server.loadPlugins();
+        this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
         // CraftBukkit end
 
         if (!this.usesAuthentication()) {
@@ -255,47 +254,47 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
             this.getProfileCache().save();
         }
 
-        if (!NameReferencingFileConverter.serverReadyAfterUserconversion(this)) {
+        if (!OldUsersConverter.serverReadyAfterUserconversion(this)) {
             return false;
         } else {
             // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // CraftBukkit - moved up
             this.debugSampleSubscriptionTracker = new DebugSampleSubscriptionTracker(this.getPlayerList());
             this.tickTimeLogger = new RemoteSampleLogger(TpsDebugDimensions.values().length, this.debugSampleSubscriptionTracker, RemoteDebugSampleType.TICK_TIME);
-            long i = SystemUtils.getNanos();
+            long i = Util.getNanos();
 
-            TileEntitySkull.setup(this.services, this);
-            UserCache.setUsesAuthentication(this.usesAuthentication());
+            SkullBlockEntity.setup(this.services, this);
+            GameProfileCache.setUsesAuthentication(this.usesAuthentication());
             DedicatedServer.LOGGER.info("Preparing level \"{}\"", this.getLevelIdName());
-            this.loadLevel(storageSource.getLevelId()); // CraftBukkit
-            long j = SystemUtils.getNanos() - i;
+            this.loadLevel(this.storageSource.getLevelId()); // CraftBukkit
+            long j = Util.getNanos() - i;
             String s = String.format(Locale.ROOT, "%.3fs", (double) j / 1.0E9D);
 
             DedicatedServer.LOGGER.info("Done ({})! For help, type \"help\"", s);
             if (dedicatedserverproperties.announcePlayerAchievements != null) {
-                ((GameRules.GameRuleBoolean) this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS)).set(dedicatedserverproperties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
+                ((GameRules.BooleanValue) this.getGameRules().getRule(GameRules.RULE_ANNOUNCE_ADVANCEMENTS)).set(dedicatedserverproperties.announcePlayerAchievements, this.overworld()); // CraftBukkit - per-world
             }
 
             if (dedicatedserverproperties.enableQuery) {
                 DedicatedServer.LOGGER.info("Starting GS4 status listener");
-                this.queryThreadGs4 = RemoteStatusListener.create(this);
+                this.queryThreadGs4 = QueryThreadGs4.create(this);
             }
 
             if (dedicatedserverproperties.enableRcon) {
                 DedicatedServer.LOGGER.info("Starting remote control listener");
-                this.rconThread = RemoteControlListener.create(this);
+                this.rconThread = RconThread.create(this);
             }
 
             if (false && this.getMaxTickLength() > 0L) {  // Spigot - disable
-                Thread thread1 = new Thread(new ThreadWatchdog(this));
+                Thread thread1 = new Thread(new ServerWatchdog(this));
 
-                thread1.setUncaughtExceptionHandler(new ThreadNamedUncaughtExceptionHandler(DedicatedServer.LOGGER));
+                thread1.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(DedicatedServer.LOGGER));
                 thread1.setName("Server Watchdog");
                 thread1.setDaemon(true);
                 thread1.start();
             }
 
             if (dedicatedserverproperties.enableJmxMonitoring) {
-                MinecraftServerBeans.registerJmxMonitoring(this);
+                MinecraftServerStatistics.registerJmxMonitoring(this);
                 DedicatedServer.LOGGER.info("JMX monitoring enabled");
             }
 
@@ -334,20 +333,20 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public SystemReport fillServerSystemReport(SystemReport systemreport) {
-        systemreport.setDetail("Is Modded", () -> {
+    public SystemReport fillServerSystemReport(SystemReport details) {
+        details.setDetail("Is Modded", () -> {
             return this.getModdedStatus().fullDescription();
         });
-        systemreport.setDetail("Type", () -> {
+        details.setDetail("Type", () -> {
             return "Dedicated Server (map_server.txt)";
         });
-        return systemreport;
+        return details;
     }
 
     @Override
-    public void dumpServerProperties(Path path) throws IOException {
+    public void dumpServerProperties(Path file) throws IOException {
         DedicatedServerProperties dedicatedserverproperties = this.getProperties();
-        BufferedWriter bufferedwriter = Files.newBufferedWriter(path);
+        BufferedWriter bufferedwriter = Files.newBufferedWriter(file);
 
         try {
             bufferedwriter.write(String.format(Locale.ROOT, "sync-chunk-writes=%s%n", dedicatedserverproperties.syncChunkWrites));
@@ -402,33 +401,33 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public void tickChildren(BooleanSupplier booleansupplier) {
-        super.tickChildren(booleansupplier);
+    public void tickChildren(BooleanSupplier shouldKeepTicking) {
+        super.tickChildren(shouldKeepTicking);
         this.handleConsoleInputs();
     }
 
     @Override
-    public boolean isLevelEnabled(World world) {
-        return world.dimension() == World.NETHER ? this.getProperties().allowNether : true;
+    public boolean isLevelEnabled(net.minecraft.world.level.Level world) {
+        return world.dimension() == net.minecraft.world.level.Level.NETHER ? this.getProperties().allowNether : true;
     }
 
-    public void handleConsoleInput(String s, CommandListenerWrapper commandlistenerwrapper) {
-        this.consoleInput.add(new ServerCommand(s, commandlistenerwrapper));
+    public void handleConsoleInput(String command, CommandSourceStack commandSource) {
+        this.consoleInput.add(new ConsoleInput(command, commandSource));
     }
 
     public void handleConsoleInputs() {
         SpigotTimings.serverCommandTimer.startTiming(); // Spigot
         while (!this.consoleInput.isEmpty()) {
-            ServerCommand servercommand = (ServerCommand) this.consoleInput.remove(0);
+            ConsoleInput servercommand = (ConsoleInput) this.consoleInput.remove(0);
 
             // CraftBukkit start - ServerCommand for preprocessing
-            ServerCommandEvent event = new ServerCommandEvent(console, servercommand.msg);
-            server.getPluginManager().callEvent(event);
+            ServerCommandEvent event = new ServerCommandEvent(this.console, servercommand.msg);
+            this.server.getPluginManager().callEvent(event);
             if (event.isCancelled()) continue;
-            servercommand = new ServerCommand(event.getCommand(), servercommand.source);
+            servercommand = new ConsoleInput(event.getCommand(), servercommand.source);
 
             // this.getCommands().performPrefixedCommand(servercommand.source, servercommand.msg); // Called in dispatchServerCommand
-            server.dispatchServerCommand(console, servercommand);
+            this.server.dispatchServerCommand(this.console, servercommand);
             // CraftBukkit end
         }
 
@@ -477,7 +476,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
 
     public void showGui() {
         if (this.gui == null) {
-            this.gui = ServerGUI.showFrameFor(this);
+            this.gui = MinecraftServerGui.showFrameFor(this);
         }
 
     }
@@ -498,19 +497,19 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public boolean isUnderSpawnProtection(WorldServer worldserver, BlockPosition blockposition, EntityHuman entityhuman) {
-        if (worldserver.dimension() != World.OVERWORLD) {
+    public boolean isUnderSpawnProtection(ServerLevel world, BlockPos pos, Player player) {
+        if (world.dimension() != net.minecraft.world.level.Level.OVERWORLD) {
             return false;
         } else if (this.getPlayerList().getOps().isEmpty()) {
             return false;
-        } else if (this.getPlayerList().isOp(entityhuman.getGameProfile())) {
+        } else if (this.getPlayerList().isOp(player.getGameProfile())) {
             return false;
         } else if (this.getSpawnProtectionRadius() <= 0) {
             return false;
         } else {
-            BlockPosition blockposition1 = worldserver.getSharedSpawnPos();
-            int i = MathHelper.abs(blockposition.getX() - blockposition1.getX());
-            int j = MathHelper.abs(blockposition.getZ() - blockposition1.getZ());
+            BlockPos blockposition1 = world.getSharedSpawnPos();
+            int i = Mth.abs(pos.getX() - blockposition1.getX());
+            int j = Mth.abs(pos.getZ() - blockposition1.getZ());
             int k = Math.max(i, j);
 
             return k <= this.getSpawnProtectionRadius();
@@ -538,10 +537,10 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public void setPlayerIdleTimeout(int i) {
-        super.setPlayerIdleTimeout(i);
+    public void setPlayerIdleTimeout(int playerIdleTimeout) {
+        super.setPlayerIdleTimeout(playerIdleTimeout);
         this.settings.update((dedicatedserverproperties) -> {
-            return (DedicatedServerProperties) dedicatedserverproperties.playerIdleTimeout.update(this.registryAccess(), i);
+            return (DedicatedServerProperties) dedicatedserverproperties.playerIdleTimeout.update(this.registryAccess(), playerIdleTimeout);
         });
     }
 
@@ -588,7 +587,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
                 this.waitForRetry();
             }
 
-            flag = NameReferencingFileConverter.convertUserBanlist(this);
+            flag = OldUsersConverter.convertUserBanlist(this);
         }
 
         boolean flag1 = false;
@@ -599,7 +598,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
                 this.waitForRetry();
             }
 
-            flag1 = NameReferencingFileConverter.convertIpBanlist(this);
+            flag1 = OldUsersConverter.convertIpBanlist(this);
         }
 
         boolean flag2 = false;
@@ -610,7 +609,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
                 this.waitForRetry();
             }
 
-            flag2 = NameReferencingFileConverter.convertOpsList(this);
+            flag2 = OldUsersConverter.convertOpsList(this);
         }
 
         boolean flag3 = false;
@@ -621,7 +620,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
                 this.waitForRetry();
             }
 
-            flag3 = NameReferencingFileConverter.convertWhiteList(this);
+            flag3 = OldUsersConverter.convertWhiteList(this);
         }
 
         boolean flag4 = false;
@@ -632,7 +631,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
                 this.waitForRetry();
             }
 
-            flag4 = NameReferencingFileConverter.convertPlayers(this);
+            flag4 = OldUsersConverter.convertPlayers(this);
         }
 
         return flag || flag1 || flag2 || flag3 || flag4;
@@ -659,13 +658,13 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     public String getPluginNames() {
         // CraftBukkit start - Whole method
         StringBuilder result = new StringBuilder();
-        org.bukkit.plugin.Plugin[] plugins = server.getPluginManager().getPlugins();
+        org.bukkit.plugin.Plugin[] plugins = this.server.getPluginManager().getPlugins();
 
-        result.append(server.getName());
+        result.append(this.server.getName());
         result.append(" on Bukkit ");
-        result.append(server.getBukkitVersion());
+        result.append(this.server.getBukkitVersion());
 
-        if (plugins.length > 0 && server.getQueryPlugins()) {
+        if (plugins.length > 0 && this.server.getQueryPlugins()) {
             result.append(": ");
 
             for (int i = 0; i < plugins.length; i++) {
@@ -684,48 +683,48 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public String runCommand(String s) {
+    public String runCommand(String command) {
         // CraftBukkit start - fire RemoteServerCommandEvent
         throw new UnsupportedOperationException("Not supported - remote source required.");
     }
 
-    public String runCommand(RemoteControlCommandListener rconConsoleSource, String s) {
+    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
         rconConsoleSource.prepareForCommand();
         this.executeBlocking(() -> {
-            CommandListenerWrapper wrapper = rconConsoleSource.createCommandSourceStack();
+            CommandSourceStack wrapper = rconConsoleSource.createCommandSourceStack();
             RemoteServerCommandEvent event = new RemoteServerCommandEvent(rconConsoleSource.getBukkitSender(wrapper), s);
-            server.getPluginManager().callEvent(event);
+            this.server.getPluginManager().callEvent(event);
             if (event.isCancelled()) {
                 return;
             }
-            ServerCommand serverCommand = new ServerCommand(event.getCommand(), wrapper);
-            server.dispatchServerCommand(event.getSender(), serverCommand);
+            ConsoleInput serverCommand = new ConsoleInput(event.getCommand(), wrapper);
+            this.server.dispatchServerCommand(event.getSender(), serverCommand);
         });
         return rconConsoleSource.getCommandResponse();
         // CraftBukkit end
     }
 
-    public void storeUsingWhiteList(boolean flag) {
+    public void storeUsingWhiteList(boolean useWhitelist) {
         this.settings.update((dedicatedserverproperties) -> {
-            return (DedicatedServerProperties) dedicatedserverproperties.whiteList.update(this.registryAccess(), flag);
+            return (DedicatedServerProperties) dedicatedserverproperties.whiteList.update(this.registryAccess(), useWhitelist);
         });
     }
 
     @Override
     public void stopServer() {
         super.stopServer();
-        SystemUtils.shutdownExecutors();
-        TileEntitySkull.clear();
+        Util.shutdownExecutors();
+        SkullBlockEntity.clear();
     }
 
     @Override
-    public boolean isSingleplayerOwner(GameProfile gameprofile) {
+    public boolean isSingleplayerOwner(GameProfile profile) {
         return false;
     }
 
     @Override
-    public int getScaledTrackingDistance(int i) {
-        return this.getProperties().entityBroadcastRangePercentage * i / 100;
+    public int getScaledTrackingDistance(int initialDistance) {
+        return this.getProperties().entityBroadcastRangePercentage * initialDistance / 100;
     }
 
     @Override
@@ -739,13 +738,13 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public ITextFilter createTextFilterForPlayer(EntityPlayer entityplayer) {
-        return this.textFilterClient != null ? this.textFilterClient.createContext(entityplayer.getGameProfile()) : ITextFilter.DUMMY;
+    public TextFilter createTextFilterForPlayer(ServerPlayer player) {
+        return this.textFilterClient != null ? this.textFilterClient.createContext(player.getGameProfile()) : TextFilter.DUMMY;
     }
 
     @Nullable
     @Override
-    public EnumGamemode getForcedGameType() {
+    public GameType getForcedGameType() {
         return this.settings.getProperties().forceGameMode ? this.worldData.getGameType() : null;
     }
 
@@ -771,8 +770,8 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public void subscribeToDebugSample(EntityPlayer entityplayer, RemoteDebugSampleType remotedebugsampletype) {
-        this.debugSampleSubscriptionTracker.subscribe(entityplayer, remotedebugsampletype);
+    public void subscribeToDebugSample(ServerPlayer player, RemoteDebugSampleType type) {
+        this.debugSampleSubscriptionTracker.subscribe(player, type);
     }
 
     @Override
@@ -785,22 +784,22 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
         return this.serverLinks;
     }
 
-    private static ServerLinks createServerLinks(DedicatedServerSettings dedicatedserversettings) {
-        Optional<URI> optional = parseBugReportLink(dedicatedserversettings.getProperties());
+    private static ServerLinks createServerLinks(DedicatedServerSettings propertiesLoader) {
+        Optional<URI> optional = DedicatedServer.parseBugReportLink(propertiesLoader.getProperties());
 
         return (ServerLinks) optional.map((uri) -> {
             return new ServerLinks(List.of(ServerLinks.KnownLinkType.BUG_REPORT.create(uri)));
         }).orElse(ServerLinks.EMPTY);
     }
 
-    private static Optional<URI> parseBugReportLink(DedicatedServerProperties dedicatedserverproperties) {
-        String s = dedicatedserverproperties.bugReportLink;
+    private static Optional<URI> parseBugReportLink(DedicatedServerProperties propertiesHandler) {
+        String s = propertiesHandler.bugReportLink;
 
         if (s.isEmpty()) {
             return Optional.empty();
         } else {
             try {
-                return Optional.of(SystemUtils.parseAndValidateUntrustedUri(s));
+                return Optional.of(Util.parseAndValidateUntrustedUri(s));
             } catch (Exception exception) {
                 DedicatedServer.LOGGER.warn("Failed to parse bug link {}", s, exception);
                 return Optional.empty();
@@ -814,8 +813,8 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
     }
 
     @Override
-    public CommandSender getBukkitSender(CommandListenerWrapper wrapper) {
-        return console;
+    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
+        return this.console;
     }
     // CraftBukkit end
 }

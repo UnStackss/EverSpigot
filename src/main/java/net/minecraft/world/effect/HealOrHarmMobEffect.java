@@ -2,41 +2,41 @@ package net.minecraft.world.effect;
 
 import javax.annotation.Nullable;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLiving;
+import net.minecraft.world.entity.LivingEntity;
 
-class HealOrHarmMobEffect extends InstantMobEffect {
+class HealOrHarmMobEffect extends InstantenousMobEffect {
 
     private final boolean isHarm;
 
-    public HealOrHarmMobEffect(MobEffectInfo mobeffectinfo, int i, boolean flag) {
-        super(mobeffectinfo, i);
-        this.isHarm = flag;
+    public HealOrHarmMobEffect(MobEffectCategory category, int color, boolean damage) {
+        super(category, color);
+        this.isHarm = damage;
     }
 
     @Override
-    public boolean applyEffectTick(EntityLiving entityliving, int i) {
-        if (this.isHarm == entityliving.isInvertedHealAndHarm()) {
-            entityliving.heal((float) Math.max(4 << i, 0), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
+    public boolean applyEffectTick(LivingEntity entity, int amplifier) {
+        if (this.isHarm == entity.isInvertedHealAndHarm()) {
+            entity.heal((float) Math.max(4 << amplifier, 0), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
         } else {
-            entityliving.hurt(entityliving.damageSources().magic(), (float) (6 << i));
+            entity.hurt(entity.damageSources().magic(), (float) (6 << amplifier));
         }
 
         return true;
     }
 
     @Override
-    public void applyInstantenousEffect(@Nullable Entity entity, @Nullable Entity entity1, EntityLiving entityliving, int i, double d0) {
+    public void applyInstantenousEffect(@Nullable Entity source, @Nullable Entity attacker, LivingEntity target, int amplifier, double proximity) {
         int j;
 
-        if (this.isHarm == entityliving.isInvertedHealAndHarm()) {
-            j = (int) (d0 * (double) (4 << i) + 0.5D);
-            entityliving.heal((float) j, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
+        if (this.isHarm == target.isInvertedHealAndHarm()) {
+            j = (int) (proximity * (double) (4 << amplifier) + 0.5D);
+            target.heal((float) j, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.MAGIC); // CraftBukkit
         } else {
-            j = (int) (d0 * (double) (6 << i) + 0.5D);
-            if (entity == null) {
-                entityliving.hurt(entityliving.damageSources().magic(), (float) j);
+            j = (int) (proximity * (double) (6 << amplifier) + 0.5D);
+            if (source == null) {
+                target.hurt(target.damageSources().magic(), (float) j);
             } else {
-                entityliving.hurt(entityliving.damageSources().indirectMagic(entity, entity1), (float) j);
+                target.hurt(target.damageSources().indirectMagic(source, attacker), (float) j);
             }
         }
 

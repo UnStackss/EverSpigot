@@ -1,25 +1,24 @@
 package net.minecraft.world.effect;
 
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.player.EntityHuman;
-
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 // CraftBukkit start
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 // CraftBukkit end
 
-class SaturationMobEffect extends InstantMobEffect {
+class SaturationMobEffect extends InstantenousMobEffect {
 
-    protected SaturationMobEffect(MobEffectInfo mobeffectinfo, int i) {
-        super(mobeffectinfo, i);
+    protected SaturationMobEffect(MobEffectCategory category, int color) {
+        super(category, color);
     }
 
     @Override
-    public boolean applyEffectTick(EntityLiving entityliving, int i) {
-        if (!entityliving.level().isClientSide && entityliving instanceof EntityHuman entityhuman) {
+    public boolean applyEffectTick(LivingEntity entity, int amplifier) {
+        if (!entity.level().isClientSide && entity instanceof Player entityhuman) {
             // CraftBukkit start
             int oldFoodLevel = entityhuman.getFoodData().foodLevel;
-            org.bukkit.event.entity.FoodLevelChangeEvent event = CraftEventFactory.callFoodLevelChangeEvent(entityhuman, i + 1 + oldFoodLevel);
+            org.bukkit.event.entity.FoodLevelChangeEvent event = CraftEventFactory.callFoodLevelChangeEvent(entityhuman, amplifier + 1 + oldFoodLevel);
             if (!event.isCancelled()) {
                 entityhuman.getFoodData().eat(event.getFoodLevel() - oldFoodLevel, 1.0F);
             }

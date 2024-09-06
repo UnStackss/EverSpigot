@@ -2,31 +2,31 @@ package org.spigotmc;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityCreature;
-import net.minecraft.world.entity.EntityExperienceOrb;
-import net.minecraft.world.entity.EntityLightning;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.ambient.EntityAmbient;
-import net.minecraft.world.entity.animal.EntityAnimal;
-import net.minecraft.world.entity.animal.EntitySheep;
-import net.minecraft.world.entity.boss.EntityComplexPart;
-import net.minecraft.world.entity.boss.enderdragon.EntityEnderCrystal;
-import net.minecraft.world.entity.boss.enderdragon.EntityEnderDragon;
-import net.minecraft.world.entity.boss.wither.EntityWither;
-import net.minecraft.world.entity.item.EntityTNTPrimed;
-import net.minecraft.world.entity.monster.EntityCreeper;
-import net.minecraft.world.entity.monster.EntityMonster;
-import net.minecraft.world.entity.monster.EntitySlime;
-import net.minecraft.world.entity.npc.EntityVillager;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.entity.projectile.EntityArrow;
-import net.minecraft.world.entity.projectile.EntityFireball;
-import net.minecraft.world.entity.projectile.EntityFireworks;
-import net.minecraft.world.entity.projectile.EntityProjectile;
-import net.minecraft.world.entity.projectile.EntityThrownTrident;
-import net.minecraft.world.entity.raid.EntityRaider;
-import net.minecraft.world.level.World;
-import net.minecraft.world.phys.AxisAlignedBB;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ambient.AmbientCreature;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Sheep;
+import net.minecraft.world.entity.boss.EnderDragonPart;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.item.PrimedTnt;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
+import net.minecraft.world.entity.projectile.FireworkRocketEntity;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
+import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.entity.raid.Raider;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import org.bukkit.craftbukkit.SpigotTimings;
 
 public class ActivationRange
@@ -39,10 +39,10 @@ public class ActivationRange
         RAIDER,
         MISC;
 
-        AxisAlignedBB boundingBox = new AxisAlignedBB( 0, 0, 0, 0, 0, 0 );
+        AABB boundingBox = new AABB( 0, 0, 0, 0, 0, 0 );
     }
 
-    static AxisAlignedBB maxBB = new AxisAlignedBB( 0, 0, 0, 0, 0, 0 );
+    static AABB maxBB = new AABB( 0, 0, 0, 0, 0, 0 );
 
     /**
      * Initializes an entities type on construction to specify what group this
@@ -53,13 +53,13 @@ public class ActivationRange
      */
     public static ActivationType initializeEntityActivationType(Entity entity)
     {
-        if ( entity instanceof EntityRaider )
+        if ( entity instanceof Raider )
         {
             return ActivationType.RAIDER;
-        } else if ( entity instanceof EntityMonster || entity instanceof EntitySlime )
+        } else if ( entity instanceof Monster || entity instanceof Slime )
         {
             return ActivationType.MONSTER;
-        } else if ( entity instanceof EntityCreature || entity instanceof EntityAmbient )
+        } else if ( entity instanceof PathfinderMob || entity instanceof AmbientCreature )
         {
             return ActivationType.ANIMAL;
         } else
@@ -81,17 +81,17 @@ public class ActivationRange
                 || ( entity.activationType == ActivationType.RAIDER && config.raiderActivationRange == 0 )
                 || ( entity.activationType == ActivationType.ANIMAL && config.animalActivationRange == 0 )
                 || ( entity.activationType == ActivationType.MONSTER && config.monsterActivationRange == 0 )
-                || entity instanceof EntityHuman
-                || entity instanceof EntityProjectile
-                || entity instanceof EntityEnderDragon
-                || entity instanceof EntityComplexPart
-                || entity instanceof EntityWither
-                || entity instanceof EntityFireball
-                || entity instanceof EntityLightning
-                || entity instanceof EntityTNTPrimed
-                || entity instanceof EntityEnderCrystal
-                || entity instanceof EntityFireworks
-                || entity instanceof EntityThrownTrident )
+                || entity instanceof Player
+                || entity instanceof ThrowableProjectile
+                || entity instanceof EnderDragon
+                || entity instanceof EnderDragonPart
+                || entity instanceof WitherBoss
+                || entity instanceof AbstractHurtingProjectile
+                || entity instanceof LightningBolt
+                || entity instanceof PrimedTnt
+                || entity instanceof EndCrystal
+                || entity instanceof FireworkRocketEntity
+                || entity instanceof ThrownTrident )
         {
             return true;
         }
@@ -105,7 +105,7 @@ public class ActivationRange
      *
      * @param world
      */
-    public static void activateEntities(World world)
+    public static void activateEntities(Level world)
     {
         SpigotTimings.entityActivationCheckTimer.startTiming();
         final int miscActivationRange = world.spigotConfig.miscActivationRange;
@@ -118,7 +118,7 @@ public class ActivationRange
         maxRange = Math.max( maxRange, miscActivationRange );
         maxRange = Math.min( ( world.spigotConfig.simulationDistance << 4 ) - 8, maxRange );
 
-        for ( EntityHuman player : world.players() )
+        for ( Player player : world.players() )
         {
             player.activatedTick = MinecraftServer.currentTick;
             if ( world.spigotConfig.ignoreSpectatorActivation && player.isSpectator() )
@@ -126,13 +126,13 @@ public class ActivationRange
                 continue;
             }
 
-            maxBB = player.getBoundingBox().inflate( maxRange, 256, maxRange );
+            ActivationRange.maxBB = player.getBoundingBox().inflate( maxRange, 256, maxRange );
             ActivationType.MISC.boundingBox = player.getBoundingBox().inflate( miscActivationRange, 256, miscActivationRange );
             ActivationType.RAIDER.boundingBox = player.getBoundingBox().inflate( raiderActivationRange, 256, raiderActivationRange );
             ActivationType.ANIMAL.boundingBox = player.getBoundingBox().inflate( animalActivationRange, 256, animalActivationRange );
             ActivationType.MONSTER.boundingBox = player.getBoundingBox().inflate( monsterActivationRange, 256, monsterActivationRange );
 
-            world.getEntities().get(maxBB, ActivationRange::activateEntity);
+            world.getEntities().get(ActivationRange.maxBB, ActivationRange::activateEntity);
         }
         SpigotTimings.entityActivationCheckTimer.stopTiming();
     }
@@ -172,50 +172,50 @@ public class ActivationRange
         {
             return true;
         }
-        if ( !( entity instanceof EntityArrow ) )
+        if ( !( entity instanceof AbstractArrow ) )
         {
             if ( !entity.onGround() || !entity.passengers.isEmpty() || entity.isPassenger() )
             {
                 return true;
             }
-        } else if ( !( (EntityArrow) entity ).inGround )
+        } else if ( !( (AbstractArrow) entity ).inGround )
         {
             return true;
         }
         // special cases.
-        if ( entity instanceof EntityLiving )
+        if ( entity instanceof LivingEntity )
         {
-            EntityLiving living = (EntityLiving) entity;
+            LivingEntity living = (LivingEntity) entity;
             if ( /*TODO: Missed mapping? living.attackTicks > 0 || */ living.hurtTime > 0 || living.activeEffects.size() > 0 )
             {
                 return true;
             }
-            if ( entity instanceof EntityCreature && ( (EntityCreature) entity ).getTarget() != null )
+            if ( entity instanceof PathfinderMob && ( (PathfinderMob) entity ).getTarget() != null )
             {
                 return true;
             }
-            if ( entity instanceof EntityVillager && ( (EntityVillager) entity ).canBreed() )
+            if ( entity instanceof Villager && ( (Villager) entity ).canBreed() )
             {
                 return true;
             }
-            if ( entity instanceof EntityAnimal )
+            if ( entity instanceof Animal )
             {
-                EntityAnimal animal = (EntityAnimal) entity;
+                Animal animal = (Animal) entity;
                 if ( animal.isBaby() || animal.isInLove() )
                 {
                     return true;
                 }
-                if ( entity instanceof EntitySheep && ( (EntitySheep) entity ).isSheared() )
+                if ( entity instanceof Sheep && ( (Sheep) entity ).isSheared() )
                 {
                     return true;
                 }
             }
-            if (entity instanceof EntityCreeper && ((EntityCreeper) entity).isIgnited()) { // isExplosive
+            if (entity instanceof Creeper && ((Creeper) entity).isIgnited()) { // isExplosive
                 return true;
             }
         }
         // SPIGOT-6644: Otherwise the target refresh tick will be missed
-        if (entity instanceof EntityExperienceOrb) {
+        if (entity instanceof ExperienceOrb) {
             return true;
         }
         return false;
@@ -231,7 +231,7 @@ public class ActivationRange
     {
         SpigotTimings.checkIfActiveTimer.startTiming();
         // Never safe to skip fireworks or entities not yet added to chunk
-        if ( entity instanceof EntityFireworks ) {
+        if ( entity instanceof FireworkRocketEntity ) {
             SpigotTimings.checkIfActiveTimer.stopTiming();
             return true;
         }
@@ -244,7 +244,7 @@ public class ActivationRange
             if ( ( MinecraftServer.currentTick - entity.activatedTick - 1 ) % 20 == 0 )
             {
                 // Check immunities every 20 ticks.
-                if ( checkEntityImmunities( entity ) )
+                if ( ActivationRange.checkEntityImmunities( entity ) )
                 {
                     // Triggered some sort of immunity, give 20 full ticks before we check again.
                     entity.activatedTick = MinecraftServer.currentTick + 20;
@@ -252,7 +252,7 @@ public class ActivationRange
                 isActive = true;
             }
             // Add a little performance juice to active entities. Skip 1/4 if not immune.
-        } else if ( !entity.defaultActivationState && entity.tickCount % 4 == 0 && !checkEntityImmunities( entity ) )
+        } else if ( !entity.defaultActivationState && entity.tickCount % 4 == 0 && !ActivationRange.checkEntityImmunities( entity ) )
         {
             isActive = false;
         }

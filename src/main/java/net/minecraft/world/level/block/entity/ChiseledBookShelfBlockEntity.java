@@ -3,23 +3,23 @@ package net.minecraft.world.level.block.entity;
 import com.mojang.logging.LogUtils;
 import java.util.Objects;
 import java.util.function.Predicate;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tags.TagsItem;
-import net.minecraft.world.ContainerUtil;
-import net.minecraft.world.IInventory;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChiseledBookShelfBlock;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockStateBoolean;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.gameevent.GameEvent;
 import org.slf4j.Logger;
 
@@ -30,7 +30,7 @@ import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 import org.bukkit.entity.HumanEntity;
 // CraftBukkit end
 
-public class ChiseledBookShelfBlockEntity extends TileEntity implements IInventory {
+public class ChiseledBookShelfBlockEntity extends BlockEntity implements Container {
 
     public static final int MAX_BOOKS_IN_STORAGE = 6;
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -47,69 +47,69 @@ public class ChiseledBookShelfBlockEntity extends TileEntity implements IInvento
 
     @Override
     public void onOpen(CraftHumanEntity who) {
-        transaction.add(who);
+        this.transaction.add(who);
     }
 
     @Override
     public void onClose(CraftHumanEntity who) {
-        transaction.remove(who);
+        this.transaction.remove(who);
     }
 
     @Override
     public List<HumanEntity> getViewers() {
-        return transaction;
+        return this.transaction;
     }
 
     @Override
     public void setMaxStackSize(int size) {
-        maxStack = size;
+        this.maxStack = size;
     }
 
     @Override
     public Location getLocation() {
-        if (level == null) return null;
-        return new org.bukkit.Location(level.getWorld(), worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
+        if (this.level == null) return null;
+        return new org.bukkit.Location(this.level.getWorld(), this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ());
     }
     // CraftBukkit end
 
-    public ChiseledBookShelfBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
-        super(TileEntityTypes.CHISELED_BOOKSHELF, blockposition, iblockdata);
+    public ChiseledBookShelfBlockEntity(BlockPos pos, BlockState state) {
+        super(BlockEntityType.CHISELED_BOOKSHELF, pos, state);
         this.items = NonNullList.withSize(6, ItemStack.EMPTY);
         this.lastInteractedSlot = -1;
     }
 
-    private void updateState(int i) {
-        if (i >= 0 && i < 6) {
-            this.lastInteractedSlot = i;
-            IBlockData iblockdata = this.getBlockState();
+    private void updateState(int interactedSlot) {
+        if (interactedSlot >= 0 && interactedSlot < 6) {
+            this.lastInteractedSlot = interactedSlot;
+            BlockState iblockdata = this.getBlockState();
 
             for (int j = 0; j < ChiseledBookShelfBlock.SLOT_OCCUPIED_PROPERTIES.size(); ++j) {
                 boolean flag = !this.getItem(j).isEmpty();
-                BlockStateBoolean blockstateboolean = (BlockStateBoolean) ChiseledBookShelfBlock.SLOT_OCCUPIED_PROPERTIES.get(j);
+                BooleanProperty blockstateboolean = (BooleanProperty) ChiseledBookShelfBlock.SLOT_OCCUPIED_PROPERTIES.get(j);
 
-                iblockdata = (IBlockData) iblockdata.setValue(blockstateboolean, flag);
+                iblockdata = (BlockState) iblockdata.setValue(blockstateboolean, flag);
             }
 
-            ((World) Objects.requireNonNull(this.level)).setBlock(this.worldPosition, iblockdata, 3);
-            this.level.gameEvent((Holder) GameEvent.BLOCK_CHANGE, this.worldPosition, GameEvent.a.of(iblockdata));
+            ((Level) Objects.requireNonNull(this.level)).setBlock(this.worldPosition, iblockdata, 3);
+            this.level.gameEvent((Holder) GameEvent.BLOCK_CHANGE, this.worldPosition, GameEvent.Context.of(iblockdata));
         } else {
-            ChiseledBookShelfBlockEntity.LOGGER.error("Expected slot 0-5, got {}", i);
+            ChiseledBookShelfBlockEntity.LOGGER.error("Expected slot 0-5, got {}", interactedSlot);
         }
     }
 
     @Override
-    protected void loadAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.loadAdditional(nbttagcompound, holderlookup_a);
+    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.loadAdditional(nbt, registryLookup);
         this.items.clear();
-        ContainerUtil.loadAllItems(nbttagcompound, this.items, holderlookup_a);
-        this.lastInteractedSlot = nbttagcompound.getInt("last_interacted_slot");
+        ContainerHelper.loadAllItems(nbt, this.items, registryLookup);
+        this.lastInteractedSlot = nbt.getInt("last_interacted_slot");
     }
 
     @Override
-    protected void saveAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.saveAdditional(nbttagcompound, holderlookup_a);
-        ContainerUtil.saveAllItems(nbttagcompound, this.items, true, holderlookup_a);
-        nbttagcompound.putInt("last_interacted_slot", this.lastInteractedSlot);
+    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.saveAdditional(nbt, registryLookup);
+        ContainerHelper.saveAllItems(nbt, this.items, true, registryLookup);
+        nbt.putInt("last_interacted_slot", this.lastInteractedSlot);
     }
 
     public int count() {
@@ -132,58 +132,58 @@ public class ChiseledBookShelfBlockEntity extends TileEntity implements IInvento
     }
 
     @Override
-    public ItemStack getItem(int i) {
-        return (ItemStack) this.items.get(i);
+    public ItemStack getItem(int slot) {
+        return (ItemStack) this.items.get(slot);
     }
 
     @Override
-    public ItemStack removeItem(int i, int j) {
-        ItemStack itemstack = (ItemStack) Objects.requireNonNullElse((ItemStack) this.items.get(i), ItemStack.EMPTY);
+    public ItemStack removeItem(int slot, int amount) {
+        ItemStack itemstack = (ItemStack) Objects.requireNonNullElse((ItemStack) this.items.get(slot), ItemStack.EMPTY);
 
-        this.items.set(i, ItemStack.EMPTY);
+        this.items.set(slot, ItemStack.EMPTY);
         if (!itemstack.isEmpty()) {
-            if (level != null) this.updateState(i); // CraftBukkit - SPIGOT-7381: check for null world
+            if (this.level != null) this.updateState(slot); // CraftBukkit - SPIGOT-7381: check for null world
         }
 
         return itemstack;
     }
 
     @Override
-    public ItemStack removeItemNoUpdate(int i) {
-        return this.removeItem(i, 1);
+    public ItemStack removeItemNoUpdate(int slot) {
+        return this.removeItem(slot, 1);
     }
 
     @Override
-    public void setItem(int i, ItemStack itemstack) {
-        if (itemstack.is(TagsItem.BOOKSHELF_BOOKS)) {
-            this.items.set(i, itemstack);
-            if (level != null) this.updateState(i); // CraftBukkit - SPIGOT-7381: check for null world
-        } else if (itemstack.isEmpty()) {
-            this.removeItem(i, 1);
+    public void setItem(int slot, ItemStack stack) {
+        if (stack.is(ItemTags.BOOKSHELF_BOOKS)) {
+            this.items.set(slot, stack);
+            if (this.level != null) this.updateState(slot); // CraftBukkit - SPIGOT-7381: check for null world
+        } else if (stack.isEmpty()) {
+            this.removeItem(slot, 1);
         }
 
     }
 
     @Override
-    public boolean canTakeItem(IInventory iinventory, int i, ItemStack itemstack) {
-        return iinventory.hasAnyMatching((itemstack1) -> {
-            return itemstack1.isEmpty() ? true : ItemStack.isSameItemSameComponents(itemstack, itemstack1) && itemstack1.getCount() + itemstack.getCount() <= iinventory.getMaxStackSize(itemstack1);
+    public boolean canTakeItem(Container hopperInventory, int slot, ItemStack stack) {
+        return hopperInventory.hasAnyMatching((itemstack1) -> {
+            return itemstack1.isEmpty() ? true : ItemStack.isSameItemSameComponents(stack, itemstack1) && itemstack1.getCount() + stack.getCount() <= hopperInventory.getMaxStackSize(itemstack1);
         });
     }
 
     @Override
     public int getMaxStackSize() {
-        return maxStack; // CraftBukkit
+        return this.maxStack; // CraftBukkit
     }
 
     @Override
-    public boolean stillValid(EntityHuman entityhuman) {
-        return IInventory.stillValidBlockEntity(this, entityhuman);
+    public boolean stillValid(Player player) {
+        return Container.stillValidBlockEntity(this, player);
     }
 
     @Override
-    public boolean canPlaceItem(int i, ItemStack itemstack) {
-        return itemstack.is(TagsItem.BOOKSHELF_BOOKS) && this.getItem(i).isEmpty() && itemstack.getCount() == this.getMaxStackSize();
+    public boolean canPlaceItem(int slot, ItemStack stack) {
+        return stack.is(ItemTags.BOOKSHELF_BOOKS) && this.getItem(slot).isEmpty() && stack.getCount() == this.getMaxStackSize();
     }
 
     public int getLastInteractedSlot() {
@@ -191,19 +191,19 @@ public class ChiseledBookShelfBlockEntity extends TileEntity implements IInvento
     }
 
     @Override
-    protected void applyImplicitComponents(TileEntity.b tileentity_b) {
-        super.applyImplicitComponents(tileentity_b);
-        ((ItemContainerContents) tileentity_b.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)).copyInto(this.items);
+    protected void applyImplicitComponents(BlockEntity.DataComponentInput components) {
+        super.applyImplicitComponents(components);
+        ((ItemContainerContents) components.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)).copyInto(this.items);
     }
 
     @Override
-    protected void collectImplicitComponents(DataComponentMap.a datacomponentmap_a) {
-        super.collectImplicitComponents(datacomponentmap_a);
-        datacomponentmap_a.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(this.items));
+    protected void collectImplicitComponents(DataComponentMap.Builder componentMapBuilder) {
+        super.collectImplicitComponents(componentMapBuilder);
+        componentMapBuilder.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(this.items));
     }
 
     @Override
-    public void removeComponentsFromTag(NBTTagCompound nbttagcompound) {
-        nbttagcompound.remove("Items");
+    public void removeComponentsFromTag(CompoundTag nbt) {
+        nbt.remove("Items");
     }
 }

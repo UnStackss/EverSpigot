@@ -1,77 +1,76 @@
 package net.minecraft.world.level.portal;
 
-import net.minecraft.core.BlockPosition;
-import net.minecraft.network.protocol.game.PacketPlayOutWorldEvent;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.Vec3D;
-
+import net.minecraft.world.phys.Vec3;
 // CraftBukkit start
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-public record DimensionTransition(WorldServer newLevel, Vec3D pos, Vec3D speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.a postDimensionTransition, PlayerTeleportEvent.TeleportCause cause) {
+public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.PostDimensionTransition postDimensionTransition, PlayerTeleportEvent.TeleportCause cause) {
 
-    public DimensionTransition(WorldServer newLevel, Vec3D pos, Vec3D speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.a postDimensionTransition) {
+    public DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.PostDimensionTransition postDimensionTransition) {
         this(newLevel, pos, speed, yRot, xRot, missingRespawnBlock, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
     }
 
     public DimensionTransition(PlayerTeleportEvent.TeleportCause cause) {
-        this(null, Vec3D.ZERO, Vec3D.ZERO, 0.0F, 0.0F, false, DO_NOTHING, cause);
+        this(null, Vec3.ZERO, Vec3.ZERO, 0.0F, 0.0F, false, DO_NOTHING, cause);
     }
     // CraftBukkit end
 
-    public static final DimensionTransition.a DO_NOTHING = (entity) -> {
+    public static final DimensionTransition.PostDimensionTransition DO_NOTHING = (entity) -> {
     };
-    public static final DimensionTransition.a PLAY_PORTAL_SOUND = DimensionTransition::playPortalSound;
-    public static final DimensionTransition.a PLACE_PORTAL_TICKET = DimensionTransition::placePortalTicket;
+    public static final DimensionTransition.PostDimensionTransition PLAY_PORTAL_SOUND = DimensionTransition::playPortalSound;
+    public static final DimensionTransition.PostDimensionTransition PLACE_PORTAL_TICKET = DimensionTransition::placePortalTicket;
 
-    public DimensionTransition(WorldServer worldserver, Vec3D vec3d, Vec3D vec3d1, float f, float f1, DimensionTransition.a dimensiontransition_a) {
+    public DimensionTransition(ServerLevel world, Vec3 pos, Vec3 velocity, float yaw, float pitch, DimensionTransition.PostDimensionTransition postDimensionTransition) {
         // CraftBukkit start
-        this(worldserver, vec3d, vec3d1, f, f1, dimensiontransition_a, PlayerTeleportEvent.TeleportCause.UNKNOWN);
+        this(world, pos, velocity, yaw, pitch, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
     }
 
-    public DimensionTransition(WorldServer worldserver, Vec3D vec3d, Vec3D vec3d1, float f, float f1, DimensionTransition.a dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
+    public DimensionTransition(ServerLevel worldserver, Vec3 vec3d, Vec3 vec3d1, float f, float f1, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
         this(worldserver, vec3d, vec3d1, f, f1, false, dimensiontransition_a, cause);
     }
 
-    public DimensionTransition(WorldServer worldserver, Entity entity, DimensionTransition.a dimensiontransition_a) {
-        this(worldserver, entity, dimensiontransition_a, PlayerTeleportEvent.TeleportCause.UNKNOWN);
+    public DimensionTransition(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
+        this(world, entity, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
     }
 
-    public DimensionTransition(WorldServer worldserver, Entity entity, DimensionTransition.a dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
-        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3D.ZERO, 0.0F, 0.0F, false, dimensiontransition_a, cause);
+    public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
+        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, 0.0F, 0.0F, false, dimensiontransition_a, cause);
         // CraftBukkit end
     }
 
     private static void playPortalSound(Entity entity) {
-        if (entity instanceof EntityPlayer entityplayer) {
-            entityplayer.connection.send(new PacketPlayOutWorldEvent(1032, BlockPosition.ZERO, 0, false));
+        if (entity instanceof ServerPlayer entityplayer) {
+            entityplayer.connection.send(new ClientboundLevelEventPacket(1032, BlockPos.ZERO, 0, false));
         }
 
     }
 
     private static void placePortalTicket(Entity entity) {
-        entity.placePortalTicket(BlockPosition.containing(entity.position()));
+        entity.placePortalTicket(BlockPos.containing(entity.position()));
     }
 
-    public static DimensionTransition missingRespawnBlock(WorldServer worldserver, Entity entity, DimensionTransition.a dimensiontransition_a) {
-        return new DimensionTransition(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3D.ZERO, 0.0F, 0.0F, true, dimensiontransition_a);
+    public static DimensionTransition missingRespawnBlock(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
+        return new DimensionTransition(world, findAdjustedSharedSpawnPos(world, entity), Vec3.ZERO, 0.0F, 0.0F, true, postDimensionTransition);
     }
 
-    private static Vec3D findAdjustedSharedSpawnPos(WorldServer worldserver, Entity entity) {
-        return entity.adjustSpawnLocation(worldserver, worldserver.getSharedSpawnPos()).getBottomCenter();
+    private static Vec3 findAdjustedSharedSpawnPos(ServerLevel world, Entity entity) {
+        return entity.adjustSpawnLocation(world, world.getSharedSpawnPos()).getBottomCenter();
     }
 
     @FunctionalInterface
-    public interface a {
+    public interface PostDimensionTransition {
 
         void onTransition(Entity entity);
 
-        default DimensionTransition.a then(DimensionTransition.a dimensiontransition_a) {
+        default DimensionTransition.PostDimensionTransition then(DimensionTransition.PostDimensionTransition next) {
             return (entity) -> {
                 this.onTransition(entity);
-                dimensiontransition_a.onTransition(entity);
+                next.onTransition(entity);
             };
         }
     }

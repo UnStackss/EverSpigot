@@ -1,7 +1,7 @@
 package org.bukkit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import net.minecraft.world.level.biome.BiomeBase;
+
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.block.CraftBiome;
 import org.bukkit.support.AbstractTestingBase;
@@ -22,7 +22,7 @@ public class BiomeTest extends AbstractTestingBase {
 
     @Test
     public void testMinecraftToBukkit() {
-        for (BiomeBase biomeBase : BIOMES) {
+        for (net.minecraft.world.level.biome.Biome biomeBase : BIOMES) {
             Biome biome = CraftBiome.minecraftToBukkit(biomeBase);
             assertTrue(biome != null && biome != Biome.CUSTOM, "No Bukkit mapping for " + biomeBase);
         }

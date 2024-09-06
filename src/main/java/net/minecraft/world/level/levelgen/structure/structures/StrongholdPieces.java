@@ -4,36 +4,33 @@ import com.google.common.collect.Lists;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.level.ChunkCoordIntPair;
-import net.minecraft.world.level.GeneratorAccessSeed;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.block.BlockButtonAbstract;
-import net.minecraft.world.level.block.BlockDoor;
-import net.minecraft.world.level.block.BlockEnderPortalFrame;
-import net.minecraft.world.level.block.BlockFence;
-import net.minecraft.world.level.block.BlockIronBars;
-import net.minecraft.world.level.block.BlockLadder;
-import net.minecraft.world.level.block.BlockStairs;
-import net.minecraft.world.level.block.BlockStepAbstract;
-import net.minecraft.world.level.block.BlockTorchWall;
+import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.TileEntity;
-import net.minecraft.world.level.block.entity.TileEntityMobSpawner;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockPropertyDoubleBlockHalf;
-import net.minecraft.world.level.block.state.properties.BlockPropertySlabType;
+import net.minecraft.world.level.block.ButtonBlock;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.EndPortalFrameBlock;
+import net.minecraft.world.level.block.FenceBlock;
+import net.minecraft.world.level.block.IronBarsBlock;
+import net.minecraft.world.level.block.LadderBlock;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.WallTorchBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.structure.StructureBoundingBox;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructurePieceAccessor;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-import net.minecraft.world.level.levelgen.structure.pieces.WorldGenFeatureStructurePieceType;
-import net.minecraft.world.level.storage.loot.LootTables;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 
 public class StrongholdPieces {
 
@@ -43,31 +40,31 @@ public class StrongholdPieces {
     private static final int LOWEST_Y_POSITION = 10;
     private static final boolean CHECK_AIR = true;
     public static final int MAGIC_START_Y = 64;
-    private static final StrongholdPieces.f[] STRONGHOLD_PIECE_WEIGHTS = new StrongholdPieces.f[]{new StrongholdPieces.f(StrongholdPieces.n.class, 40, 0), new StrongholdPieces.f(StrongholdPieces.h.class, 5, 5), new StrongholdPieces.f(StrongholdPieces.d.class, 20, 0), new StrongholdPieces.f(StrongholdPieces.i.class, 20, 0), new StrongholdPieces.f(StrongholdPieces.j.class, 10, 6), new StrongholdPieces.f(StrongholdPieces.o.class, 5, 5), new StrongholdPieces.f(StrongholdPieces.l.class, 5, 5), new StrongholdPieces.f(StrongholdPieces.c.class, 5, 4), new StrongholdPieces.f(StrongholdPieces.a.class, 5, 4), new StrongholdPieces.f(StrongholdPieces.e.class, 10, 2) {
+    private static final StrongholdPieces.PieceWeight[] STRONGHOLD_PIECE_WEIGHTS = new StrongholdPieces.PieceWeight[]{new StrongholdPieces.PieceWeight(StrongholdPieces.Straight.class, 40, 0), new StrongholdPieces.PieceWeight(StrongholdPieces.PrisonHall.class, 5, 5), new StrongholdPieces.PieceWeight(StrongholdPieces.LeftTurn.class, 20, 0), new StrongholdPieces.PieceWeight(StrongholdPieces.RightTurn.class, 20, 0), new StrongholdPieces.PieceWeight(StrongholdPieces.RoomCrossing.class, 10, 6), new StrongholdPieces.PieceWeight(StrongholdPieces.StraightStairsDown.class, 5, 5), new StrongholdPieces.PieceWeight(StrongholdPieces.StairsDown.class, 5, 5), new StrongholdPieces.PieceWeight(StrongholdPieces.FiveCrossing.class, 5, 4), new StrongholdPieces.PieceWeight(StrongholdPieces.ChestCorridor.class, 5, 4), new StrongholdPieces.PieceWeight(StrongholdPieces.Library.class, 10, 2) {
                 @Override
-                public boolean doPlace(int i) {
-                    return super.doPlace(i) && i > 4;
+                public boolean doPlace(int chainLength) {
+                    return super.doPlace(chainLength) && chainLength > 4;
                 }
-            }, new StrongholdPieces.f(StrongholdPieces.g.class, 20, 1) {
+            }, new StrongholdPieces.PieceWeight(StrongholdPieces.PortalRoom.class, 20, 1) {
                 @Override
-                public boolean doPlace(int i) {
-                    return super.doPlace(i) && i > 5;
+                public boolean doPlace(int chainLength) {
+                    return super.doPlace(chainLength) && chainLength > 5;
                 }
             } }; // CraftBukkit - fix decompile styling
-    private static List<StrongholdPieces.f> currentPieces;
-    static Class<? extends StrongholdPieces.p> imposedPiece;
+    private static List<StrongholdPieces.PieceWeight> currentPieces;
+    static Class<? extends StrongholdPieces.StrongholdPiece> imposedPiece;
     private static int totalWeight;
-    static final StrongholdPieces.k SMOOTH_STONE_SELECTOR = new StrongholdPieces.k();
+    static final StrongholdPieces.SmoothStoneSelector SMOOTH_STONE_SELECTOR = new StrongholdPieces.SmoothStoneSelector();
 
     public StrongholdPieces() {}
 
     public static void resetPieces() {
         StrongholdPieces.currentPieces = Lists.newArrayList();
-        StrongholdPieces.f[] astrongholdpieces_f = StrongholdPieces.STRONGHOLD_PIECE_WEIGHTS;
+        StrongholdPieces.PieceWeight[] astrongholdpieces_f = StrongholdPieces.STRONGHOLD_PIECE_WEIGHTS;
         int i = astrongholdpieces_f.length;
 
         for (int j = 0; j < i; ++j) {
-            StrongholdPieces.f strongholdpieces_f = astrongholdpieces_f[j];
+            StrongholdPieces.PieceWeight strongholdpieces_f = astrongholdpieces_f[j];
 
             strongholdpieces_f.placeCount = 0;
             StrongholdPieces.currentPieces.add(strongholdpieces_f);
@@ -81,10 +78,10 @@ public class StrongholdPieces {
 
         StrongholdPieces.totalWeight = 0;
 
-        StrongholdPieces.f strongholdpieces_f;
+        StrongholdPieces.PieceWeight strongholdpieces_f;
 
         for (Iterator iterator = StrongholdPieces.currentPieces.iterator(); iterator.hasNext(); StrongholdPieces.totalWeight += strongholdpieces_f.weight) {
-            strongholdpieces_f = (StrongholdPieces.f) iterator.next();
+            strongholdpieces_f = (StrongholdPieces.PieceWeight) iterator.next();
             if (strongholdpieces_f.maxPlaceCount > 0 && strongholdpieces_f.placeCount < strongholdpieces_f.maxPlaceCount) {
                 flag = true;
             }
@@ -93,42 +90,42 @@ public class StrongholdPieces {
         return flag;
     }
 
-    private static StrongholdPieces.p findAndCreatePieceFactory(Class<? extends StrongholdPieces.p> oclass, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, @Nullable EnumDirection enumdirection, int l) {
+    private static StrongholdPieces.StrongholdPiece findAndCreatePieceFactory(Class<? extends StrongholdPieces.StrongholdPiece> pieceType, StructurePieceAccessor holder, RandomSource random, int x, int y, int z, @Nullable Direction orientation, int chainLength) {
         Object object = null;
 
-        if (oclass == StrongholdPieces.n.class) {
-            object = StrongholdPieces.n.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.h.class) {
-            object = StrongholdPieces.h.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.d.class) {
-            object = StrongholdPieces.d.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.i.class) {
-            object = StrongholdPieces.i.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.j.class) {
-            object = StrongholdPieces.j.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.o.class) {
-            object = StrongholdPieces.o.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.l.class) {
-            object = StrongholdPieces.l.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.c.class) {
-            object = StrongholdPieces.c.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.a.class) {
-            object = StrongholdPieces.a.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.e.class) {
-            object = StrongholdPieces.e.createPiece(structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
-        } else if (oclass == StrongholdPieces.g.class) {
-            object = StrongholdPieces.g.createPiece(structurepieceaccessor, i, j, k, enumdirection, l);
+        if (pieceType == StrongholdPieces.Straight.class) {
+            object = StrongholdPieces.Straight.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.PrisonHall.class) {
+            object = StrongholdPieces.PrisonHall.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.LeftTurn.class) {
+            object = StrongholdPieces.LeftTurn.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.RightTurn.class) {
+            object = StrongholdPieces.RightTurn.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.RoomCrossing.class) {
+            object = StrongholdPieces.RoomCrossing.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.StraightStairsDown.class) {
+            object = StrongholdPieces.StraightStairsDown.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.StairsDown.class) {
+            object = StrongholdPieces.StairsDown.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.FiveCrossing.class) {
+            object = StrongholdPieces.FiveCrossing.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.ChestCorridor.class) {
+            object = StrongholdPieces.ChestCorridor.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.Library.class) {
+            object = StrongholdPieces.Library.createPiece(holder, random, x, y, z, orientation, chainLength);
+        } else if (pieceType == StrongholdPieces.PortalRoom.class) {
+            object = StrongholdPieces.PortalRoom.createPiece(holder, x, y, z, orientation, chainLength);
         }
 
-        return (StrongholdPieces.p) object;
+        return (StrongholdPieces.StrongholdPiece) object;
     }
 
-    private static StrongholdPieces.p generatePieceFromSmallDoor(StrongholdPieces.m strongholdpieces_m, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-        if (!updatePieceWeight()) {
+    private static StrongholdPieces.StrongholdPiece generatePieceFromSmallDoor(StrongholdPieces.StartPiece start, StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+        if (!StrongholdPieces.updatePieceWeight()) {
             return null;
         } else {
             if (StrongholdPieces.imposedPiece != null) {
-                StrongholdPieces.p strongholdpieces_p = findAndCreatePieceFactory(StrongholdPieces.imposedPiece, structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
+                StrongholdPieces.StrongholdPiece strongholdpieces_p = StrongholdPieces.findAndCreatePieceFactory(StrongholdPieces.imposedPiece, holder, random, x, y, z, orientation, chainLength);
 
                 StrongholdPieces.imposedPiece = null;
                 if (strongholdpieces_p != null) {
@@ -140,23 +137,23 @@ public class StrongholdPieces {
 
             while (i1 < 5) {
                 ++i1;
-                int j1 = randomsource.nextInt(StrongholdPieces.totalWeight);
+                int j1 = random.nextInt(StrongholdPieces.totalWeight);
                 Iterator iterator = StrongholdPieces.currentPieces.iterator();
 
                 while (iterator.hasNext()) {
-                    StrongholdPieces.f strongholdpieces_f = (StrongholdPieces.f) iterator.next();
+                    StrongholdPieces.PieceWeight strongholdpieces_f = (StrongholdPieces.PieceWeight) iterator.next();
 
                     j1 -= strongholdpieces_f.weight;
                     if (j1 < 0) {
-                        if (!strongholdpieces_f.doPlace(l) || strongholdpieces_f == strongholdpieces_m.previousPiece) {
+                        if (!strongholdpieces_f.doPlace(chainLength) || strongholdpieces_f == start.previousPiece) {
                             break;
                         }
 
-                        StrongholdPieces.p strongholdpieces_p1 = findAndCreatePieceFactory(strongholdpieces_f.pieceClass, structurepieceaccessor, randomsource, i, j, k, enumdirection, l);
+                        StrongholdPieces.StrongholdPiece strongholdpieces_p1 = StrongholdPieces.findAndCreatePieceFactory(strongholdpieces_f.pieceClass, holder, random, x, y, z, orientation, chainLength);
 
                         if (strongholdpieces_p1 != null) {
                             ++strongholdpieces_f.placeCount;
-                            strongholdpieces_m.previousPiece = strongholdpieces_f;
+                            start.previousPiece = strongholdpieces_f;
                             if (!strongholdpieces_f.isValid()) {
                                 StrongholdPieces.currentPieces.remove(strongholdpieces_f);
                             }
@@ -167,25 +164,25 @@ public class StrongholdPieces {
                 }
             }
 
-            StructureBoundingBox structureboundingbox = StrongholdPieces.b.findPieceBox(structurepieceaccessor, randomsource, i, j, k, enumdirection);
+            BoundingBox structureboundingbox = StrongholdPieces.FillerCorridor.findPieceBox(holder, random, x, y, z, orientation);
 
             if (structureboundingbox != null && structureboundingbox.minY() > 1) {
-                return new StrongholdPieces.b(l, structureboundingbox, enumdirection);
+                return new StrongholdPieces.FillerCorridor(chainLength, structureboundingbox, orientation);
             } else {
                 return null;
             }
         }
     }
 
-    static StructurePiece generateAndAddPiece(StrongholdPieces.m strongholdpieces_m, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, @Nullable EnumDirection enumdirection, int l) {
-        if (l > 50) {
+    static StructurePiece generateAndAddPiece(StrongholdPieces.StartPiece start, StructurePieceAccessor holder, RandomSource random, int x, int y, int z, @Nullable Direction orientation, int chainLength) {
+        if (chainLength > 50) {
             return null;
-        } else if (Math.abs(i - strongholdpieces_m.getBoundingBox().minX()) <= 112 && Math.abs(k - strongholdpieces_m.getBoundingBox().minZ()) <= 112) {
-            StrongholdPieces.p strongholdpieces_p = generatePieceFromSmallDoor(strongholdpieces_m, structurepieceaccessor, randomsource, i, j, k, enumdirection, l + 1);
+        } else if (Math.abs(x - start.getBoundingBox().minX()) <= 112 && Math.abs(z - start.getBoundingBox().minZ()) <= 112) {
+            StrongholdPieces.StrongholdPiece strongholdpieces_p = StrongholdPieces.generatePieceFromSmallDoor(start, holder, random, x, y, z, orientation, chainLength + 1);
 
             if (strongholdpieces_p != null) {
-                structurepieceaccessor.addPiece(strongholdpieces_p);
-                strongholdpieces_m.pendingChildren.add(strongholdpieces_p);
+                holder.addPiece(strongholdpieces_p);
+                start.pendingChildren.add(strongholdpieces_p);
             }
 
             return strongholdpieces_p;
@@ -194,20 +191,20 @@ public class StrongholdPieces {
         }
     }
 
-    private static class f {
+    private static class PieceWeight {
 
-        public final Class<? extends StrongholdPieces.p> pieceClass;
+        public final Class<? extends StrongholdPieces.StrongholdPiece> pieceClass;
         public final int weight;
         public int placeCount;
         public final int maxPlaceCount;
 
-        public f(Class<? extends StrongholdPieces.p> oclass, int i, int j) {
-            this.pieceClass = oclass;
-            this.weight = i;
-            this.maxPlaceCount = j;
+        public PieceWeight(Class<? extends StrongholdPieces.StrongholdPiece> pieceType, int weight, int limit) {
+            this.pieceClass = pieceType;
+            this.weight = weight;
+            this.maxPlaceCount = limit;
         }
 
-        public boolean doPlace(int i) {
+        public boolean doPlace(int chainLength) {
             return this.maxPlaceCount == 0 || this.placeCount < this.maxPlaceCount;
         }
 
@@ -216,7 +213,7 @@ public class StrongholdPieces {
         }
     }
 
-    public static class n extends StrongholdPieces.p {
+    public static class Straight extends StrongholdPieces.StrongholdPiece {
 
         private static final int WIDTH = 5;
         private static final int HEIGHT = 5;
@@ -224,473 +221,473 @@ public class StrongholdPieces {
         private final boolean leftChild;
         private final boolean rightChild;
 
-        public n(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_STRAIGHT, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
-            this.leftChild = randomsource.nextInt(2) == 0;
-            this.rightChild = randomsource.nextInt(2) == 0;
+        public Straight(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_STRAIGHT, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
+            this.leftChild = random.nextInt(2) == 0;
+            this.rightChild = random.nextInt(2) == 0;
         }
 
-        public n(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_STRAIGHT, nbttagcompound);
-            this.leftChild = nbttagcompound.getBoolean("Left");
-            this.rightChild = nbttagcompound.getBoolean("Right");
-        }
-
-        @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putBoolean("Left", this.leftChild);
-            nbttagcompound.putBoolean("Right", this.rightChild);
+        public Straight(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_STRAIGHT, nbt);
+            this.leftChild = nbt.getBoolean("Left");
+            this.rightChild = nbt.getBoolean("Right");
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putBoolean("Left", this.leftChild);
+            nbt.putBoolean("Right", this.rightChild);
+        }
+
+        @Override
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
             if (this.leftChild) {
-                this.generateSmallDoorChildLeft((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 2);
+                this.generateSmallDoorChildLeft((StrongholdPieces.StartPiece) start, holder, random, 1, 2);
             }
 
             if (this.rightChild) {
-                this.generateSmallDoorChildRight((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 2);
+                this.generateSmallDoorChildRight((StrongholdPieces.StartPiece) start, holder, random, 1, 2);
             }
 
         }
 
-        public static StrongholdPieces.n createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, 7, enumdirection);
+        public static StrongholdPieces.Straight createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, 7, orientation);
 
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.n(l, randomsource, structureboundingbox, enumdirection) : null;
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.Straight(chainLength, random, structureboundingbox, orientation) : null;
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 4, 4, 6, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 1, 0);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, StrongholdPieces.p.a.OPENING, 1, 1, 6);
-            IBlockData iblockdata = (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.EAST);
-            IBlockData iblockdata1 = (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.WEST);
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 4, 4, 6, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 1, 0);
+            this.generateSmallDoor(world, random, chunkBox, StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING, 1, 1, 6);
+            BlockState iblockdata = (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST);
+            BlockState iblockdata1 = (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.WEST);
 
-            this.maybeGenerateBlock(generatoraccessseed, structureboundingbox, randomsource, 0.1F, 1, 2, 1, iblockdata);
-            this.maybeGenerateBlock(generatoraccessseed, structureboundingbox, randomsource, 0.1F, 3, 2, 1, iblockdata1);
-            this.maybeGenerateBlock(generatoraccessseed, structureboundingbox, randomsource, 0.1F, 1, 2, 5, iblockdata);
-            this.maybeGenerateBlock(generatoraccessseed, structureboundingbox, randomsource, 0.1F, 3, 2, 5, iblockdata1);
+            this.maybeGenerateBlock(world, chunkBox, random, 0.1F, 1, 2, 1, iblockdata);
+            this.maybeGenerateBlock(world, chunkBox, random, 0.1F, 3, 2, 1, iblockdata1);
+            this.maybeGenerateBlock(world, chunkBox, random, 0.1F, 1, 2, 5, iblockdata);
+            this.maybeGenerateBlock(world, chunkBox, random, 0.1F, 3, 2, 5, iblockdata1);
             if (this.leftChild) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 0, 1, 2, 0, 3, 4, StrongholdPieces.n.CAVE_AIR, StrongholdPieces.n.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 0, 1, 2, 0, 3, 4, StrongholdPieces.Straight.CAVE_AIR, StrongholdPieces.Straight.CAVE_AIR, false);
             }
 
             if (this.rightChild) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 2, 4, 3, 4, StrongholdPieces.n.CAVE_AIR, StrongholdPieces.n.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 4, 1, 2, 4, 3, 4, StrongholdPieces.Straight.CAVE_AIR, StrongholdPieces.Straight.CAVE_AIR, false);
             }
 
         }
     }
 
-    public static class h extends StrongholdPieces.p {
+    public static class PrisonHall extends StrongholdPieces.StrongholdPiece {
 
         protected static final int WIDTH = 9;
         protected static final int HEIGHT = 5;
         protected static final int DEPTH = 11;
 
-        public h(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_PRISON_HALL, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
+        public PrisonHall(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_PRISON_HALL, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
         }
 
-        public h(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_PRISON_HALL, nbttagcompound);
-        }
-
-        @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
-        }
-
-        public static StrongholdPieces.h createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 9, 5, 11, enumdirection);
-
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.h(l, randomsource, structureboundingbox, enumdirection) : null;
+        public PrisonHall(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_PRISON_HALL, nbt);
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 8, 4, 10, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 1, 0);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 1, 10, 3, 3, 10, StrongholdPieces.h.CAVE_AIR, StrongholdPieces.h.CAVE_AIR, false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 1, 4, 3, 1, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 3, 4, 3, 3, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 7, 4, 3, 7, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 9, 4, 3, 9, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
+        }
+
+        public static StrongholdPieces.PrisonHall createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 9, 5, 11, orientation);
+
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.PrisonHall(chainLength, random, structureboundingbox, orientation) : null;
+        }
+
+        @Override
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 8, 4, 10, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 1, 0);
+            this.generateBox(world, chunkBox, 1, 1, 10, 3, 3, 10, StrongholdPieces.PrisonHall.CAVE_AIR, StrongholdPieces.PrisonHall.CAVE_AIR, false);
+            this.generateBox(world, chunkBox, 4, 1, 1, 4, 3, 1, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 1, 3, 4, 3, 3, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 1, 7, 4, 3, 7, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 1, 9, 4, 3, 9, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
 
             for (int i = 1; i <= 3; ++i) {
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.NORTH, true)).setValue(BlockIronBars.SOUTH, true), 4, i, 4, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.NORTH, true)).setValue(BlockIronBars.SOUTH, true)).setValue(BlockIronBars.EAST, true), 4, i, 5, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.NORTH, true)).setValue(BlockIronBars.SOUTH, true), 4, i, 6, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.WEST, true)).setValue(BlockIronBars.EAST, true), 5, i, 5, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.WEST, true)).setValue(BlockIronBars.EAST, true), 6, i, 5, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.WEST, true)).setValue(BlockIronBars.EAST, true), 7, i, 5, structureboundingbox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, true)).setValue(IronBarsBlock.SOUTH, true), 4, i, 4, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, true)).setValue(IronBarsBlock.SOUTH, true)).setValue(IronBarsBlock.EAST, true), 4, i, 5, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, true)).setValue(IronBarsBlock.SOUTH, true), 4, i, 6, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.WEST, true)).setValue(IronBarsBlock.EAST, true), 5, i, 5, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.WEST, true)).setValue(IronBarsBlock.EAST, true), 6, i, 5, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.WEST, true)).setValue(IronBarsBlock.EAST, true), 7, i, 5, chunkBox);
             }
 
-            this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.NORTH, true)).setValue(BlockIronBars.SOUTH, true), 4, 3, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.NORTH, true)).setValue(BlockIronBars.SOUTH, true), 4, 3, 8, structureboundingbox);
-            IBlockData iblockdata = (IBlockData) Blocks.IRON_DOOR.defaultBlockState().setValue(BlockDoor.FACING, EnumDirection.WEST);
-            IBlockData iblockdata1 = (IBlockData) ((IBlockData) Blocks.IRON_DOOR.defaultBlockState().setValue(BlockDoor.FACING, EnumDirection.WEST)).setValue(BlockDoor.HALF, BlockPropertyDoubleBlockHalf.UPPER);
+            this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, true)).setValue(IronBarsBlock.SOUTH, true), 4, 3, 2, chunkBox);
+            this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, true)).setValue(IronBarsBlock.SOUTH, true), 4, 3, 8, chunkBox);
+            BlockState iblockdata = (BlockState) Blocks.IRON_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.WEST);
+            BlockState iblockdata1 = (BlockState) ((BlockState) Blocks.IRON_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.WEST)).setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER);
 
-            this.placeBlock(generatoraccessseed, iblockdata, 4, 1, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, iblockdata1, 4, 2, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, iblockdata, 4, 1, 8, structureboundingbox);
-            this.placeBlock(generatoraccessseed, iblockdata1, 4, 2, 8, structureboundingbox);
+            this.placeBlock(world, iblockdata, 4, 1, 2, chunkBox);
+            this.placeBlock(world, iblockdata1, 4, 2, 2, chunkBox);
+            this.placeBlock(world, iblockdata, 4, 1, 8, chunkBox);
+            this.placeBlock(world, iblockdata1, 4, 2, 8, chunkBox);
         }
     }
 
-    public static class d extends StrongholdPieces.q {
+    public static class LeftTurn extends StrongholdPieces.Turn {
 
-        public d(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_LEFT_TURN, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
+        public LeftTurn(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_LEFT_TURN, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
         }
 
-        public d(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_LEFT_TURN, nbttagcompound);
+        public LeftTurn(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_LEFT_TURN, nbt);
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            EnumDirection enumdirection = this.getOrientation();
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            Direction enumdirection = this.getOrientation();
 
-            if (enumdirection != EnumDirection.NORTH && enumdirection != EnumDirection.EAST) {
-                this.generateSmallDoorChildRight((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
+            if (enumdirection != Direction.NORTH && enumdirection != Direction.EAST) {
+                this.generateSmallDoorChildRight((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
             } else {
-                this.generateSmallDoorChildLeft((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
+                this.generateSmallDoorChildLeft((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
             }
 
         }
 
-        public static StrongholdPieces.d createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, 5, enumdirection);
+        public static StrongholdPieces.LeftTurn createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, 5, orientation);
 
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.d(l, randomsource, structureboundingbox, enumdirection) : null;
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.LeftTurn(chainLength, random, structureboundingbox, orientation) : null;
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 4, 4, 4, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 1, 0);
-            EnumDirection enumdirection = this.getOrientation();
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 4, 4, 4, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 1, 0);
+            Direction enumdirection = this.getOrientation();
 
-            if (enumdirection != EnumDirection.NORTH && enumdirection != EnumDirection.EAST) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 1, 4, 3, 3, StrongholdPieces.d.CAVE_AIR, StrongholdPieces.d.CAVE_AIR, false);
+            if (enumdirection != Direction.NORTH && enumdirection != Direction.EAST) {
+                this.generateBox(world, chunkBox, 4, 1, 1, 4, 3, 3, StrongholdPieces.LeftTurn.CAVE_AIR, StrongholdPieces.LeftTurn.CAVE_AIR, false);
             } else {
-                this.generateBox(generatoraccessseed, structureboundingbox, 0, 1, 1, 0, 3, 3, StrongholdPieces.d.CAVE_AIR, StrongholdPieces.d.CAVE_AIR, false);
-            }
-
-        }
-    }
-
-    public static class i extends StrongholdPieces.q {
-
-        public i(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_RIGHT_TURN, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
-        }
-
-        public i(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_RIGHT_TURN, nbttagcompound);
-        }
-
-        @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            EnumDirection enumdirection = this.getOrientation();
-
-            if (enumdirection != EnumDirection.NORTH && enumdirection != EnumDirection.EAST) {
-                this.generateSmallDoorChildLeft((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
-            } else {
-                this.generateSmallDoorChildRight((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
-            }
-
-        }
-
-        public static StrongholdPieces.i createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, 5, enumdirection);
-
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.i(l, randomsource, structureboundingbox, enumdirection) : null;
-        }
-
-        @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 4, 4, 4, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 1, 0);
-            EnumDirection enumdirection = this.getOrientation();
-
-            if (enumdirection != EnumDirection.NORTH && enumdirection != EnumDirection.EAST) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 0, 1, 1, 0, 3, 3, StrongholdPieces.i.CAVE_AIR, StrongholdPieces.i.CAVE_AIR, false);
-            } else {
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 1, 4, 3, 3, StrongholdPieces.i.CAVE_AIR, StrongholdPieces.i.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 0, 1, 1, 0, 3, 3, StrongholdPieces.LeftTurn.CAVE_AIR, StrongholdPieces.LeftTurn.CAVE_AIR, false);
             }
 
         }
     }
 
-    public static class j extends StrongholdPieces.p {
+    public static class RightTurn extends StrongholdPieces.Turn {
+
+        public RightTurn(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_RIGHT_TURN, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
+        }
+
+        public RightTurn(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_RIGHT_TURN, nbt);
+        }
+
+        @Override
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            Direction enumdirection = this.getOrientation();
+
+            if (enumdirection != Direction.NORTH && enumdirection != Direction.EAST) {
+                this.generateSmallDoorChildLeft((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
+            } else {
+                this.generateSmallDoorChildRight((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
+            }
+
+        }
+
+        public static StrongholdPieces.RightTurn createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, 5, orientation);
+
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.RightTurn(chainLength, random, structureboundingbox, orientation) : null;
+        }
+
+        @Override
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 4, 4, 4, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 1, 0);
+            Direction enumdirection = this.getOrientation();
+
+            if (enumdirection != Direction.NORTH && enumdirection != Direction.EAST) {
+                this.generateBox(world, chunkBox, 0, 1, 1, 0, 3, 3, StrongholdPieces.RightTurn.CAVE_AIR, StrongholdPieces.RightTurn.CAVE_AIR, false);
+            } else {
+                this.generateBox(world, chunkBox, 4, 1, 1, 4, 3, 3, StrongholdPieces.RightTurn.CAVE_AIR, StrongholdPieces.RightTurn.CAVE_AIR, false);
+            }
+
+        }
+    }
+
+    public static class RoomCrossing extends StrongholdPieces.StrongholdPiece {
 
         protected static final int WIDTH = 11;
         protected static final int HEIGHT = 7;
         protected static final int DEPTH = 11;
         protected final int type;
 
-        public j(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_ROOM_CROSSING, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
-            this.type = randomsource.nextInt(5);
+        public RoomCrossing(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_ROOM_CROSSING, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
+            this.type = random.nextInt(5);
         }
 
-        public j(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_ROOM_CROSSING, nbttagcompound);
-            this.type = nbttagcompound.getInt("Type");
-        }
-
-        @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putInt("Type", this.type);
+        public RoomCrossing(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_ROOM_CROSSING, nbt);
+            this.type = nbt.getInt("Type");
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 4, 1);
-            this.generateSmallDoorChildLeft((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 4);
-            this.generateSmallDoorChildRight((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 4);
-        }
-
-        public static StrongholdPieces.j createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -4, -1, 0, 11, 7, 11, enumdirection);
-
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.j(l, randomsource, structureboundingbox, enumdirection) : null;
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putInt("Type", this.type);
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 10, 6, 10, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 4, 1, 0);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 10, 6, 3, 10, StrongholdPieces.j.CAVE_AIR, StrongholdPieces.j.CAVE_AIR, false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 1, 4, 0, 3, 6, StrongholdPieces.j.CAVE_AIR, StrongholdPieces.j.CAVE_AIR, false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 10, 1, 4, 10, 3, 6, StrongholdPieces.j.CAVE_AIR, StrongholdPieces.j.CAVE_AIR, false);
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 4, 1);
+            this.generateSmallDoorChildLeft((StrongholdPieces.StartPiece) start, holder, random, 1, 4);
+            this.generateSmallDoorChildRight((StrongholdPieces.StartPiece) start, holder, random, 1, 4);
+        }
+
+        public static StrongholdPieces.RoomCrossing createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -4, -1, 0, 11, 7, 11, orientation);
+
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.RoomCrossing(chainLength, random, structureboundingbox, orientation) : null;
+        }
+
+        @Override
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 10, 6, 10, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 4, 1, 0);
+            this.generateBox(world, chunkBox, 4, 1, 10, 6, 3, 10, StrongholdPieces.RoomCrossing.CAVE_AIR, StrongholdPieces.RoomCrossing.CAVE_AIR, false);
+            this.generateBox(world, chunkBox, 0, 1, 4, 0, 3, 6, StrongholdPieces.RoomCrossing.CAVE_AIR, StrongholdPieces.RoomCrossing.CAVE_AIR, false);
+            this.generateBox(world, chunkBox, 10, 1, 4, 10, 3, 6, StrongholdPieces.RoomCrossing.CAVE_AIR, StrongholdPieces.RoomCrossing.CAVE_AIR, false);
             int i;
 
             switch (this.type) {
                 case 0:
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 5, 1, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 5, 2, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 5, 3, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.WEST), 4, 3, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.EAST), 6, 3, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.SOUTH), 5, 3, 4, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.NORTH), 5, 3, 6, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 4, 1, 4, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 4, 1, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 4, 1, 6, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 6, 1, 4, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 6, 1, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 6, 1, 6, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 5, 1, 4, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 5, 1, 6, structureboundingbox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 5, 1, 5, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 5, 2, 5, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 5, 3, 5, chunkBox);
+                    this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.WEST), 4, 3, 5, chunkBox);
+                    this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST), 6, 3, 5, chunkBox);
+                    this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.SOUTH), 5, 3, 4, chunkBox);
+                    this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.NORTH), 5, 3, 6, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 4, 1, 4, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 4, 1, 5, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 4, 1, 6, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 6, 1, 4, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 6, 1, 5, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 6, 1, 6, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 5, 1, 4, chunkBox);
+                    this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 5, 1, 6, chunkBox);
                     break;
                 case 1:
                     for (i = 0; i < 5; ++i) {
-                        this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 1, 3 + i, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 7, 1, 3 + i, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3 + i, 1, 3, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3 + i, 1, 7, structureboundingbox);
+                        this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 1, 3 + i, chunkBox);
+                        this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 7, 1, 3 + i, chunkBox);
+                        this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3 + i, 1, 3, chunkBox);
+                        this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3 + i, 1, 7, chunkBox);
                     }
 
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 5, 1, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 5, 2, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 5, 3, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.WATER.defaultBlockState(), 5, 4, 5, structureboundingbox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 5, 1, 5, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 5, 2, 5, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 5, 3, 5, chunkBox);
+                    this.placeBlock(world, Blocks.WATER.defaultBlockState(), 5, 4, 5, chunkBox);
                     break;
                 case 2:
                     for (i = 1; i <= 9; ++i) {
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 1, 3, i, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 9, 3, i, structureboundingbox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 1, 3, i, chunkBox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 9, 3, i, chunkBox);
                     }
 
                     for (i = 1; i <= 9; ++i) {
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), i, 3, 1, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), i, 3, 9, structureboundingbox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), i, 3, 1, chunkBox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), i, 3, 9, chunkBox);
                     }
 
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 5, 1, 4, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 5, 1, 6, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 5, 3, 4, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 5, 3, 6, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 4, 1, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 6, 1, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 4, 3, 5, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 6, 3, 5, structureboundingbox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 5, 1, 4, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 5, 1, 6, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 5, 3, 4, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 5, 3, 6, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 4, 1, 5, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 6, 1, 5, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 4, 3, 5, chunkBox);
+                    this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 6, 3, 5, chunkBox);
 
                     for (i = 1; i <= 3; ++i) {
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 4, i, 4, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 6, i, 4, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 4, i, 6, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.COBBLESTONE.defaultBlockState(), 6, i, 6, structureboundingbox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 4, i, 4, chunkBox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 6, i, 4, chunkBox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 4, i, 6, chunkBox);
+                        this.placeBlock(world, Blocks.COBBLESTONE.defaultBlockState(), 6, i, 6, chunkBox);
                     }
 
-                    this.placeBlock(generatoraccessseed, Blocks.WALL_TORCH.defaultBlockState(), 5, 3, 5, structureboundingbox);
+                    this.placeBlock(world, Blocks.WALL_TORCH.defaultBlockState(), 5, 3, 5, chunkBox);
 
                     for (i = 2; i <= 8; ++i) {
-                        this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 2, 3, i, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 3, 3, i, structureboundingbox);
+                        this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 2, 3, i, chunkBox);
+                        this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 3, 3, i, chunkBox);
                         if (i <= 3 || i >= 7) {
-                            this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 4, 3, i, structureboundingbox);
-                            this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 5, 3, i, structureboundingbox);
-                            this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 6, 3, i, structureboundingbox);
+                            this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 4, 3, i, chunkBox);
+                            this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 5, 3, i, chunkBox);
+                            this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 6, 3, i, chunkBox);
                         }
 
-                        this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 7, 3, i, structureboundingbox);
-                        this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 8, 3, i, structureboundingbox);
+                        this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 7, 3, i, chunkBox);
+                        this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 8, 3, i, chunkBox);
                     }
 
-                    IBlockData iblockdata = (IBlockData) Blocks.LADDER.defaultBlockState().setValue(BlockLadder.FACING, EnumDirection.WEST);
+                    BlockState iblockdata = (BlockState) Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.WEST);
 
-                    this.placeBlock(generatoraccessseed, iblockdata, 9, 1, 3, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, iblockdata, 9, 2, 3, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, iblockdata, 9, 3, 3, structureboundingbox);
-                    this.createChest(generatoraccessseed, structureboundingbox, randomsource, 3, 4, 8, LootTables.STRONGHOLD_CROSSING);
+                    this.placeBlock(world, iblockdata, 9, 1, 3, chunkBox);
+                    this.placeBlock(world, iblockdata, 9, 2, 3, chunkBox);
+                    this.placeBlock(world, iblockdata, 9, 3, 3, chunkBox);
+                    this.createChest(world, chunkBox, random, 3, 4, 8, BuiltInLootTables.STRONGHOLD_CROSSING);
             }
 
         }
     }
 
-    public static class o extends StrongholdPieces.p {
+    public static class StraightStairsDown extends StrongholdPieces.StrongholdPiece {
 
         private static final int WIDTH = 5;
         private static final int HEIGHT = 11;
         private static final int DEPTH = 8;
 
-        public o(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_STRAIGHT_STAIRS_DOWN, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
+        public StraightStairsDown(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_STRAIGHT_STAIRS_DOWN, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
         }
 
-        public o(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_STRAIGHT_STAIRS_DOWN, nbttagcompound);
-        }
-
-        @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
-        }
-
-        public static StrongholdPieces.o createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -7, 0, 5, 11, 8, enumdirection);
-
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.o(l, randomsource, structureboundingbox, enumdirection) : null;
+        public StraightStairsDown(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_STRAIGHT_STAIRS_DOWN, nbt);
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 4, 10, 7, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 7, 0);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, StrongholdPieces.p.a.OPENING, 1, 1, 7);
-            IBlockData iblockdata = (IBlockData) Blocks.COBBLESTONE_STAIRS.defaultBlockState().setValue(BlockStairs.FACING, EnumDirection.SOUTH);
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
+        }
+
+        public static StrongholdPieces.StraightStairsDown createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -7, 0, 5, 11, 8, orientation);
+
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.StraightStairsDown(chainLength, random, structureboundingbox, orientation) : null;
+        }
+
+        @Override
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 4, 10, 7, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 7, 0);
+            this.generateSmallDoor(world, random, chunkBox, StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING, 1, 1, 7);
+            BlockState iblockdata = (BlockState) Blocks.COBBLESTONE_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.SOUTH);
 
             for (int i = 0; i < 6; ++i) {
-                this.placeBlock(generatoraccessseed, iblockdata, 1, 6 - i, 1 + i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata, 2, 6 - i, 1 + i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata, 3, 6 - i, 1 + i, structureboundingbox);
+                this.placeBlock(world, iblockdata, 1, 6 - i, 1 + i, chunkBox);
+                this.placeBlock(world, iblockdata, 2, 6 - i, 1 + i, chunkBox);
+                this.placeBlock(world, iblockdata, 3, 6 - i, 1 + i, chunkBox);
                 if (i < 5) {
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 5 - i, 1 + i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 2, 5 - i, 1 + i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 5 - i, 1 + i, structureboundingbox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 5 - i, 1 + i, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 2, 5 - i, 1 + i, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 5 - i, 1 + i, chunkBox);
                 }
             }
 
         }
     }
 
-    public static class l extends StrongholdPieces.p {
+    public static class StairsDown extends StrongholdPieces.StrongholdPiece {
 
         private static final int WIDTH = 5;
         private static final int HEIGHT = 11;
         private static final int DEPTH = 5;
         private final boolean isSource;
 
-        public l(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, int i, int j, int k, EnumDirection enumdirection) {
-            super(worldgenfeaturestructurepiecetype, i, makeBoundingBox(j, 64, k, enumdirection, 5, 11, 5));
+        public StairsDown(StructurePieceType structurePieceType, int chainLength, int x, int z, Direction orientation) {
+            super(structurePieceType, chainLength, makeBoundingBox(x, 64, z, orientation, 5, 11, 5));
             this.isSource = true;
-            this.setOrientation(enumdirection);
-            this.entryDoor = StrongholdPieces.p.a.OPENING;
+            this.setOrientation(orientation);
+            this.entryDoor = StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING;
         }
 
-        public l(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_STAIRS_DOWN, i, structureboundingbox);
+        public StairsDown(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_STAIRS_DOWN, chainLength, boundingBox);
             this.isSource = false;
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
         }
 
-        public l(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, NBTTagCompound nbttagcompound) {
-            super(worldgenfeaturestructurepiecetype, nbttagcompound);
-            this.isSource = nbttagcompound.getBoolean("Source");
+        public StairsDown(StructurePieceType type, CompoundTag nbt) {
+            super(type, nbt);
+            this.isSource = nbt.getBoolean("Source");
         }
 
-        public l(NBTTagCompound nbttagcompound) {
-            this(WorldGenFeatureStructurePieceType.STRONGHOLD_STAIRS_DOWN, nbttagcompound);
-        }
-
-        @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putBoolean("Source", this.isSource);
+        public StairsDown(CompoundTag nbt) {
+            this(StructurePieceType.STRONGHOLD_STAIRS_DOWN, nbt);
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putBoolean("Source", this.isSource);
+        }
+
+        @Override
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
             if (this.isSource) {
-                StrongholdPieces.imposedPiece = StrongholdPieces.c.class;
+                StrongholdPieces.imposedPiece = StrongholdPieces.FiveCrossing.class;
             }
 
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
         }
 
-        public static StrongholdPieces.l createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -7, 0, 5, 11, 5, enumdirection);
+        public static StrongholdPieces.StairsDown createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -7, 0, 5, 11, 5, orientation);
 
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.l(l, randomsource, structureboundingbox, enumdirection) : null;
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.StairsDown(chainLength, random, structureboundingbox, orientation) : null;
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 4, 10, 4, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 7, 0);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, StrongholdPieces.p.a.OPENING, 1, 1, 4);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 2, 6, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 5, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 6, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 5, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 4, 3, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 5, 3, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 2, 4, 3, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 3, 3, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 3, 4, 3, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 3, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 2, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 3, 3, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 2, 2, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 1, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 2, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 1, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 1, 3, structureboundingbox);
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 4, 10, 4, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 7, 0);
+            this.generateSmallDoor(world, random, chunkBox, StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING, 1, 1, 4);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 2, 6, 1, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 5, 1, chunkBox);
+            this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 6, 1, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 5, 2, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 4, 3, chunkBox);
+            this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 5, 3, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 2, 4, 3, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 3, 3, chunkBox);
+            this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 3, 4, 3, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 3, 2, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 2, 1, chunkBox);
+            this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 3, 3, 1, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 2, 2, 1, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 1, 1, chunkBox);
+            this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 2, 1, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 1, 2, chunkBox);
+            this.placeBlock(world, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 1, 1, 3, chunkBox);
         }
     }
 
-    public static class c extends StrongholdPieces.p {
+    public static class FiveCrossing extends StrongholdPieces.StrongholdPiece {
 
         protected static final int WIDTH = 10;
         protected static final int HEIGHT = 9;
@@ -700,166 +697,166 @@ public class StrongholdPieces {
         private final boolean rightLow;
         private final boolean rightHigh;
 
-        public c(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_FIVE_CROSSING, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
-            this.leftLow = randomsource.nextBoolean();
-            this.leftHigh = randomsource.nextBoolean();
-            this.rightLow = randomsource.nextBoolean();
-            this.rightHigh = randomsource.nextInt(3) > 0;
+        public FiveCrossing(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_FIVE_CROSSING, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
+            this.leftLow = random.nextBoolean();
+            this.leftHigh = random.nextBoolean();
+            this.rightLow = random.nextBoolean();
+            this.rightHigh = random.nextInt(3) > 0;
         }
 
-        public c(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_FIVE_CROSSING, nbttagcompound);
-            this.leftLow = nbttagcompound.getBoolean("leftLow");
-            this.leftHigh = nbttagcompound.getBoolean("leftHigh");
-            this.rightLow = nbttagcompound.getBoolean("rightLow");
-            this.rightHigh = nbttagcompound.getBoolean("rightHigh");
-        }
-
-        @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putBoolean("leftLow", this.leftLow);
-            nbttagcompound.putBoolean("leftHigh", this.leftHigh);
-            nbttagcompound.putBoolean("rightLow", this.rightLow);
-            nbttagcompound.putBoolean("rightHigh", this.rightHigh);
+        public FiveCrossing(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_FIVE_CROSSING, nbt);
+            this.leftLow = nbt.getBoolean("leftLow");
+            this.leftHigh = nbt.getBoolean("leftHigh");
+            this.rightLow = nbt.getBoolean("rightLow");
+            this.rightHigh = nbt.getBoolean("rightHigh");
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putBoolean("leftLow", this.leftLow);
+            nbt.putBoolean("leftHigh", this.leftHigh);
+            nbt.putBoolean("rightLow", this.rightLow);
+            nbt.putBoolean("rightHigh", this.rightHigh);
+        }
+
+        @Override
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
             int i = 3;
             int j = 5;
-            EnumDirection enumdirection = this.getOrientation();
+            Direction enumdirection = this.getOrientation();
 
-            if (enumdirection == EnumDirection.WEST || enumdirection == EnumDirection.NORTH) {
+            if (enumdirection == Direction.WEST || enumdirection == Direction.NORTH) {
                 i = 8 - i;
                 j = 8 - j;
             }
 
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 5, 1);
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 5, 1);
             if (this.leftLow) {
-                this.generateSmallDoorChildLeft((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, i, 1);
+                this.generateSmallDoorChildLeft((StrongholdPieces.StartPiece) start, holder, random, i, 1);
             }
 
             if (this.leftHigh) {
-                this.generateSmallDoorChildLeft((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, j, 7);
+                this.generateSmallDoorChildLeft((StrongholdPieces.StartPiece) start, holder, random, j, 7);
             }
 
             if (this.rightLow) {
-                this.generateSmallDoorChildRight((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, i, 1);
+                this.generateSmallDoorChildRight((StrongholdPieces.StartPiece) start, holder, random, i, 1);
             }
 
             if (this.rightHigh) {
-                this.generateSmallDoorChildRight((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, j, 7);
+                this.generateSmallDoorChildRight((StrongholdPieces.StartPiece) start, holder, random, j, 7);
             }
 
         }
 
-        public static StrongholdPieces.c createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -4, -3, 0, 10, 9, 11, enumdirection);
+        public static StrongholdPieces.FiveCrossing createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -4, -3, 0, 10, 9, 11, orientation);
 
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.c(l, randomsource, structureboundingbox, enumdirection) : null;
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.FiveCrossing(chainLength, random, structureboundingbox, orientation) : null;
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 9, 8, 10, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 4, 3, 0);
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 9, 8, 10, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 4, 3, 0);
             if (this.leftLow) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 0, 3, 1, 0, 5, 3, StrongholdPieces.c.CAVE_AIR, StrongholdPieces.c.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 0, 3, 1, 0, 5, 3, StrongholdPieces.FiveCrossing.CAVE_AIR, StrongholdPieces.FiveCrossing.CAVE_AIR, false);
             }
 
             if (this.rightLow) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 9, 3, 1, 9, 5, 3, StrongholdPieces.c.CAVE_AIR, StrongholdPieces.c.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 9, 3, 1, 9, 5, 3, StrongholdPieces.FiveCrossing.CAVE_AIR, StrongholdPieces.FiveCrossing.CAVE_AIR, false);
             }
 
             if (this.leftHigh) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 0, 5, 7, 0, 7, 9, StrongholdPieces.c.CAVE_AIR, StrongholdPieces.c.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 0, 5, 7, 0, 7, 9, StrongholdPieces.FiveCrossing.CAVE_AIR, StrongholdPieces.FiveCrossing.CAVE_AIR, false);
             }
 
             if (this.rightHigh) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 9, 5, 7, 9, 7, 9, StrongholdPieces.c.CAVE_AIR, StrongholdPieces.c.CAVE_AIR, false);
+                this.generateBox(world, chunkBox, 9, 5, 7, 9, 7, 9, StrongholdPieces.FiveCrossing.CAVE_AIR, StrongholdPieces.FiveCrossing.CAVE_AIR, false);
             }
 
-            this.generateBox(generatoraccessseed, structureboundingbox, 5, 1, 10, 7, 3, 10, StrongholdPieces.c.CAVE_AIR, StrongholdPieces.c.CAVE_AIR, false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 2, 1, 8, 2, 6, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 5, 4, 4, 9, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 8, 1, 5, 8, 4, 9, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 4, 7, 3, 4, 9, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 3, 5, 3, 3, 6, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 3, 4, 3, 3, 4, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 4, 6, 3, 4, 6, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 5, 1, 7, 7, 1, 8, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 5, 1, 9, 7, 1, 9, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 5, 2, 7, 7, 2, 7, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 5, 7, 4, 5, 9, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 8, 5, 7, 8, 5, 9, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 5, 5, 7, 7, 5, 9, (IBlockData) Blocks.SMOOTH_STONE_SLAB.defaultBlockState().setValue(BlockStepAbstract.TYPE, BlockPropertySlabType.DOUBLE), (IBlockData) Blocks.SMOOTH_STONE_SLAB.defaultBlockState().setValue(BlockStepAbstract.TYPE, BlockPropertySlabType.DOUBLE), false);
-            this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.SOUTH), 6, 5, 6, structureboundingbox);
+            this.generateBox(world, chunkBox, 5, 1, 10, 7, 3, 10, StrongholdPieces.FiveCrossing.CAVE_AIR, StrongholdPieces.FiveCrossing.CAVE_AIR, false);
+            this.generateBox(world, chunkBox, 1, 2, 1, 8, 2, 6, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 1, 5, 4, 4, 9, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 8, 1, 5, 8, 4, 9, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 1, 4, 7, 3, 4, 9, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 1, 3, 5, 3, 3, 6, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 1, 3, 4, 3, 3, 4, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 1, 4, 6, 3, 4, 6, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 5, 1, 7, 7, 1, 8, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 5, 1, 9, 7, 1, 9, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 5, 2, 7, 7, 2, 7, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 4, 5, 7, 4, 5, 9, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 8, 5, 7, 8, 5, 9, Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 5, 5, 7, 7, 5, 9, (BlockState) Blocks.SMOOTH_STONE_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.DOUBLE), (BlockState) Blocks.SMOOTH_STONE_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.DOUBLE), false);
+            this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.SOUTH), 6, 5, 6, chunkBox);
         }
     }
 
-    public static class a extends StrongholdPieces.p {
+    public static class ChestCorridor extends StrongholdPieces.StrongholdPiece {
 
         private static final int WIDTH = 5;
         private static final int HEIGHT = 5;
         private static final int DEPTH = 7;
         private boolean hasPlacedChest;
 
-        public a(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_CHEST_CORRIDOR, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
+        public ChestCorridor(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_CHEST_CORRIDOR, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
         }
 
-        public a(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_CHEST_CORRIDOR, nbttagcompound);
-            this.hasPlacedChest = nbttagcompound.getBoolean("Chest");
-        }
-
-        @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putBoolean("Chest", this.hasPlacedChest);
+        public ChestCorridor(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_CHEST_CORRIDOR, nbt);
+            this.hasPlacedChest = nbt.getBoolean("Chest");
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            this.generateSmallDoorChildForward((StrongholdPieces.m) structurepiece, structurepieceaccessor, randomsource, 1, 1);
-        }
-
-        public static StrongholdPieces.a createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, 7, enumdirection);
-
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.a(l, randomsource, structureboundingbox, enumdirection) : null;
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putBoolean("Chest", this.hasPlacedChest);
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 4, 4, 6, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 1, 1, 0);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, StrongholdPieces.p.a.OPENING, 1, 1, 6);
-            this.generateBox(generatoraccessseed, structureboundingbox, 3, 1, 2, 3, 1, 4, Blocks.STONE_BRICKS.defaultBlockState(), Blocks.STONE_BRICKS.defaultBlockState(), false);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 1, 1, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 1, 5, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 2, 2, structureboundingbox);
-            this.placeBlock(generatoraccessseed, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 2, 4, structureboundingbox);
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            this.generateSmallDoorChildForward((StrongholdPieces.StartPiece) start, holder, random, 1, 1);
+        }
+
+        public static StrongholdPieces.ChestCorridor createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainlength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, 7, orientation);
+
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.ChestCorridor(chainlength, random, structureboundingbox, orientation) : null;
+        }
+
+        @Override
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 4, 4, 6, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 1, 1, 0);
+            this.generateSmallDoor(world, random, chunkBox, StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING, 1, 1, 6);
+            this.generateBox(world, chunkBox, 3, 1, 2, 3, 1, 4, Blocks.STONE_BRICKS.defaultBlockState(), Blocks.STONE_BRICKS.defaultBlockState(), false);
+            this.placeBlock(world, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 1, 1, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 1, 5, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 2, 2, chunkBox);
+            this.placeBlock(world, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 3, 2, 4, chunkBox);
 
             for (int i = 2; i <= 4; ++i) {
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 2, 1, i, structureboundingbox);
+                this.placeBlock(world, Blocks.STONE_BRICK_SLAB.defaultBlockState(), 2, 1, i, chunkBox);
             }
 
-            if (!this.hasPlacedChest && structureboundingbox.isInside(this.getWorldPos(3, 2, 3))) {
+            if (!this.hasPlacedChest && chunkBox.isInside(this.getWorldPos(3, 2, 3))) {
                 this.hasPlacedChest = true;
-                this.createChest(generatoraccessseed, structureboundingbox, randomsource, 3, 2, 3, LootTables.STRONGHOLD_CORRIDOR);
+                this.createChest(world, chunkBox, random, 3, 2, 3, BuiltInLootTables.STRONGHOLD_CORRIDOR);
             }
 
         }
     }
 
-    public static class e extends StrongholdPieces.p {
+    public static class Library extends StrongholdPieces.StrongholdPiece {
 
         protected static final int WIDTH = 14;
         protected static final int HEIGHT = 6;
@@ -867,48 +864,48 @@ public class StrongholdPieces {
         protected static final int DEPTH = 15;
         private final boolean isTall;
 
-        public e(int i, RandomSource randomsource, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_LIBRARY, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.entryDoor = this.randomSmallDoor(randomsource);
-            this.isTall = structureboundingbox.getYSpan() > 6;
+        public Library(int chainLength, RandomSource random, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_LIBRARY, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.entryDoor = this.randomSmallDoor(random);
+            this.isTall = boundingBox.getYSpan() > 6;
         }
 
-        public e(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_LIBRARY, nbttagcompound);
-            this.isTall = nbttagcompound.getBoolean("Tall");
+        public Library(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_LIBRARY, nbt);
+            this.isTall = nbt.getBoolean("Tall");
         }
 
         @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putBoolean("Tall", this.isTall);
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putBoolean("Tall", this.isTall);
         }
 
-        public static StrongholdPieces.e createPiece(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -4, -1, 0, 14, 11, 15, enumdirection);
+        public static StrongholdPieces.Library createPiece(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -4, -1, 0, 14, 11, 15, orientation);
 
-            if (!isOkBox(structureboundingbox) || structurepieceaccessor.findCollisionPiece(structureboundingbox) != null) {
-                structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -4, -1, 0, 14, 6, 15, enumdirection);
-                if (!isOkBox(structureboundingbox) || structurepieceaccessor.findCollisionPiece(structureboundingbox) != null) {
+            if (!StrongholdPiece.isOkBox(structureboundingbox) || holder.findCollisionPiece(structureboundingbox) != null) {
+                structureboundingbox = BoundingBox.orientBox(x, y, z, -4, -1, 0, 14, 6, 15, orientation);
+                if (!StrongholdPiece.isOkBox(structureboundingbox) || holder.findCollisionPiece(structureboundingbox) != null) {
                     return null;
                 }
             }
 
-            return new StrongholdPieces.e(l, randomsource, structureboundingbox, enumdirection);
+            return new StrongholdPieces.Library(chainLength, random, structureboundingbox, orientation);
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
             byte b0 = 11;
 
             if (!this.isTall) {
                 b0 = 6;
             }
 
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 13, b0 - 1, 14, true, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, this.entryDoor, 4, 1, 0);
-            this.generateMaybeBox(generatoraccessseed, structureboundingbox, randomsource, 0.07F, 2, 1, 1, 11, 4, 13, Blocks.COBWEB.defaultBlockState(), Blocks.COBWEB.defaultBlockState(), false, false);
+            this.generateBox(world, chunkBox, 0, 0, 0, 13, b0 - 1, 14, true, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, this.entryDoor, 4, 1, 0);
+            this.generateMaybeBox(world, chunkBox, random, 0.07F, 2, 1, 1, 11, 4, 13, Blocks.COBWEB.defaultBlockState(), Blocks.COBWEB.defaultBlockState(), false, false);
             boolean flag = true;
             boolean flag1 = true;
 
@@ -916,225 +913,225 @@ public class StrongholdPieces {
 
             for (i = 1; i <= 13; ++i) {
                 if ((i - 1) % 4 == 0) {
-                    this.generateBox(generatoraccessseed, structureboundingbox, 1, 1, i, 1, 4, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                    this.generateBox(generatoraccessseed, structureboundingbox, 12, 1, i, 12, 4, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.EAST), 2, 3, i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.WALL_TORCH.defaultBlockState().setValue(BlockTorchWall.FACING, EnumDirection.WEST), 11, 3, i, structureboundingbox);
+                    this.generateBox(world, chunkBox, 1, 1, i, 1, 4, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                    this.generateBox(world, chunkBox, 12, 1, i, 12, 4, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                    this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.EAST), 2, 3, i, chunkBox);
+                    this.placeBlock(world, (BlockState) Blocks.WALL_TORCH.defaultBlockState().setValue(WallTorchBlock.FACING, Direction.WEST), 11, 3, i, chunkBox);
                     if (this.isTall) {
-                        this.generateBox(generatoraccessseed, structureboundingbox, 1, 6, i, 1, 9, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                        this.generateBox(generatoraccessseed, structureboundingbox, 12, 6, i, 12, 9, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                        this.generateBox(world, chunkBox, 1, 6, i, 1, 9, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                        this.generateBox(world, chunkBox, 12, 6, i, 12, 9, i, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
                     }
                 } else {
-                    this.generateBox(generatoraccessseed, structureboundingbox, 1, 1, i, 1, 4, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
-                    this.generateBox(generatoraccessseed, structureboundingbox, 12, 1, i, 12, 4, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                    this.generateBox(world, chunkBox, 1, 1, i, 1, 4, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                    this.generateBox(world, chunkBox, 12, 1, i, 12, 4, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
                     if (this.isTall) {
-                        this.generateBox(generatoraccessseed, structureboundingbox, 1, 6, i, 1, 9, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
-                        this.generateBox(generatoraccessseed, structureboundingbox, 12, 6, i, 12, 9, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                        this.generateBox(world, chunkBox, 1, 6, i, 1, 9, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                        this.generateBox(world, chunkBox, 12, 6, i, 12, 9, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
                     }
                 }
             }
 
             for (i = 3; i < 12; i += 2) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 3, 1, i, 4, 3, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 6, 1, i, 7, 3, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 9, 1, i, 10, 3, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                this.generateBox(world, chunkBox, 3, 1, i, 4, 3, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                this.generateBox(world, chunkBox, 6, 1, i, 7, 3, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
+                this.generateBox(world, chunkBox, 9, 1, i, 10, 3, i, Blocks.BOOKSHELF.defaultBlockState(), Blocks.BOOKSHELF.defaultBlockState(), false);
             }
 
             if (this.isTall) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 1, 5, 1, 3, 5, 13, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 10, 5, 1, 12, 5, 13, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 5, 1, 9, 5, 2, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 5, 12, 9, 5, 13, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
-                this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 9, 5, 11, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 8, 5, 11, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.OAK_PLANKS.defaultBlockState(), 9, 5, 10, structureboundingbox);
-                IBlockData iblockdata = (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.WEST, true)).setValue(BlockFence.EAST, true);
-                IBlockData iblockdata1 = (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.NORTH, true)).setValue(BlockFence.SOUTH, true);
+                this.generateBox(world, chunkBox, 1, 5, 1, 3, 5, 13, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                this.generateBox(world, chunkBox, 10, 5, 1, 12, 5, 13, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                this.generateBox(world, chunkBox, 4, 5, 1, 9, 5, 2, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                this.generateBox(world, chunkBox, 4, 5, 12, 9, 5, 13, Blocks.OAK_PLANKS.defaultBlockState(), Blocks.OAK_PLANKS.defaultBlockState(), false);
+                this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 9, 5, 11, chunkBox);
+                this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 8, 5, 11, chunkBox);
+                this.placeBlock(world, Blocks.OAK_PLANKS.defaultBlockState(), 9, 5, 10, chunkBox);
+                BlockState iblockdata = (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.WEST, true)).setValue(FenceBlock.EAST, true);
+                BlockState iblockdata1 = (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.NORTH, true)).setValue(FenceBlock.SOUTH, true);
 
-                this.generateBox(generatoraccessseed, structureboundingbox, 3, 6, 3, 3, 6, 11, iblockdata1, iblockdata1, false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 10, 6, 3, 10, 6, 9, iblockdata1, iblockdata1, false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 6, 2, 9, 6, 2, iblockdata, iblockdata, false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 4, 6, 12, 7, 6, 12, iblockdata, iblockdata, false);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.NORTH, true)).setValue(BlockFence.EAST, true), 3, 6, 2, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.SOUTH, true)).setValue(BlockFence.EAST, true), 3, 6, 12, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.NORTH, true)).setValue(BlockFence.WEST, true), 10, 6, 2, structureboundingbox);
+                this.generateBox(world, chunkBox, 3, 6, 3, 3, 6, 11, iblockdata1, iblockdata1, false);
+                this.generateBox(world, chunkBox, 10, 6, 3, 10, 6, 9, iblockdata1, iblockdata1, false);
+                this.generateBox(world, chunkBox, 4, 6, 2, 9, 6, 2, iblockdata, iblockdata, false);
+                this.generateBox(world, chunkBox, 4, 6, 12, 7, 6, 12, iblockdata, iblockdata, false);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.NORTH, true)).setValue(FenceBlock.EAST, true), 3, 6, 2, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.SOUTH, true)).setValue(FenceBlock.EAST, true), 3, 6, 12, chunkBox);
+                this.placeBlock(world, (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.NORTH, true)).setValue(FenceBlock.WEST, true), 10, 6, 2, chunkBox);
 
                 for (int j = 0; j <= 2; ++j) {
-                    this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.SOUTH, true)).setValue(BlockFence.WEST, true), 8 + j, 6, 12 - j, structureboundingbox);
+                    this.placeBlock(world, (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.SOUTH, true)).setValue(FenceBlock.WEST, true), 8 + j, 6, 12 - j, chunkBox);
                     if (j != 2) {
-                        this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.NORTH, true)).setValue(BlockFence.EAST, true), 8 + j, 6, 11 - j, structureboundingbox);
+                        this.placeBlock(world, (BlockState) ((BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.NORTH, true)).setValue(FenceBlock.EAST, true), 8 + j, 6, 11 - j, chunkBox);
                     }
                 }
 
-                IBlockData iblockdata2 = (IBlockData) Blocks.LADDER.defaultBlockState().setValue(BlockLadder.FACING, EnumDirection.SOUTH);
+                BlockState iblockdata2 = (BlockState) Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.SOUTH);
 
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 1, 13, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 2, 13, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 3, 13, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 4, 13, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 5, 13, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 6, 13, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, 10, 7, 13, structureboundingbox);
+                this.placeBlock(world, iblockdata2, 10, 1, 13, chunkBox);
+                this.placeBlock(world, iblockdata2, 10, 2, 13, chunkBox);
+                this.placeBlock(world, iblockdata2, 10, 3, 13, chunkBox);
+                this.placeBlock(world, iblockdata2, 10, 4, 13, chunkBox);
+                this.placeBlock(world, iblockdata2, 10, 5, 13, chunkBox);
+                this.placeBlock(world, iblockdata2, 10, 6, 13, chunkBox);
+                this.placeBlock(world, iblockdata2, 10, 7, 13, chunkBox);
                 boolean flag2 = true;
                 boolean flag3 = true;
-                IBlockData iblockdata3 = (IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.EAST, true);
+                BlockState iblockdata3 = (BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.EAST, true);
 
-                this.placeBlock(generatoraccessseed, iblockdata3, 6, 9, 7, structureboundingbox);
-                IBlockData iblockdata4 = (IBlockData) Blocks.OAK_FENCE.defaultBlockState().setValue(BlockFence.WEST, true);
+                this.placeBlock(world, iblockdata3, 6, 9, 7, chunkBox);
+                BlockState iblockdata4 = (BlockState) Blocks.OAK_FENCE.defaultBlockState().setValue(FenceBlock.WEST, true);
 
-                this.placeBlock(generatoraccessseed, iblockdata4, 7, 9, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata3, 6, 8, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata4, 7, 8, 7, structureboundingbox);
-                IBlockData iblockdata5 = (IBlockData) ((IBlockData) iblockdata1.setValue(BlockFence.WEST, true)).setValue(BlockFence.EAST, true);
+                this.placeBlock(world, iblockdata4, 7, 9, 7, chunkBox);
+                this.placeBlock(world, iblockdata3, 6, 8, 7, chunkBox);
+                this.placeBlock(world, iblockdata4, 7, 8, 7, chunkBox);
+                BlockState iblockdata5 = (BlockState) ((BlockState) iblockdata1.setValue(FenceBlock.WEST, true)).setValue(FenceBlock.EAST, true);
 
-                this.placeBlock(generatoraccessseed, iblockdata5, 6, 7, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata5, 7, 7, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata3, 5, 7, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata4, 8, 7, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) iblockdata3.setValue(BlockFence.NORTH, true), 6, 7, 6, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) iblockdata3.setValue(BlockFence.SOUTH, true), 6, 7, 8, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) iblockdata4.setValue(BlockFence.NORTH, true), 7, 7, 6, structureboundingbox);
-                this.placeBlock(generatoraccessseed, (IBlockData) iblockdata4.setValue(BlockFence.SOUTH, true), 7, 7, 8, structureboundingbox);
-                IBlockData iblockdata6 = Blocks.TORCH.defaultBlockState();
+                this.placeBlock(world, iblockdata5, 6, 7, 7, chunkBox);
+                this.placeBlock(world, iblockdata5, 7, 7, 7, chunkBox);
+                this.placeBlock(world, iblockdata3, 5, 7, 7, chunkBox);
+                this.placeBlock(world, iblockdata4, 8, 7, 7, chunkBox);
+                this.placeBlock(world, (BlockState) iblockdata3.setValue(FenceBlock.NORTH, true), 6, 7, 6, chunkBox);
+                this.placeBlock(world, (BlockState) iblockdata3.setValue(FenceBlock.SOUTH, true), 6, 7, 8, chunkBox);
+                this.placeBlock(world, (BlockState) iblockdata4.setValue(FenceBlock.NORTH, true), 7, 7, 6, chunkBox);
+                this.placeBlock(world, (BlockState) iblockdata4.setValue(FenceBlock.SOUTH, true), 7, 7, 8, chunkBox);
+                BlockState iblockdata6 = Blocks.TORCH.defaultBlockState();
 
-                this.placeBlock(generatoraccessseed, iblockdata6, 5, 8, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata6, 8, 8, 7, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata6, 6, 8, 6, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata6, 6, 8, 8, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata6, 7, 8, 6, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata6, 7, 8, 8, structureboundingbox);
+                this.placeBlock(world, iblockdata6, 5, 8, 7, chunkBox);
+                this.placeBlock(world, iblockdata6, 8, 8, 7, chunkBox);
+                this.placeBlock(world, iblockdata6, 6, 8, 6, chunkBox);
+                this.placeBlock(world, iblockdata6, 6, 8, 8, chunkBox);
+                this.placeBlock(world, iblockdata6, 7, 8, 6, chunkBox);
+                this.placeBlock(world, iblockdata6, 7, 8, 8, chunkBox);
             }
 
-            this.createChest(generatoraccessseed, structureboundingbox, randomsource, 3, 3, 5, LootTables.STRONGHOLD_LIBRARY);
+            this.createChest(world, chunkBox, random, 3, 3, 5, BuiltInLootTables.STRONGHOLD_LIBRARY);
             if (this.isTall) {
-                this.placeBlock(generatoraccessseed, StrongholdPieces.e.CAVE_AIR, 12, 9, 1, structureboundingbox);
-                this.createChest(generatoraccessseed, structureboundingbox, randomsource, 12, 8, 1, LootTables.STRONGHOLD_LIBRARY);
+                this.placeBlock(world, StrongholdPieces.Library.CAVE_AIR, 12, 9, 1, chunkBox);
+                this.createChest(world, chunkBox, random, 12, 8, 1, BuiltInLootTables.STRONGHOLD_LIBRARY);
             }
 
         }
     }
 
-    public static class g extends StrongholdPieces.p {
+    public static class PortalRoom extends StrongholdPieces.StrongholdPiece {
 
         protected static final int WIDTH = 11;
         protected static final int HEIGHT = 8;
         protected static final int DEPTH = 16;
         private boolean hasPlacedSpawner;
 
-        public g(int i, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_PORTAL_ROOM, i, structureboundingbox);
-            this.setOrientation(enumdirection);
+        public PortalRoom(int chainLength, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_PORTAL_ROOM, chainLength, boundingBox);
+            this.setOrientation(orientation);
         }
 
-        public g(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_PORTAL_ROOM, nbttagcompound);
-            this.hasPlacedSpawner = nbttagcompound.getBoolean("Mob");
-        }
-
-        @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putBoolean("Mob", this.hasPlacedSpawner);
+        public PortalRoom(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_PORTAL_ROOM, nbt);
+            this.hasPlacedSpawner = nbt.getBoolean("Mob");
         }
 
         @Override
-        public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {
-            if (structurepiece != null) {
-                ((StrongholdPieces.m) structurepiece).portalRoomPiece = this;
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putBoolean("Mob", this.hasPlacedSpawner);
+        }
+
+        @Override
+        public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {
+            if (start != null) {
+                ((StrongholdPieces.StartPiece) start).portalRoomPiece = this;
             }
 
         }
 
-        public static StrongholdPieces.g createPiece(StructurePieceAccessor structurepieceaccessor, int i, int j, int k, EnumDirection enumdirection, int l) {
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -4, -1, 0, 11, 8, 16, enumdirection);
+        public static StrongholdPieces.PortalRoom createPiece(StructurePieceAccessor holder, int x, int y, int z, Direction orientation, int chainLength) {
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -4, -1, 0, 11, 8, 16, orientation);
 
-            return isOkBox(structureboundingbox) && structurepieceaccessor.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.g(l, structureboundingbox, enumdirection) : null;
+            return StrongholdPiece.isOkBox(structureboundingbox) && holder.findCollisionPiece(structureboundingbox) == null ? new StrongholdPieces.PortalRoom(chainLength, structureboundingbox, orientation) : null;
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
-            this.generateBox(generatoraccessseed, structureboundingbox, 0, 0, 0, 10, 7, 15, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateSmallDoor(generatoraccessseed, randomsource, structureboundingbox, StrongholdPieces.p.a.GRATES, 4, 1, 0);
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+            this.generateBox(world, chunkBox, 0, 0, 0, 10, 7, 15, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateSmallDoor(world, random, chunkBox, StrongholdPieces.StrongholdPiece.SmallDoorType.GRATES, 4, 1, 0);
             boolean flag = true;
 
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 6, 1, 1, 6, 14, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 9, 6, 1, 9, 6, 14, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 2, 6, 1, 8, 6, 2, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 2, 6, 14, 8, 6, 14, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 1, 1, 2, 1, 4, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 8, 1, 1, 9, 1, 4, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 1, 1, 1, 1, 1, 3, Blocks.LAVA.defaultBlockState(), Blocks.LAVA.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 9, 1, 1, 9, 1, 3, Blocks.LAVA.defaultBlockState(), Blocks.LAVA.defaultBlockState(), false);
-            this.generateBox(generatoraccessseed, structureboundingbox, 3, 1, 8, 7, 1, 12, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 9, 6, 1, 11, Blocks.LAVA.defaultBlockState(), Blocks.LAVA.defaultBlockState(), false);
-            IBlockData iblockdata = (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.NORTH, true)).setValue(BlockIronBars.SOUTH, true);
-            IBlockData iblockdata1 = (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.WEST, true)).setValue(BlockIronBars.EAST, true);
+            this.generateBox(world, chunkBox, 1, 6, 1, 1, 6, 14, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 9, 6, 1, 9, 6, 14, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 2, 6, 1, 8, 6, 2, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 2, 6, 14, 8, 6, 14, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 1, 1, 1, 2, 1, 4, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 8, 1, 1, 9, 1, 4, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 1, 1, 1, 1, 1, 3, Blocks.LAVA.defaultBlockState(), Blocks.LAVA.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 9, 1, 1, 9, 1, 3, Blocks.LAVA.defaultBlockState(), Blocks.LAVA.defaultBlockState(), false);
+            this.generateBox(world, chunkBox, 3, 1, 8, 7, 1, 12, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 1, 9, 6, 1, 11, Blocks.LAVA.defaultBlockState(), Blocks.LAVA.defaultBlockState(), false);
+            BlockState iblockdata = (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, true)).setValue(IronBarsBlock.SOUTH, true);
+            BlockState iblockdata1 = (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.WEST, true)).setValue(IronBarsBlock.EAST, true);
 
             int i;
 
             for (i = 3; i < 14; i += 2) {
-                this.generateBox(generatoraccessseed, structureboundingbox, 0, 3, i, 0, 4, i, iblockdata, iblockdata, false);
-                this.generateBox(generatoraccessseed, structureboundingbox, 10, 3, i, 10, 4, i, iblockdata, iblockdata, false);
+                this.generateBox(world, chunkBox, 0, 3, i, 0, 4, i, iblockdata, iblockdata, false);
+                this.generateBox(world, chunkBox, 10, 3, i, 10, 4, i, iblockdata, iblockdata, false);
             }
 
             for (i = 2; i < 9; i += 2) {
-                this.generateBox(generatoraccessseed, structureboundingbox, i, 3, 15, i, 4, 15, iblockdata1, iblockdata1, false);
+                this.generateBox(world, chunkBox, i, 3, 15, i, 4, 15, iblockdata1, iblockdata1, false);
             }
 
-            IBlockData iblockdata2 = (IBlockData) Blocks.STONE_BRICK_STAIRS.defaultBlockState().setValue(BlockStairs.FACING, EnumDirection.NORTH);
+            BlockState iblockdata2 = (BlockState) Blocks.STONE_BRICK_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.NORTH);
 
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 1, 5, 6, 1, 7, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 2, 6, 6, 2, 7, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
-            this.generateBox(generatoraccessseed, structureboundingbox, 4, 3, 7, 6, 3, 7, false, randomsource, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 1, 5, 6, 1, 7, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 2, 6, 6, 2, 7, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
+            this.generateBox(world, chunkBox, 4, 3, 7, 6, 3, 7, false, random, StrongholdPieces.SMOOTH_STONE_SELECTOR);
 
             for (int j = 4; j <= 6; ++j) {
-                this.placeBlock(generatoraccessseed, iblockdata2, j, 1, 4, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, j, 2, 5, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata2, j, 3, 6, structureboundingbox);
+                this.placeBlock(world, iblockdata2, j, 1, 4, chunkBox);
+                this.placeBlock(world, iblockdata2, j, 2, 5, chunkBox);
+                this.placeBlock(world, iblockdata2, j, 3, 6, chunkBox);
             }
 
-            IBlockData iblockdata3 = (IBlockData) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(BlockEnderPortalFrame.FACING, EnumDirection.NORTH);
-            IBlockData iblockdata4 = (IBlockData) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(BlockEnderPortalFrame.FACING, EnumDirection.SOUTH);
-            IBlockData iblockdata5 = (IBlockData) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(BlockEnderPortalFrame.FACING, EnumDirection.EAST);
-            IBlockData iblockdata6 = (IBlockData) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(BlockEnderPortalFrame.FACING, EnumDirection.WEST);
+            BlockState iblockdata3 = (BlockState) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(EndPortalFrameBlock.FACING, Direction.NORTH);
+            BlockState iblockdata4 = (BlockState) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(EndPortalFrameBlock.FACING, Direction.SOUTH);
+            BlockState iblockdata5 = (BlockState) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(EndPortalFrameBlock.FACING, Direction.EAST);
+            BlockState iblockdata6 = (BlockState) Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(EndPortalFrameBlock.FACING, Direction.WEST);
             boolean flag1 = true;
             boolean[] aboolean = new boolean[12];
 
             for (int k = 0; k < aboolean.length; ++k) {
-                aboolean[k] = randomsource.nextFloat() > 0.9F;
+                aboolean[k] = random.nextFloat() > 0.9F;
                 flag1 &= aboolean[k];
             }
 
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata3.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[0]), 4, 3, 8, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata3.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[1]), 5, 3, 8, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata3.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[2]), 6, 3, 8, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata4.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[3]), 4, 3, 12, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata4.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[4]), 5, 3, 12, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata4.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[5]), 6, 3, 12, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata5.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[6]), 3, 3, 9, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata5.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[7]), 3, 3, 10, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata5.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[8]), 3, 3, 11, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata6.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[9]), 7, 3, 9, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata6.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[10]), 7, 3, 10, structureboundingbox);
-            this.placeBlock(generatoraccessseed, (IBlockData) iblockdata6.setValue(BlockEnderPortalFrame.HAS_EYE, aboolean[11]), 7, 3, 11, structureboundingbox);
+            this.placeBlock(world, (BlockState) iblockdata3.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[0]), 4, 3, 8, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata3.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[1]), 5, 3, 8, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata3.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[2]), 6, 3, 8, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata4.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[3]), 4, 3, 12, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata4.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[4]), 5, 3, 12, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata4.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[5]), 6, 3, 12, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata5.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[6]), 3, 3, 9, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata5.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[7]), 3, 3, 10, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata5.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[8]), 3, 3, 11, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata6.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[9]), 7, 3, 9, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata6.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[10]), 7, 3, 10, chunkBox);
+            this.placeBlock(world, (BlockState) iblockdata6.setValue(EndPortalFrameBlock.HAS_EYE, aboolean[11]), 7, 3, 11, chunkBox);
             if (flag1) {
-                IBlockData iblockdata7 = Blocks.END_PORTAL.defaultBlockState();
+                BlockState iblockdata7 = Blocks.END_PORTAL.defaultBlockState();
 
-                this.placeBlock(generatoraccessseed, iblockdata7, 4, 3, 9, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 5, 3, 9, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 6, 3, 9, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 4, 3, 10, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 5, 3, 10, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 6, 3, 10, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 4, 3, 11, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 5, 3, 11, structureboundingbox);
-                this.placeBlock(generatoraccessseed, iblockdata7, 6, 3, 11, structureboundingbox);
+                this.placeBlock(world, iblockdata7, 4, 3, 9, chunkBox);
+                this.placeBlock(world, iblockdata7, 5, 3, 9, chunkBox);
+                this.placeBlock(world, iblockdata7, 6, 3, 9, chunkBox);
+                this.placeBlock(world, iblockdata7, 4, 3, 10, chunkBox);
+                this.placeBlock(world, iblockdata7, 5, 3, 10, chunkBox);
+                this.placeBlock(world, iblockdata7, 6, 3, 10, chunkBox);
+                this.placeBlock(world, iblockdata7, 4, 3, 11, chunkBox);
+                this.placeBlock(world, iblockdata7, 5, 3, 11, chunkBox);
+                this.placeBlock(world, iblockdata7, 6, 3, 11, chunkBox);
             }
 
             if (!this.hasPlacedSpawner) {
-                BlockPosition.MutableBlockPosition blockposition_mutableblockposition = this.getWorldPos(5, 3, 6);
+                BlockPos.MutableBlockPos blockposition_mutableblockposition = this.getWorldPos(5, 3, 6);
 
-                if (structureboundingbox.isInside(blockposition_mutableblockposition)) {
+                if (chunkBox.isInside(blockposition_mutableblockposition)) {
                     this.hasPlacedSpawner = true;
                     // CraftBukkit start
                     /*
@@ -1147,7 +1144,7 @@ public class StrongholdPieces {
                         tileentitymobspawner.setEntityId(EntityTypes.SILVERFISH, randomsource);
                     }
                     */
-                    placeCraftSpawner(generatoraccessseed, blockposition_mutableblockposition, org.bukkit.entity.EntityType.SILVERFISH, 2);
+                    this.placeCraftSpawner(world, blockposition_mutableblockposition, org.bukkit.entity.EntityType.SILVERFISH, 2);
                     // CraftBukkit end
                 }
             }
@@ -1155,100 +1152,100 @@ public class StrongholdPieces {
         }
     }
 
-    private abstract static class p extends StructurePiece {
+    private abstract static class StrongholdPiece extends StructurePiece {
 
-        protected StrongholdPieces.p.a entryDoor;
+        protected StrongholdPieces.StrongholdPiece.SmallDoorType entryDoor;
 
-        protected p(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, int i, StructureBoundingBox structureboundingbox) {
-            super(worldgenfeaturestructurepiecetype, i, structureboundingbox);
-            this.entryDoor = StrongholdPieces.p.a.OPENING;
+        protected StrongholdPiece(StructurePieceType type, int length, BoundingBox boundingBox) {
+            super(type, length, boundingBox);
+            this.entryDoor = StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING;
         }
 
-        public p(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, NBTTagCompound nbttagcompound) {
-            super(worldgenfeaturestructurepiecetype, nbttagcompound);
-            this.entryDoor = StrongholdPieces.p.a.OPENING;
-            this.entryDoor = StrongholdPieces.p.a.valueOf(nbttagcompound.getString("EntryDoor"));
+        public StrongholdPiece(StructurePieceType type, CompoundTag nbt) {
+            super(type, nbt);
+            this.entryDoor = StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING;
+            this.entryDoor = StrongholdPieces.StrongholdPiece.SmallDoorType.valueOf(nbt.getString("EntryDoor"));
         }
 
         @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            nbttagcompound.putString("EntryDoor", this.entryDoor.name());
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            nbt.putString("EntryDoor", this.entryDoor.name());
         }
 
-        protected void generateSmallDoor(GeneratorAccessSeed generatoraccessseed, RandomSource randomsource, StructureBoundingBox structureboundingbox, StrongholdPieces.p.a strongholdpieces_p_a, int i, int j, int k) {
-            switch (strongholdpieces_p_a.ordinal()) {
+        protected void generateSmallDoor(WorldGenLevel world, RandomSource random, BoundingBox boundingBox, StrongholdPieces.StrongholdPiece.SmallDoorType type, int x, int y, int z) {
+            switch (type.ordinal()) {
                 case 0:
-                    this.generateBox(generatoraccessseed, structureboundingbox, i, j, k, i + 3 - 1, j + 3 - 1, k, StrongholdPieces.p.CAVE_AIR, StrongholdPieces.p.CAVE_AIR, false);
+                    this.generateBox(world, boundingBox, x, y, z, x + 3 - 1, y + 3 - 1, z, StrongholdPieces.StrongholdPiece.CAVE_AIR, StrongholdPieces.StrongholdPiece.CAVE_AIR, false);
                     break;
                 case 1:
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 1, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 2, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 2, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 2, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.OAK_DOOR.defaultBlockState(), i + 1, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.OAK_DOOR.defaultBlockState().setValue(BlockDoor.HALF, BlockPropertyDoubleBlockHalf.UPPER), i + 1, j + 1, k, structureboundingbox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x, y, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x, y + 1, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x, y + 2, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 1, y + 2, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 2, y + 2, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 2, y + 1, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 2, y, z, boundingBox);
+                    this.placeBlock(world, Blocks.OAK_DOOR.defaultBlockState(), x + 1, y, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.OAK_DOOR.defaultBlockState().setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), x + 1, y + 1, z, boundingBox);
                     break;
                 case 2:
-                    this.placeBlock(generatoraccessseed, Blocks.CAVE_AIR.defaultBlockState(), i + 1, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.CAVE_AIR.defaultBlockState(), i + 1, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.WEST, true), i, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.WEST, true), i, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.EAST, true)).setValue(BlockIronBars.WEST, true), i, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.EAST, true)).setValue(BlockIronBars.WEST, true), i + 1, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) ((IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.EAST, true)).setValue(BlockIronBars.WEST, true), i + 2, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.EAST, true), i + 2, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.IRON_BARS.defaultBlockState().setValue(BlockIronBars.EAST, true), i + 2, j, k, structureboundingbox);
+                    this.placeBlock(world, Blocks.CAVE_AIR.defaultBlockState(), x + 1, y, z, boundingBox);
+                    this.placeBlock(world, Blocks.CAVE_AIR.defaultBlockState(), x + 1, y + 1, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.WEST, true), x, y, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.WEST, true), x, y + 1, z, boundingBox);
+                    this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.EAST, true)).setValue(IronBarsBlock.WEST, true), x, y + 2, z, boundingBox);
+                    this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.EAST, true)).setValue(IronBarsBlock.WEST, true), x + 1, y + 2, z, boundingBox);
+                    this.placeBlock(world, (BlockState) ((BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.EAST, true)).setValue(IronBarsBlock.WEST, true), x + 2, y + 2, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.EAST, true), x + 2, y + 1, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.EAST, true), x + 2, y, z, boundingBox);
                     break;
                 case 3:
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 1, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 2, j + 2, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 2, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), i + 2, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.IRON_DOOR.defaultBlockState(), i + 1, j, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.IRON_DOOR.defaultBlockState().setValue(BlockDoor.HALF, BlockPropertyDoubleBlockHalf.UPPER), i + 1, j + 1, k, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.STONE_BUTTON.defaultBlockState().setValue(BlockButtonAbstract.FACING, EnumDirection.NORTH), i + 2, j + 1, k + 1, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, (IBlockData) Blocks.STONE_BUTTON.defaultBlockState().setValue(BlockButtonAbstract.FACING, EnumDirection.SOUTH), i + 2, j + 1, k - 1, structureboundingbox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x, y, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x, y + 1, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x, y + 2, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 1, y + 2, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 2, y + 2, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 2, y + 1, z, boundingBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), x + 2, y, z, boundingBox);
+                    this.placeBlock(world, Blocks.IRON_DOOR.defaultBlockState(), x + 1, y, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.IRON_DOOR.defaultBlockState().setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), x + 1, y + 1, z, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.STONE_BUTTON.defaultBlockState().setValue(ButtonBlock.FACING, Direction.NORTH), x + 2, y + 1, z + 1, boundingBox);
+                    this.placeBlock(world, (BlockState) Blocks.STONE_BUTTON.defaultBlockState().setValue(ButtonBlock.FACING, Direction.SOUTH), x + 2, y + 1, z - 1, boundingBox);
             }
 
         }
 
-        protected StrongholdPieces.p.a randomSmallDoor(RandomSource randomsource) {
-            int i = randomsource.nextInt(5);
+        protected StrongholdPieces.StrongholdPiece.SmallDoorType randomSmallDoor(RandomSource random) {
+            int i = random.nextInt(5);
 
             switch (i) {
                 case 0:
                 case 1:
                 default:
-                    return StrongholdPieces.p.a.OPENING;
+                    return StrongholdPieces.StrongholdPiece.SmallDoorType.OPENING;
                 case 2:
-                    return StrongholdPieces.p.a.WOOD_DOOR;
+                    return StrongholdPieces.StrongholdPiece.SmallDoorType.WOOD_DOOR;
                 case 3:
-                    return StrongholdPieces.p.a.GRATES;
+                    return StrongholdPieces.StrongholdPiece.SmallDoorType.GRATES;
                 case 4:
-                    return StrongholdPieces.p.a.IRON_DOOR;
+                    return StrongholdPieces.StrongholdPiece.SmallDoorType.IRON_DOOR;
             }
         }
 
         @Nullable
-        protected StructurePiece generateSmallDoorChildForward(StrongholdPieces.m strongholdpieces_m, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j) {
-            EnumDirection enumdirection = this.getOrientation();
+        protected StructurePiece generateSmallDoorChildForward(StrongholdPieces.StartPiece start, StructurePieceAccessor holder, RandomSource random, int leftRightOffset, int heightOffset) {
+            Direction enumdirection = this.getOrientation();
 
             if (enumdirection != null) {
                 switch (enumdirection) {
                     case NORTH:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() + i, this.boundingBox.minY() + j, this.boundingBox.minZ() - 1, enumdirection, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() + leftRightOffset, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() - 1, enumdirection, this.getGenDepth());
                     case SOUTH:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() + i, this.boundingBox.minY() + j, this.boundingBox.maxZ() + 1, enumdirection, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() + leftRightOffset, this.boundingBox.minY() + heightOffset, this.boundingBox.maxZ() + 1, enumdirection, this.getGenDepth());
                     case WEST:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() - 1, this.boundingBox.minY() + j, this.boundingBox.minZ() + i, enumdirection, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() - 1, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() + leftRightOffset, enumdirection, this.getGenDepth());
                     case EAST:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.maxX() + 1, this.boundingBox.minY() + j, this.boundingBox.minZ() + i, enumdirection, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.maxX() + 1, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() + leftRightOffset, enumdirection, this.getGenDepth());
                 }
             }
 
@@ -1256,19 +1253,19 @@ public class StrongholdPieces {
         }
 
         @Nullable
-        protected StructurePiece generateSmallDoorChildLeft(StrongholdPieces.m strongholdpieces_m, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j) {
-            EnumDirection enumdirection = this.getOrientation();
+        protected StructurePiece generateSmallDoorChildLeft(StrongholdPieces.StartPiece start, StructurePieceAccessor holder, RandomSource random, int heightOffset, int leftRightOffset) {
+            Direction enumdirection = this.getOrientation();
 
             if (enumdirection != null) {
                 switch (enumdirection) {
                     case NORTH:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() - 1, this.boundingBox.minY() + i, this.boundingBox.minZ() + j, EnumDirection.WEST, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() - 1, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() + leftRightOffset, Direction.WEST, this.getGenDepth());
                     case SOUTH:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() - 1, this.boundingBox.minY() + i, this.boundingBox.minZ() + j, EnumDirection.WEST, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() - 1, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() + leftRightOffset, Direction.WEST, this.getGenDepth());
                     case WEST:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() + j, this.boundingBox.minY() + i, this.boundingBox.minZ() - 1, EnumDirection.NORTH, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() + leftRightOffset, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() - 1, Direction.NORTH, this.getGenDepth());
                     case EAST:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() + j, this.boundingBox.minY() + i, this.boundingBox.minZ() - 1, EnumDirection.NORTH, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() + leftRightOffset, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() - 1, Direction.NORTH, this.getGenDepth());
                 }
             }
 
@@ -1276,92 +1273,92 @@ public class StrongholdPieces {
         }
 
         @Nullable
-        protected StructurePiece generateSmallDoorChildRight(StrongholdPieces.m strongholdpieces_m, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j) {
-            EnumDirection enumdirection = this.getOrientation();
+        protected StructurePiece generateSmallDoorChildRight(StrongholdPieces.StartPiece start, StructurePieceAccessor holder, RandomSource random, int heightOffset, int leftRightOffset) {
+            Direction enumdirection = this.getOrientation();
 
             if (enumdirection != null) {
                 switch (enumdirection) {
                     case NORTH:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.maxX() + 1, this.boundingBox.minY() + i, this.boundingBox.minZ() + j, EnumDirection.EAST, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.maxX() + 1, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() + leftRightOffset, Direction.EAST, this.getGenDepth());
                     case SOUTH:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.maxX() + 1, this.boundingBox.minY() + i, this.boundingBox.minZ() + j, EnumDirection.EAST, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.maxX() + 1, this.boundingBox.minY() + heightOffset, this.boundingBox.minZ() + leftRightOffset, Direction.EAST, this.getGenDepth());
                     case WEST:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() + j, this.boundingBox.minY() + i, this.boundingBox.maxZ() + 1, EnumDirection.SOUTH, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() + leftRightOffset, this.boundingBox.minY() + heightOffset, this.boundingBox.maxZ() + 1, Direction.SOUTH, this.getGenDepth());
                     case EAST:
-                        return StrongholdPieces.generateAndAddPiece(strongholdpieces_m, structurepieceaccessor, randomsource, this.boundingBox.minX() + j, this.boundingBox.minY() + i, this.boundingBox.maxZ() + 1, EnumDirection.SOUTH, this.getGenDepth());
+                        return StrongholdPieces.generateAndAddPiece(start, holder, random, this.boundingBox.minX() + leftRightOffset, this.boundingBox.minY() + heightOffset, this.boundingBox.maxZ() + 1, Direction.SOUTH, this.getGenDepth());
                 }
             }
 
             return null;
         }
 
-        protected static boolean isOkBox(StructureBoundingBox structureboundingbox) {
-            return structureboundingbox != null && structureboundingbox.minY() > 10;
+        protected static boolean isOkBox(BoundingBox boundingBox) {
+            return boundingBox != null && boundingBox.minY() > 10;
         }
 
-        protected static enum a {
+        protected static enum SmallDoorType {
 
             OPENING, WOOD_DOOR, GRATES, IRON_DOOR;
 
-            private a() {}
+            private SmallDoorType() {}
         }
     }
 
-    public static class m extends StrongholdPieces.l {
+    public static class StartPiece extends StrongholdPieces.StairsDown {
 
-        public StrongholdPieces.f previousPiece;
+        public StrongholdPieces.PieceWeight previousPiece;
         @Nullable
-        public StrongholdPieces.g portalRoomPiece;
+        public StrongholdPieces.PortalRoom portalRoomPiece;
         public final List<StructurePiece> pendingChildren = Lists.newArrayList();
 
-        public m(RandomSource randomsource, int i, int j) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_START, 0, i, j, getRandomHorizontalDirection(randomsource));
+        public StartPiece(RandomSource random, int i, int j) {
+            super(StructurePieceType.STRONGHOLD_START, 0, i, j, getRandomHorizontalDirection(random));
         }
 
-        public m(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_START, nbttagcompound);
+        public StartPiece(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_START, nbt);
         }
 
         @Override
-        public BlockPosition getLocatorPosition() {
+        public BlockPos getLocatorPosition() {
             return this.portalRoomPiece != null ? this.portalRoomPiece.getLocatorPosition() : super.getLocatorPosition();
         }
     }
 
-    public static class b extends StrongholdPieces.p {
+    public static class FillerCorridor extends StrongholdPieces.StrongholdPiece {
 
         private final int steps;
 
-        public b(int i, StructureBoundingBox structureboundingbox, EnumDirection enumdirection) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_FILLER_CORRIDOR, i, structureboundingbox);
-            this.setOrientation(enumdirection);
-            this.steps = enumdirection != EnumDirection.NORTH && enumdirection != EnumDirection.SOUTH ? structureboundingbox.getXSpan() : structureboundingbox.getZSpan();
+        public FillerCorridor(int chainLength, BoundingBox boundingBox, Direction orientation) {
+            super(StructurePieceType.STRONGHOLD_FILLER_CORRIDOR, chainLength, boundingBox);
+            this.setOrientation(orientation);
+            this.steps = orientation != Direction.NORTH && orientation != Direction.SOUTH ? boundingBox.getXSpan() : boundingBox.getZSpan();
         }
 
-        public b(NBTTagCompound nbttagcompound) {
-            super(WorldGenFeatureStructurePieceType.STRONGHOLD_FILLER_CORRIDOR, nbttagcompound);
-            this.steps = nbttagcompound.getInt("Steps");
+        public FillerCorridor(CompoundTag nbt) {
+            super(StructurePieceType.STRONGHOLD_FILLER_CORRIDOR, nbt);
+            this.steps = nbt.getInt("Steps");
         }
 
         @Override
-        protected void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound) {
-            super.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
-            nbttagcompound.putInt("Steps", this.steps);
+        protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt) {
+            super.addAdditionalSaveData(context, nbt);
+            nbt.putInt("Steps", this.steps);
         }
 
-        public static StructureBoundingBox findPieceBox(StructurePieceAccessor structurepieceaccessor, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection) {
+        public static BoundingBox findPieceBox(StructurePieceAccessor holder, RandomSource random, int x, int y, int z, Direction orientation) {
             boolean flag = true;
-            StructureBoundingBox structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, 4, enumdirection);
-            StructurePiece structurepiece = structurepieceaccessor.findCollisionPiece(structureboundingbox);
+            BoundingBox structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, 4, orientation);
+            StructurePiece structurepiece = holder.findCollisionPiece(structureboundingbox);
 
             if (structurepiece == null) {
                 return null;
             } else {
                 if (structurepiece.getBoundingBox().minY() == structureboundingbox.minY()) {
                     for (int l = 2; l >= 1; --l) {
-                        structureboundingbox = StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, l, enumdirection);
+                        structureboundingbox = BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, l, orientation);
                         if (!structurepiece.getBoundingBox().intersects(structureboundingbox)) {
-                            return StructureBoundingBox.orientBox(i, j, k, -1, -1, 0, 5, 5, l + 1, enumdirection);
+                            return BoundingBox.orientBox(x, y, z, -1, -1, 0, 5, 5, l + 1, orientation);
                         }
                     }
                 }
@@ -1371,40 +1368,40 @@ public class StrongholdPieces {
         }
 
         @Override
-        public void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition) {
+        public void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
             for (int i = 0; i < this.steps; ++i) {
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 0, 0, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 0, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 2, 0, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 0, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 4, 0, i, structureboundingbox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 0, 0, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 0, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 2, 0, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 0, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 4, 0, i, chunkBox);
 
                 for (int j = 1; j <= 3; ++j) {
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 0, j, i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.CAVE_AIR.defaultBlockState(), 1, j, i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.CAVE_AIR.defaultBlockState(), 2, j, i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.CAVE_AIR.defaultBlockState(), 3, j, i, structureboundingbox);
-                    this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 4, j, i, structureboundingbox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 0, j, i, chunkBox);
+                    this.placeBlock(world, Blocks.CAVE_AIR.defaultBlockState(), 1, j, i, chunkBox);
+                    this.placeBlock(world, Blocks.CAVE_AIR.defaultBlockState(), 2, j, i, chunkBox);
+                    this.placeBlock(world, Blocks.CAVE_AIR.defaultBlockState(), 3, j, i, chunkBox);
+                    this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 4, j, i, chunkBox);
                 }
 
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 0, 4, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 1, 4, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 2, 4, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 3, 4, i, structureboundingbox);
-                this.placeBlock(generatoraccessseed, Blocks.STONE_BRICKS.defaultBlockState(), 4, 4, i, structureboundingbox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 0, 4, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 1, 4, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 2, 4, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 3, 4, i, chunkBox);
+                this.placeBlock(world, Blocks.STONE_BRICKS.defaultBlockState(), 4, 4, i, chunkBox);
             }
 
         }
     }
 
-    private static class k extends StructurePiece.StructurePieceBlockSelector {
+    private static class SmoothStoneSelector extends StructurePiece.BlockSelector {
 
-        k() {}
+        SmoothStoneSelector() {}
 
         @Override
-        public void next(RandomSource randomsource, int i, int j, int k, boolean flag) {
-            if (flag) {
-                float f = randomsource.nextFloat();
+        public void next(RandomSource random, int x, int y, int z, boolean placeBlock) {
+            if (placeBlock) {
+                float f = random.nextFloat();
 
                 if (f < 0.2F) {
                     this.next = Blocks.CRACKED_STONE_BRICKS.defaultBlockState();
@@ -1422,18 +1419,18 @@ public class StrongholdPieces {
         }
     }
 
-    public abstract static class q extends StrongholdPieces.p {
+    public abstract static class Turn extends StrongholdPieces.StrongholdPiece {
 
         protected static final int WIDTH = 5;
         protected static final int HEIGHT = 5;
         protected static final int DEPTH = 5;
 
-        protected q(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, int i, StructureBoundingBox structureboundingbox) {
-            super(worldgenfeaturestructurepiecetype, i, structureboundingbox);
+        protected Turn(StructurePieceType type, int length, BoundingBox boundingBox) {
+            super(type, length, boundingBox);
         }
 
-        public q(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, NBTTagCompound nbttagcompound) {
-            super(worldgenfeaturestructurepiecetype, nbttagcompound);
+        public Turn(StructurePieceType type, CompoundTag nbt) {
+            super(type, nbt);
         }
     }
 }

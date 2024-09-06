@@ -1,17 +1,17 @@
 package net.minecraft.world.entity.vehicle;
 
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 
 // CraftBukkit start
@@ -23,40 +23,40 @@ import org.bukkit.event.vehicle.VehicleDestroyEvent;
 
 public abstract class VehicleEntity extends Entity {
 
-    protected static final DataWatcherObject<Integer> DATA_ID_HURT = DataWatcher.defineId(VehicleEntity.class, DataWatcherRegistry.INT);
-    protected static final DataWatcherObject<Integer> DATA_ID_HURTDIR = DataWatcher.defineId(VehicleEntity.class, DataWatcherRegistry.INT);
-    protected static final DataWatcherObject<Float> DATA_ID_DAMAGE = DataWatcher.defineId(VehicleEntity.class, DataWatcherRegistry.FLOAT);
+    protected static final EntityDataAccessor<Integer> DATA_ID_HURT = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> DATA_ID_HURTDIR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Float> DATA_ID_DAMAGE = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
 
-    public VehicleEntity(EntityTypes<?> entitytypes, World world) {
-        super(entitytypes, world);
+    public VehicleEntity(EntityType<?> type, Level world) {
+        super(type, world);
     }
 
     @Override
-    public boolean hurt(DamageSource damagesource, float f) {
+    public boolean hurt(DamageSource source, float amount) {
         if (!this.level().isClientSide && !this.isRemoved()) {
-            if (this.isInvulnerableTo(damagesource)) {
+            if (this.isInvulnerableTo(source)) {
                 return false;
             } else {
                 // CraftBukkit start
                 Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-                org.bukkit.entity.Entity attacker = (damagesource.getEntity() == null) ? null : damagesource.getEntity().getBukkitEntity();
+                org.bukkit.entity.Entity attacker = (source.getEntity() == null) ? null : source.getEntity().getBukkitEntity();
 
-                VehicleDamageEvent event = new VehicleDamageEvent(vehicle, attacker, (double) f);
+                VehicleDamageEvent event = new VehicleDamageEvent(vehicle, attacker, (double) amount);
                 this.level().getCraftServer().getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     return false;
                 }
-                f = (float) event.getDamage();
+                amount = (float) event.getDamage();
                 // CraftBukkit end
                 this.setHurtDir(-this.getHurtDir());
                 this.setHurtTime(10);
                 this.markHurt();
-                this.setDamage(this.getDamage() + f * 10.0F);
-                this.gameEvent(GameEvent.ENTITY_DAMAGE, damagesource.getEntity());
-                boolean flag = damagesource.getEntity() instanceof EntityHuman && ((EntityHuman) damagesource.getEntity()).getAbilities().instabuild;
+                this.setDamage(this.getDamage() + amount * 10.0F);
+                this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
+                boolean flag = source.getEntity() instanceof Player && ((Player) source.getEntity()).getAbilities().instabuild;
 
-                if ((flag || this.getDamage() <= 40.0F) && !this.shouldSourceDestroy(damagesource)) {
+                if ((flag || this.getDamage() <= 40.0F) && !this.shouldSourceDestroy(source)) {
                     if (flag) {
                         // CraftBukkit start
                         VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, attacker);
@@ -79,7 +79,7 @@ public abstract class VehicleEntity extends Entity {
                         return true;
                     }
                     // CraftBukkit end
-                    this.destroy(damagesource);
+                    this.destroy(source);
                 }
 
                 return true;
@@ -89,14 +89,14 @@ public abstract class VehicleEntity extends Entity {
         }
     }
 
-    boolean shouldSourceDestroy(DamageSource damagesource) {
+    boolean shouldSourceDestroy(DamageSource source) {
         return false;
     }
 
-    public void destroy(Item item) {
+    public void destroy(Item selfAsItem) {
         this.kill();
         if (this.level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {
-            ItemStack itemstack = new ItemStack(item);
+            ItemStack itemstack = new ItemStack(selfAsItem);
 
             itemstack.set(DataComponents.CUSTOM_NAME, this.getCustomName());
             this.spawnAtLocation(itemstack);
@@ -104,22 +104,22 @@ public abstract class VehicleEntity extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(DataWatcher.a datawatcher_a) {
-        datawatcher_a.define(VehicleEntity.DATA_ID_HURT, 0);
-        datawatcher_a.define(VehicleEntity.DATA_ID_HURTDIR, 1);
-        datawatcher_a.define(VehicleEntity.DATA_ID_DAMAGE, 0.0F);
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(VehicleEntity.DATA_ID_HURT, 0);
+        builder.define(VehicleEntity.DATA_ID_HURTDIR, 1);
+        builder.define(VehicleEntity.DATA_ID_DAMAGE, 0.0F);
     }
 
-    public void setHurtTime(int i) {
-        this.entityData.set(VehicleEntity.DATA_ID_HURT, i);
+    public void setHurtTime(int damageWobbleTicks) {
+        this.entityData.set(VehicleEntity.DATA_ID_HURT, damageWobbleTicks);
     }
 
-    public void setHurtDir(int i) {
-        this.entityData.set(VehicleEntity.DATA_ID_HURTDIR, i);
+    public void setHurtDir(int damageWobbleSide) {
+        this.entityData.set(VehicleEntity.DATA_ID_HURTDIR, damageWobbleSide);
     }
 
-    public void setDamage(float f) {
-        this.entityData.set(VehicleEntity.DATA_ID_DAMAGE, f);
+    public void setDamage(float damageWobbleStrength) {
+        this.entityData.set(VehicleEntity.DATA_ID_DAMAGE, damageWobbleStrength);
     }
 
     public float getDamage() {
@@ -134,7 +134,7 @@ public abstract class VehicleEntity extends Entity {
         return (Integer) this.entityData.get(VehicleEntity.DATA_ID_HURTDIR);
     }
 
-    protected void destroy(DamageSource damagesource) {
+    protected void destroy(DamageSource source) {
         this.destroy(this.getDropItem());
     }
 

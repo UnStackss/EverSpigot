@@ -4,73 +4,73 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.level.ChunkTaskQueueSorter;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ChunkTaskPriorityQueueSorter;
 import net.minecraft.server.level.GenerationChunkHolder;
-import net.minecraft.server.level.LightEngineThreaded;
-import net.minecraft.server.level.RegionLimitedWorldAccess;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ThreadedLevelLightEngine;
+import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.util.StaticCache2D;
-import net.minecraft.util.thread.Mailbox;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.level.ChunkCoordIntPair;
-import net.minecraft.world.level.chunk.Chunk;
-import net.minecraft.world.level.chunk.IChunkAccess;
+import net.minecraft.util.thread.ProcessorHandle;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ImposterProtoChunk;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ProtoChunk;
-import net.minecraft.world.level.chunk.ProtoChunkExtension;
 import net.minecraft.world.level.levelgen.BelowZeroRetrogen;
-import net.minecraft.world.level.levelgen.HeightMap;
-import net.minecraft.world.level.levelgen.WorldGenStage;
+import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.blending.Blender;
 
 public class ChunkStatusTasks {
 
     public ChunkStatusTasks() {}
 
-    private static boolean isLighted(IChunkAccess ichunkaccess) {
-        return ichunkaccess.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && ichunkaccess.isLightCorrect();
+    private static boolean isLighted(ChunkAccess chunk) {
+        return chunk.getPersistedStatus().isOrAfter(ChunkStatus.LIGHT) && chunk.isLightCorrect();
     }
 
-    static CompletableFuture<IChunkAccess> passThrough(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        return CompletableFuture.completedFuture(ichunkaccess);
+    static CompletableFuture<ChunkAccess> passThrough(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> generateStructureStarts(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
+    static CompletableFuture<ChunkAccess> generateStructureStarts(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
 
         if (worldserver.serverLevelData.worldGenOptions().generateStructures()) { // CraftBukkit
-            worldgencontext.generator().createStructures(worldserver.registryAccess(), worldserver.getChunkSource().getGeneratorState(), worldserver.structureManager(), ichunkaccess, worldgencontext.structureManager());
+            context.generator().createStructures(worldserver.registryAccess(), worldserver.getChunkSource().getGeneratorState(), worldserver.structureManager(), chunk, context.structureManager());
         }
 
-        worldserver.onStructureStartsAvailable(ichunkaccess);
-        return CompletableFuture.completedFuture(ichunkaccess);
+        worldserver.onStructureStartsAvailable(chunk);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> loadStructureStarts(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        worldgencontext.level().onStructureStartsAvailable(ichunkaccess);
-        return CompletableFuture.completedFuture(ichunkaccess);
+    static CompletableFuture<ChunkAccess> loadStructureStarts(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        context.level().onStructureStartsAvailable(chunk);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> generateStructureReferences(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
-        RegionLimitedWorldAccess regionlimitedworldaccess = new RegionLimitedWorldAccess(worldserver, staticcache2d, chunkstep, ichunkaccess);
+    static CompletableFuture<ChunkAccess> generateStructureReferences(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
+        WorldGenRegion regionlimitedworldaccess = new WorldGenRegion(worldserver, chunks, step, chunk);
 
-        worldgencontext.generator().createReferences(regionlimitedworldaccess, worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), ichunkaccess);
-        return CompletableFuture.completedFuture(ichunkaccess);
+        context.generator().createReferences(regionlimitedworldaccess, worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), chunk);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> generateBiomes(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
-        RegionLimitedWorldAccess regionlimitedworldaccess = new RegionLimitedWorldAccess(worldserver, staticcache2d, chunkstep, ichunkaccess);
+    static CompletableFuture<ChunkAccess> generateBiomes(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
+        WorldGenRegion regionlimitedworldaccess = new WorldGenRegion(worldserver, chunks, step, chunk);
 
-        return worldgencontext.generator().createBiomes(worldserver.getChunkSource().randomState(), Blender.of(regionlimitedworldaccess), worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), ichunkaccess);
+        return context.generator().createBiomes(worldserver.getChunkSource().randomState(), Blender.of(regionlimitedworldaccess), worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), chunk);
     }
 
-    static CompletableFuture<IChunkAccess> generateNoise(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
-        RegionLimitedWorldAccess regionlimitedworldaccess = new RegionLimitedWorldAccess(worldserver, staticcache2d, chunkstep, ichunkaccess);
+    static CompletableFuture<ChunkAccess> generateNoise(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
+        WorldGenRegion regionlimitedworldaccess = new WorldGenRegion(worldserver, chunks, step, chunk);
 
-        return worldgencontext.generator().fillFromNoise(Blender.of(regionlimitedworldaccess), worldserver.getChunkSource().randomState(), worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), ichunkaccess).thenApply((ichunkaccess1) -> {
+        return context.generator().fillFromNoise(Blender.of(regionlimitedworldaccess), worldserver.getChunkSource().randomState(), worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), chunk).thenApply((ichunkaccess1) -> {
             if (ichunkaccess1 instanceof ProtoChunk protochunk) {
                 BelowZeroRetrogen belowzeroretrogen = protochunk.getBelowZeroRetrogen();
 
@@ -86,106 +86,106 @@ public class ChunkStatusTasks {
         });
     }
 
-    static CompletableFuture<IChunkAccess> generateSurface(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
-        RegionLimitedWorldAccess regionlimitedworldaccess = new RegionLimitedWorldAccess(worldserver, staticcache2d, chunkstep, ichunkaccess);
+    static CompletableFuture<ChunkAccess> generateSurface(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
+        WorldGenRegion regionlimitedworldaccess = new WorldGenRegion(worldserver, chunks, step, chunk);
 
-        worldgencontext.generator().buildSurface(regionlimitedworldaccess, worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), worldserver.getChunkSource().randomState(), ichunkaccess);
-        return CompletableFuture.completedFuture(ichunkaccess);
+        context.generator().buildSurface(regionlimitedworldaccess, worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), worldserver.getChunkSource().randomState(), chunk);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> generateCarvers(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
-        RegionLimitedWorldAccess regionlimitedworldaccess = new RegionLimitedWorldAccess(worldserver, staticcache2d, chunkstep, ichunkaccess);
+    static CompletableFuture<ChunkAccess> generateCarvers(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
+        WorldGenRegion regionlimitedworldaccess = new WorldGenRegion(worldserver, chunks, step, chunk);
 
-        if (ichunkaccess instanceof ProtoChunk protochunk) {
+        if (chunk instanceof ProtoChunk protochunk) {
             Blender.addAroundOldChunksCarvingMaskFilter(regionlimitedworldaccess, protochunk);
         }
 
-        worldgencontext.generator().applyCarvers(regionlimitedworldaccess, worldserver.getSeed(), worldserver.getChunkSource().randomState(), worldserver.getBiomeManager(), worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), ichunkaccess, WorldGenStage.Features.AIR);
-        return CompletableFuture.completedFuture(ichunkaccess);
+        context.generator().applyCarvers(regionlimitedworldaccess, worldserver.getSeed(), worldserver.getChunkSource().randomState(), worldserver.getBiomeManager(), worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess), chunk, GenerationStep.Carving.AIR);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> generateFeatures(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        WorldServer worldserver = worldgencontext.level();
+    static CompletableFuture<ChunkAccess> generateFeatures(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ServerLevel worldserver = context.level();
 
-        HeightMap.primeHeightmaps(ichunkaccess, EnumSet.of(HeightMap.Type.MOTION_BLOCKING, HeightMap.Type.MOTION_BLOCKING_NO_LEAVES, HeightMap.Type.OCEAN_FLOOR, HeightMap.Type.WORLD_SURFACE));
-        RegionLimitedWorldAccess regionlimitedworldaccess = new RegionLimitedWorldAccess(worldserver, staticcache2d, chunkstep, ichunkaccess);
+        Heightmap.primeHeightmaps(chunk, EnumSet.of(Heightmap.Types.MOTION_BLOCKING, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Heightmap.Types.OCEAN_FLOOR, Heightmap.Types.WORLD_SURFACE));
+        WorldGenRegion regionlimitedworldaccess = new WorldGenRegion(worldserver, chunks, step, chunk);
 
-        worldgencontext.generator().applyBiomeDecoration(regionlimitedworldaccess, ichunkaccess, worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess));
-        Blender.generateBorderTicks(regionlimitedworldaccess, ichunkaccess);
-        return CompletableFuture.completedFuture(ichunkaccess);
+        context.generator().applyBiomeDecoration(regionlimitedworldaccess, chunk, worldserver.structureManager().forWorldGenRegion(regionlimitedworldaccess));
+        Blender.generateBorderTicks(regionlimitedworldaccess, chunk);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> initializeLight(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        LightEngineThreaded lightenginethreaded = worldgencontext.lightEngine();
+    static CompletableFuture<ChunkAccess> initializeLight(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ThreadedLevelLightEngine lightenginethreaded = context.lightEngine();
 
-        ichunkaccess.initializeLightSources();
-        ((ProtoChunk) ichunkaccess).setLightEngine(lightenginethreaded);
-        boolean flag = isLighted(ichunkaccess);
+        chunk.initializeLightSources();
+        ((ProtoChunk) chunk).setLightEngine(lightenginethreaded);
+        boolean flag = ChunkStatusTasks.isLighted(chunk);
 
-        return lightenginethreaded.initializeLight(ichunkaccess, flag);
+        return lightenginethreaded.initializeLight(chunk, flag);
     }
 
-    static CompletableFuture<IChunkAccess> light(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        boolean flag = isLighted(ichunkaccess);
+    static CompletableFuture<ChunkAccess> light(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        boolean flag = ChunkStatusTasks.isLighted(chunk);
 
-        return worldgencontext.lightEngine().lightChunk(ichunkaccess, flag);
+        return context.lightEngine().lightChunk(chunk, flag);
     }
 
-    static CompletableFuture<IChunkAccess> generateSpawn(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        if (!ichunkaccess.isUpgrading()) {
-            worldgencontext.generator().spawnOriginalMobs(new RegionLimitedWorldAccess(worldgencontext.level(), staticcache2d, chunkstep, ichunkaccess));
+    static CompletableFuture<ChunkAccess> generateSpawn(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        if (!chunk.isUpgrading()) {
+            context.generator().spawnOriginalMobs(new WorldGenRegion(context.level(), chunks, step, chunk));
         }
 
-        return CompletableFuture.completedFuture(ichunkaccess);
+        return CompletableFuture.completedFuture(chunk);
     }
 
-    static CompletableFuture<IChunkAccess> full(WorldGenContext worldgencontext, ChunkStep chunkstep, StaticCache2D<GenerationChunkHolder> staticcache2d, IChunkAccess ichunkaccess) {
-        ChunkCoordIntPair chunkcoordintpair = ichunkaccess.getPos();
-        GenerationChunkHolder generationchunkholder = (GenerationChunkHolder) staticcache2d.get(chunkcoordintpair.x, chunkcoordintpair.z);
+    static CompletableFuture<ChunkAccess> full(WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk) {
+        ChunkPos chunkcoordintpair = chunk.getPos();
+        GenerationChunkHolder generationchunkholder = (GenerationChunkHolder) chunks.get(chunkcoordintpair.x, chunkcoordintpair.z);
 
         return CompletableFuture.supplyAsync(() -> {
-            ProtoChunk protochunk = (ProtoChunk) ichunkaccess;
-            WorldServer worldserver = worldgencontext.level();
-            Chunk chunk;
+            ProtoChunk protochunk = (ProtoChunk) chunk;
+            ServerLevel worldserver = context.level();
+            LevelChunk chunk1;
 
-            if (protochunk instanceof ProtoChunkExtension) {
-                chunk = ((ProtoChunkExtension) protochunk).getWrapped();
+            if (protochunk instanceof ImposterProtoChunk) {
+                chunk1 = ((ImposterProtoChunk) protochunk).getWrapped();
             } else {
-                chunk = new Chunk(worldserver, protochunk, (chunk1) -> {
-                    postLoadProtoChunk(worldserver, protochunk.getEntities());
+                chunk1 = new LevelChunk(worldserver, protochunk, (chunk1) -> {
+                    ChunkStatusTasks.postLoadProtoChunk(worldserver, protochunk.getEntities());
                 });
-                generationchunkholder.replaceProtoChunk(new ProtoChunkExtension(chunk, false));
+                generationchunkholder.replaceProtoChunk(new ImposterProtoChunk(chunk1, false));
             }
 
             Objects.requireNonNull(generationchunkholder);
-            chunk.setFullStatus(generationchunkholder::getFullStatus);
-            chunk.runPostLoad();
-            chunk.setLoaded(true);
-            chunk.registerAllBlockEntitiesAfterLevelLoad();
-            chunk.registerTickContainerInLevel(worldserver);
-            return chunk;
+            chunk1.setFullStatus(generationchunkholder::getFullStatus);
+            chunk1.runPostLoad();
+            chunk1.setLoaded(true);
+            chunk1.registerAllBlockEntitiesAfterLevelLoad();
+            chunk1.registerTickContainerInLevel(worldserver);
+            return chunk1;
         }, (runnable) -> {
-            Mailbox mailbox = worldgencontext.mainThreadMailBox();
+            ProcessorHandle mailbox = context.mainThreadMailBox();
             long i = chunkcoordintpair.toLong();
 
             Objects.requireNonNull(generationchunkholder);
-            mailbox.tell(ChunkTaskQueueSorter.message(runnable, i, generationchunkholder::getTicketLevel));
+            mailbox.tell(ChunkTaskPriorityQueueSorter.message(runnable, i, generationchunkholder::getTicketLevel));
         });
     }
 
-    private static void postLoadProtoChunk(WorldServer worldserver, List<NBTTagCompound> list) {
-        if (!list.isEmpty()) {
+    private static void postLoadProtoChunk(ServerLevel world, List<CompoundTag> entities) {
+        if (!entities.isEmpty()) {
             // CraftBukkit start - these are spawned serialized (DefinedStructure) and we don't call an add event below at the moment due to ordering complexities
-            worldserver.addWorldGenChunkEntities(EntityTypes.loadEntitiesRecursive(list, worldserver).filter((entity) -> {
+            world.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(entities, world).filter((entity) -> {
                 boolean needsRemoval = false;
-                net.minecraft.server.dedicated.DedicatedServer server = worldserver.getCraftServer().getServer();
-                if (!server.areNpcsEnabled() && entity instanceof net.minecraft.world.entity.npc.NPC) {
+                net.minecraft.server.dedicated.DedicatedServer server = world.getCraftServer().getServer();
+                if (!server.areNpcsEnabled() && entity instanceof net.minecraft.world.entity.npc.Npc) {
                     entity.discard(null); // CraftBukkit - add Bukkit remove cause
                     needsRemoval = true;
                 }
-                if (!server.isSpawningAnimals() && (entity instanceof net.minecraft.world.entity.animal.EntityAnimal || entity instanceof net.minecraft.world.entity.animal.EntityWaterAnimal)) {
+                if (!server.isSpawningAnimals() && (entity instanceof net.minecraft.world.entity.animal.Animal || entity instanceof net.minecraft.world.entity.animal.WaterAnimal)) {
                     entity.discard(null); // CraftBukkit - add Bukkit remove cause
                     needsRemoval = true;
                 }

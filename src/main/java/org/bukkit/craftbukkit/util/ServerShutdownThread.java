@@ -13,10 +13,10 @@ public class ServerShutdownThread extends Thread {
     public void run() {
         try {
             org.spigotmc.AsyncCatcher.enabled = false; // Spigot
-            server.close();
+            this.server.close();
         } finally {
             try {
-                server.reader.getTerminal().restore();
+                this.server.reader.getTerminal().restore();
             } catch (Exception e) {
             }
         }

@@ -3,32 +3,32 @@ package net.minecraft.world.level.block;
 import com.mojang.serialization.MapCodec;
 import java.util.Collection;
 import java.util.Iterator;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffects;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.tags.TagsBlock;
-import net.minecraft.util.MathHelper;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.context.BlockActionContext;
-import net.minecraft.world.level.GeneratorAccess;
-import net.minecraft.world.level.IBlockAccess;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.level.block.state.BlockStateList;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockProperties;
-import net.minecraft.world.level.block.state.properties.BlockStateBoolean;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidType;
-import net.minecraft.world.level.material.FluidTypes;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 
-public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IBlockWaterlogged {
+public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, SimpleWaterloggedBlock {
 
     public static final MapCodec<SculkVeinBlock> CODEC = simpleCodec(SculkVeinBlock::new);
-    private static final BlockStateBoolean WATERLOGGED = BlockProperties.WATERLOGGED;
+    private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     private final MultifaceSpreader veinSpreader;
     private final MultifaceSpreader sameSpaceSpreader;
 
@@ -37,11 +37,11 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IB
         return SculkVeinBlock.CODEC;
     }
 
-    public SculkVeinBlock(BlockBase.Info blockbase_info) {
-        super(blockbase_info);
-        this.veinSpreader = new MultifaceSpreader(new SculkVeinBlock.a(this, MultifaceSpreader.DEFAULT_SPREAD_ORDER));
-        this.sameSpaceSpreader = new MultifaceSpreader(new SculkVeinBlock.a(this, new MultifaceSpreader.e[]{MultifaceSpreader.e.SAME_POSITION}));
-        this.registerDefaultState((IBlockData) this.defaultBlockState().setValue(SculkVeinBlock.WATERLOGGED, false));
+    public SculkVeinBlock(BlockBehaviour.Properties settings) {
+        super(settings);
+        this.veinSpreader = new MultifaceSpreader(new SculkVeinBlock.SculkVeinSpreaderConfig(this, MultifaceSpreader.DEFAULT_SPREAD_ORDER));
+        this.sameSpaceSpreader = new MultifaceSpreader(new SculkVeinBlock.SculkVeinSpreaderConfig(this, new MultifaceSpreader.SpreadType[]{MultifaceSpreader.SpreadType.SAME_POSITION}));
+        this.registerDefaultState((BlockState) this.defaultBlockState().setValue(SculkVeinBlock.WATERLOGGED, false));
     }
 
     @Override
@@ -53,17 +53,17 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IB
         return this.sameSpaceSpreader;
     }
 
-    public static boolean regrow(GeneratorAccess generatoraccess, BlockPosition blockposition, IBlockData iblockdata, Collection<EnumDirection> collection) {
+    public static boolean regrow(LevelAccessor world, BlockPos pos, BlockState state, Collection<Direction> directions) {
         boolean flag = false;
-        IBlockData iblockdata1 = Blocks.SCULK_VEIN.defaultBlockState();
-        Iterator iterator = collection.iterator();
+        BlockState iblockdata1 = Blocks.SCULK_VEIN.defaultBlockState();
+        Iterator iterator = directions.iterator();
 
         while (iterator.hasNext()) {
-            EnumDirection enumdirection = (EnumDirection) iterator.next();
-            BlockPosition blockposition1 = blockposition.relative(enumdirection);
+            Direction enumdirection = (Direction) iterator.next();
+            BlockPos blockposition1 = pos.relative(enumdirection);
 
-            if (canAttachTo(generatoraccess, enumdirection, blockposition1, generatoraccess.getBlockState(blockposition1))) {
-                iblockdata1 = (IBlockData) iblockdata1.setValue(getFaceProperty(enumdirection), true);
+            if (canAttachTo(world, enumdirection, blockposition1, world.getBlockState(blockposition1))) {
+                iblockdata1 = (BlockState) iblockdata1.setValue(getFaceProperty(enumdirection), true);
                 flag = true;
             }
         }
@@ -71,61 +71,61 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IB
         if (!flag) {
             return false;
         } else {
-            if (!iblockdata.getFluidState().isEmpty()) {
-                iblockdata1 = (IBlockData) iblockdata1.setValue(SculkVeinBlock.WATERLOGGED, true);
+            if (!state.getFluidState().isEmpty()) {
+                iblockdata1 = (BlockState) iblockdata1.setValue(SculkVeinBlock.WATERLOGGED, true);
             }
 
-            generatoraccess.setBlock(blockposition, iblockdata1, 3);
+            world.setBlock(pos, iblockdata1, 3);
             return true;
         }
     }
 
     @Override
-    public void onDischarged(GeneratorAccess generatoraccess, IBlockData iblockdata, BlockPosition blockposition, RandomSource randomsource) {
-        if (iblockdata.is((Block) this)) {
-            EnumDirection[] aenumdirection = SculkVeinBlock.DIRECTIONS;
+    public void onDischarged(LevelAccessor world, BlockState state, BlockPos pos, RandomSource random) {
+        if (state.is((Block) this)) {
+            Direction[] aenumdirection = SculkVeinBlock.DIRECTIONS;
             int i = aenumdirection.length;
 
             for (int j = 0; j < i; ++j) {
-                EnumDirection enumdirection = aenumdirection[j];
-                BlockStateBoolean blockstateboolean = getFaceProperty(enumdirection);
+                Direction enumdirection = aenumdirection[j];
+                BooleanProperty blockstateboolean = getFaceProperty(enumdirection);
 
-                if ((Boolean) iblockdata.getValue(blockstateboolean) && generatoraccess.getBlockState(blockposition.relative(enumdirection)).is(Blocks.SCULK)) {
-                    iblockdata = (IBlockData) iblockdata.setValue(blockstateboolean, false);
+                if ((Boolean) state.getValue(blockstateboolean) && world.getBlockState(pos.relative(enumdirection)).is(Blocks.SCULK)) {
+                    state = (BlockState) state.setValue(blockstateboolean, false);
                 }
             }
 
-            if (!hasAnyFace(iblockdata)) {
-                Fluid fluid = generatoraccess.getFluidState(blockposition);
+            if (!hasAnyFace(state)) {
+                FluidState fluid = world.getFluidState(pos);
 
-                iblockdata = (fluid.isEmpty() ? Blocks.AIR : Blocks.WATER).defaultBlockState();
+                state = (fluid.isEmpty() ? Blocks.AIR : Blocks.WATER).defaultBlockState();
             }
 
-            generatoraccess.setBlock(blockposition, iblockdata, 3);
-            SculkBehaviour.super.onDischarged(generatoraccess, iblockdata, blockposition, randomsource);
+            world.setBlock(pos, state, 3);
+            SculkBehaviour.super.onDischarged(world, state, pos, random);
         }
     }
 
     @Override
-    public int attemptUseCharge(SculkSpreader.a sculkspreader_a, GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource, SculkSpreader sculkspreader, boolean flag) {
+    public int attemptUseCharge(SculkSpreader.ChargeCursor cursor, LevelAccessor world, BlockPos catalystPos, RandomSource random, SculkSpreader spreadManager, boolean shouldConvertToBlock) {
         // CraftBukkit - add source block
-        return flag && this.attemptPlaceSculk(sculkspreader, generatoraccess, sculkspreader_a.getPos(), randomsource, blockposition) ? sculkspreader_a.getCharge() - 1 : (randomsource.nextInt(sculkspreader.chargeDecayRate()) == 0 ? MathHelper.floor((float) sculkspreader_a.getCharge() * 0.5F) : sculkspreader_a.getCharge());
+        return shouldConvertToBlock && this.attemptPlaceSculk(spreadManager, world, cursor.getPos(), random, catalystPos) ? cursor.getCharge() - 1 : (random.nextInt(spreadManager.chargeDecayRate()) == 0 ? Mth.floor((float) cursor.getCharge() * 0.5F) : cursor.getCharge());
     }
 
-    private boolean attemptPlaceSculk(SculkSpreader sculkspreader, GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource, BlockPosition sourceBlock) { // CraftBukkit
-        IBlockData iblockdata = generatoraccess.getBlockState(blockposition);
+    private boolean attemptPlaceSculk(SculkSpreader sculkspreader, LevelAccessor generatoraccess, BlockPos blockposition, RandomSource randomsource, BlockPos sourceBlock) { // CraftBukkit
+        BlockState iblockdata = generatoraccess.getBlockState(blockposition);
         TagKey<Block> tagkey = sculkspreader.replaceableBlocks();
-        Iterator iterator = EnumDirection.allShuffled(randomsource).iterator();
+        Iterator iterator = Direction.allShuffled(randomsource).iterator();
 
         while (iterator.hasNext()) {
-            EnumDirection enumdirection = (EnumDirection) iterator.next();
+            Direction enumdirection = (Direction) iterator.next();
 
             if (hasFace(iblockdata, enumdirection)) {
-                BlockPosition blockposition1 = blockposition.relative(enumdirection);
-                IBlockData iblockdata1 = generatoraccess.getBlockState(blockposition1);
+                BlockPos blockposition1 = blockposition.relative(enumdirection);
+                BlockState iblockdata1 = generatoraccess.getBlockState(blockposition1);
 
                 if (iblockdata1.is(tagkey)) {
-                    IBlockData iblockdata2 = Blocks.SCULK.defaultBlockState();
+                    BlockState iblockdata2 = Blocks.SCULK.defaultBlockState();
 
                     // CraftBukkit start - Call BlockSpreadEvent
                     if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(generatoraccess, sourceBlock, blockposition1, iblockdata2, 3)) {
@@ -133,18 +133,18 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IB
                     }
                     // CraftBukkit end
                     Block.pushEntitiesUp(iblockdata1, iblockdata2, generatoraccess, blockposition1);
-                    generatoraccess.playSound((EntityHuman) null, blockposition1, SoundEffects.SCULK_BLOCK_SPREAD, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                    generatoraccess.playSound((Player) null, blockposition1, SoundEvents.SCULK_BLOCK_SPREAD, SoundSource.BLOCKS, 1.0F, 1.0F);
                     this.veinSpreader.spreadAll(iblockdata2, generatoraccess, blockposition1, sculkspreader.isWorldGeneration());
-                    EnumDirection enumdirection1 = enumdirection.getOpposite();
-                    EnumDirection[] aenumdirection = SculkVeinBlock.DIRECTIONS;
+                    Direction enumdirection1 = enumdirection.getOpposite();
+                    Direction[] aenumdirection = SculkVeinBlock.DIRECTIONS;
                     int i = aenumdirection.length;
 
                     for (int j = 0; j < i; ++j) {
-                        EnumDirection enumdirection2 = aenumdirection[j];
+                        Direction enumdirection2 = aenumdirection[j];
 
                         if (enumdirection2 != enumdirection1) {
-                            BlockPosition blockposition2 = blockposition1.relative(enumdirection2);
-                            IBlockData iblockdata3 = generatoraccess.getBlockState(blockposition2);
+                            BlockPos blockposition2 = blockposition1.relative(enumdirection2);
+                            BlockState iblockdata3 = generatoraccess.getBlockState(blockposition2);
 
                             if (iblockdata3.is((Block) this)) {
                                 this.onDischarged(generatoraccess, iblockdata3, blockposition2, randomsource);
@@ -160,17 +160,17 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IB
         return false;
     }
 
-    public static boolean hasSubstrateAccess(GeneratorAccess generatoraccess, IBlockData iblockdata, BlockPosition blockposition) {
-        if (!iblockdata.is(Blocks.SCULK_VEIN)) {
+    public static boolean hasSubstrateAccess(LevelAccessor world, BlockState state, BlockPos pos) {
+        if (!state.is(Blocks.SCULK_VEIN)) {
             return false;
         } else {
-            EnumDirection[] aenumdirection = SculkVeinBlock.DIRECTIONS;
+            Direction[] aenumdirection = SculkVeinBlock.DIRECTIONS;
             int i = aenumdirection.length;
 
             for (int j = 0; j < i; ++j) {
-                EnumDirection enumdirection = aenumdirection[j];
+                Direction enumdirection = aenumdirection[j];
 
-                if (hasFace(iblockdata, enumdirection) && generatoraccess.getBlockState(blockposition.relative(enumdirection)).is(TagsBlock.SCULK_REPLACEABLE)) {
+                if (hasFace(state, enumdirection) && world.getBlockState(pos.relative(enumdirection)).is(BlockTags.SCULK_REPLACEABLE)) {
                     return true;
                 }
             }
@@ -180,68 +180,68 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, IB
     }
 
     @Override
-    protected IBlockData updateShape(IBlockData iblockdata, EnumDirection enumdirection, IBlockData iblockdata1, GeneratorAccess generatoraccess, BlockPosition blockposition, BlockPosition blockposition1) {
-        if ((Boolean) iblockdata.getValue(SculkVeinBlock.WATERLOGGED)) {
-            generatoraccess.scheduleTick(blockposition, (FluidType) FluidTypes.WATER, FluidTypes.WATER.getTickDelay(generatoraccess));
+    protected BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+        if ((Boolean) state.getValue(SculkVeinBlock.WATERLOGGED)) {
+            world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
 
-        return super.updateShape(iblockdata, enumdirection, iblockdata1, generatoraccess, blockposition, blockposition1);
+        return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
     }
 
     @Override
-    protected void createBlockStateDefinition(BlockStateList.a<Block, IBlockData> blockstatelist_a) {
-        super.createBlockStateDefinition(blockstatelist_a);
-        blockstatelist_a.add(SculkVeinBlock.WATERLOGGED);
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(SculkVeinBlock.WATERLOGGED);
     }
 
     @Override
-    protected boolean canBeReplaced(IBlockData iblockdata, BlockActionContext blockactioncontext) {
-        return !blockactioncontext.getItemInHand().is(Items.SCULK_VEIN) || super.canBeReplaced(iblockdata, blockactioncontext);
+    protected boolean canBeReplaced(BlockState state, BlockPlaceContext context) {
+        return !context.getItemInHand().is(Items.SCULK_VEIN) || super.canBeReplaced(state, context);
     }
 
     @Override
-    protected Fluid getFluidState(IBlockData iblockdata) {
-        return (Boolean) iblockdata.getValue(SculkVeinBlock.WATERLOGGED) ? FluidTypes.WATER.getSource(false) : super.getFluidState(iblockdata);
+    protected FluidState getFluidState(BlockState state) {
+        return (Boolean) state.getValue(SculkVeinBlock.WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
-    private class a extends MultifaceSpreader.a {
+    private class SculkVeinSpreaderConfig extends MultifaceSpreader.DefaultSpreaderConfig {
 
-        private final MultifaceSpreader.e[] spreadTypes;
+        private final MultifaceSpreader.SpreadType[] spreadTypes;
 
-        public a(final SculkVeinBlock sculkveinblock, final MultifaceSpreader.e... amultifacespreader_e) {
-            super(sculkveinblock);
+        public SculkVeinSpreaderConfig(final SculkVeinBlock growTypes, final MultifaceSpreader.SpreadType... amultifacespreader_e) {
+            super(growTypes);
             this.spreadTypes = amultifacespreader_e;
         }
 
         @Override
-        public boolean stateCanBeReplaced(IBlockAccess iblockaccess, BlockPosition blockposition, BlockPosition blockposition1, EnumDirection enumdirection, IBlockData iblockdata) {
-            IBlockData iblockdata1 = iblockaccess.getBlockState(blockposition1.relative(enumdirection));
+        public boolean stateCanBeReplaced(BlockGetter world, BlockPos pos, BlockPos growPos, Direction direction, BlockState state) {
+            BlockState iblockdata1 = world.getBlockState(growPos.relative(direction));
 
             if (!iblockdata1.is(Blocks.SCULK) && !iblockdata1.is(Blocks.SCULK_CATALYST) && !iblockdata1.is(Blocks.MOVING_PISTON)) {
-                if (blockposition.distManhattan(blockposition1) == 2) {
-                    BlockPosition blockposition2 = blockposition.relative(enumdirection.getOpposite());
+                if (pos.distManhattan(growPos) == 2) {
+                    BlockPos blockposition2 = pos.relative(direction.getOpposite());
 
-                    if (iblockaccess.getBlockState(blockposition2).isFaceSturdy(iblockaccess, blockposition2, enumdirection)) {
+                    if (world.getBlockState(blockposition2).isFaceSturdy(world, blockposition2, direction)) {
                         return false;
                     }
                 }
 
-                Fluid fluid = iblockdata.getFluidState();
+                FluidState fluid = state.getFluidState();
 
-                return !fluid.isEmpty() && !fluid.is((FluidType) FluidTypes.WATER) ? false : (iblockdata.is(TagsBlock.FIRE) ? false : iblockdata.canBeReplaced() || super.stateCanBeReplaced(iblockaccess, blockposition, blockposition1, enumdirection, iblockdata));
+                return !fluid.isEmpty() && !fluid.is((Fluid) Fluids.WATER) ? false : (state.is(BlockTags.FIRE) ? false : state.canBeReplaced() || super.stateCanBeReplaced(world, pos, growPos, direction, state));
             } else {
                 return false;
             }
         }
 
         @Override
-        public MultifaceSpreader.e[] getSpreadTypes() {
+        public MultifaceSpreader.SpreadType[] getSpreadTypes() {
             return this.spreadTypes;
         }
 
         @Override
-        public boolean isOtherBlockValidAsSource(IBlockData iblockdata) {
-            return !iblockdata.is(Blocks.SCULK_VEIN);
+        public boolean isOtherBlockValidAsSource(BlockState state) {
+            return !state.is(Blocks.SCULK_VEIN);
         }
     }
 }

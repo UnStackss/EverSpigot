@@ -1,13 +1,13 @@
 package org.spigotmc;
 
-import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityExperienceOrb;
-import net.minecraft.world.entity.decoration.EntityItemFrame;
-import net.minecraft.world.entity.decoration.EntityPainting;
-import net.minecraft.world.entity.item.EntityItem;
-import net.minecraft.world.entity.monster.EntityGhast;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.decoration.Painting;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Ghast;
 
 public class TrackingRange
 {
@@ -27,13 +27,13 @@ public class TrackingRange
             return defaultRange;
         }
         SpigotWorldConfig config = entity.level().spigotConfig;
-        if ( entity instanceof EntityPlayer )
+        if ( entity instanceof ServerPlayer )
         {
             return config.playerTrackingRange;
         } else if ( entity.activationType == ActivationRange.ActivationType.MONSTER || entity.activationType == ActivationRange.ActivationType.RAIDER )
         {
             return config.monsterTrackingRange;
-        } else if ( entity instanceof EntityGhast )
+        } else if ( entity instanceof Ghast )
         {
             if ( config.monsterTrackingRange > config.monsterActivationRange )
             {
@@ -45,7 +45,7 @@ public class TrackingRange
         } else if ( entity.activationType == ActivationRange.ActivationType.ANIMAL )
         {
             return config.animalTrackingRange;
-        } else if ( entity instanceof EntityItemFrame || entity instanceof EntityPainting || entity instanceof EntityItem || entity instanceof EntityExperienceOrb )
+        } else if ( entity instanceof ItemFrame || entity instanceof Painting || entity instanceof ItemEntity || entity instanceof ExperienceOrb )
         {
             return config.miscTrackingRange;
         } else if ( entity instanceof Display )

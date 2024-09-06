@@ -2,12 +2,12 @@ package net.minecraft.world.level.block;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.BlockBase;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class DropExperienceBlock extends Block {
 
@@ -23,19 +23,19 @@ public class DropExperienceBlock extends Block {
         return DropExperienceBlock.CODEC;
     }
 
-    public DropExperienceBlock(IntProvider intprovider, BlockBase.Info blockbase_info) {
-        super(blockbase_info);
-        this.xpRange = intprovider;
+    public DropExperienceBlock(IntProvider experienceDropped, BlockBehaviour.Properties settings) {
+        super(settings);
+        this.xpRange = experienceDropped;
     }
 
     @Override
-    protected void spawnAfterBreak(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
-        super.spawnAfterBreak(iblockdata, worldserver, blockposition, itemstack, flag);
+    protected void spawnAfterBreak(BlockState state, ServerLevel world, BlockPos pos, ItemStack tool, boolean dropExperience) {
+        super.spawnAfterBreak(state, world, pos, tool, dropExperience);
         // CraftBukkit start - Delegate to getExpDrop
     }
 
     @Override
-    public int getExpDrop(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, ItemStack itemstack, boolean flag) {
+    public int getExpDrop(BlockState iblockdata, ServerLevel worldserver, BlockPos blockposition, ItemStack itemstack, boolean flag) {
         if (flag) {
             return this.tryDropExperience(worldserver, blockposition, itemstack, this.xpRange);
         }

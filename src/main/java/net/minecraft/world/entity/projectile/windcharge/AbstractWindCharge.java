@@ -3,89 +3,88 @@ package net.minecraft.world.entity.projectile.windcharge;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.Nullable;
-import net.minecraft.core.BaseBlockPosition;
-import net.minecraft.core.particles.ParticleParam;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.tags.TagsBlock;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.projectile.EntityFireball;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.entity.projectile.ItemSupplier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentManager;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ExplosionDamageCalculator;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.SimpleExplosionDamageCalculator;
-import net.minecraft.world.level.World;
-import net.minecraft.world.phys.AxisAlignedBB;
-import net.minecraft.world.phys.MovingObjectPosition;
-import net.minecraft.world.phys.MovingObjectPositionBlock;
-import net.minecraft.world.phys.MovingObjectPositionEntity;
-import net.minecraft.world.phys.Vec3D;
-
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 // CraftBukkit start
 import org.bukkit.event.entity.EntityRemoveEvent;
 // CraftBukkit end
 
-public abstract class AbstractWindCharge extends EntityFireball implements ItemSupplier {
+public abstract class AbstractWindCharge extends AbstractHurtingProjectile implements ItemSupplier {
 
-    public static final ExplosionDamageCalculator EXPLOSION_DAMAGE_CALCULATOR = new SimpleExplosionDamageCalculator(true, false, Optional.empty(), BuiltInRegistries.BLOCK.getTag(TagsBlock.BLOCKS_WIND_CHARGE_EXPLOSIONS).map(Function.identity()));
+    public static final ExplosionDamageCalculator EXPLOSION_DAMAGE_CALCULATOR = new SimpleExplosionDamageCalculator(true, false, Optional.empty(), BuiltInRegistries.BLOCK.getTag(BlockTags.BLOCKS_WIND_CHARGE_EXPLOSIONS).map(Function.identity()));
     public static final double JUMP_SCALE = 0.25D;
 
-    public AbstractWindCharge(EntityTypes<? extends AbstractWindCharge> entitytypes, World world) {
-        super(entitytypes, world);
+    public AbstractWindCharge(EntityType<? extends AbstractWindCharge> type, Level world) {
+        super(type, world);
         this.accelerationPower = 0.0D;
     }
 
-    public AbstractWindCharge(EntityTypes<? extends AbstractWindCharge> entitytypes, World world, Entity entity, double d0, double d1, double d2) {
-        super(entitytypes, d0, d1, d2, world);
-        this.setOwner(entity);
+    public AbstractWindCharge(EntityType<? extends AbstractWindCharge> type, Level world, Entity owner, double x, double y, double z) {
+        super(type, x, y, z, world);
+        this.setOwner(owner);
         this.accelerationPower = 0.0D;
     }
 
-    AbstractWindCharge(EntityTypes<? extends AbstractWindCharge> entitytypes, double d0, double d1, double d2, Vec3D vec3d, World world) {
-        super(entitytypes, d0, d1, d2, vec3d, world);
+    AbstractWindCharge(EntityType<? extends AbstractWindCharge> type, double x, double y, double z, Vec3 velocity, Level world) {
+        super(type, x, y, z, velocity, world);
         this.accelerationPower = 0.0D;
     }
 
     @Override
-    protected AxisAlignedBB makeBoundingBox() {
+    protected AABB makeBoundingBox() {
         float f = this.getType().getDimensions().width() / 2.0F;
         float f1 = this.getType().getDimensions().height();
         float f2 = 0.15F;
 
-        return new AxisAlignedBB(this.position().x - (double) f, this.position().y - 0.15000000596046448D, this.position().z - (double) f, this.position().x + (double) f, this.position().y - 0.15000000596046448D + (double) f1, this.position().z + (double) f);
+        return new AABB(this.position().x - (double) f, this.position().y - 0.15000000596046448D, this.position().z - (double) f, this.position().x + (double) f, this.position().y - 0.15000000596046448D + (double) f1, this.position().z + (double) f);
     }
 
     @Override
-    public boolean canCollideWith(Entity entity) {
-        return entity instanceof AbstractWindCharge ? false : super.canCollideWith(entity);
+    public boolean canCollideWith(Entity other) {
+        return other instanceof AbstractWindCharge ? false : super.canCollideWith(other);
     }
 
     @Override
-    protected boolean canHitEntity(Entity entity) {
-        return entity instanceof AbstractWindCharge ? false : (entity.getType() == EntityTypes.END_CRYSTAL ? false : super.canHitEntity(entity));
+    public boolean canHitEntity(Entity entity) {
+        return entity instanceof AbstractWindCharge ? false : (entity.getType() == EntityType.END_CRYSTAL ? false : super.canHitEntity(entity));
     }
 
     @Override
-    protected void onHitEntity(MovingObjectPositionEntity movingobjectpositionentity) {
-        super.onHitEntity(movingobjectpositionentity);
+    protected void onHitEntity(EntityHitResult entityHitResult) {
+        super.onHitEntity(entityHitResult);
         if (!this.level().isClientSide) {
             Entity entity = this.getOwner();
-            EntityLiving entityliving;
+            LivingEntity entityliving;
 
-            if (entity instanceof EntityLiving) {
-                EntityLiving entityliving1 = (EntityLiving) entity;
+            if (entity instanceof LivingEntity) {
+                LivingEntity entityliving1 = (LivingEntity) entity;
 
                 entityliving = entityliving1;
             } else {
                 entityliving = null;
             }
 
-            EntityLiving entityliving2 = entityliving;
-            Entity entity1 = movingobjectpositionentity.getEntity();
+            LivingEntity entityliving2 = entityliving;
+            Entity entity1 = entityHitResult.getEntity();
 
             if (entityliving2 != null) {
                 entityliving2.setLastHurtMob(entity1);
@@ -93,10 +92,10 @@ public abstract class AbstractWindCharge extends EntityFireball implements ItemS
 
             DamageSource damagesource = this.damageSources().windCharge(this, entityliving2);
 
-            if (entity1.hurt(damagesource, 1.0F) && entity1 instanceof EntityLiving) {
-                EntityLiving entityliving3 = (EntityLiving) entity1;
+            if (entity1.hurt(damagesource, 1.0F) && entity1 instanceof LivingEntity) {
+                LivingEntity entityliving3 = (LivingEntity) entity1;
 
-                EnchantmentManager.doPostAttackEffects((WorldServer) this.level(), entityliving3, damagesource);
+                EnchantmentHelper.doPostAttackEffects((ServerLevel) this.level(), entityliving3, damagesource);
             }
 
             this.explode(this.position());
@@ -104,17 +103,17 @@ public abstract class AbstractWindCharge extends EntityFireball implements ItemS
     }
 
     @Override
-    public void push(double d0, double d1, double d2) {}
+    public void push(double deltaX, double deltaY, double deltaZ) {}
 
-    public abstract void explode(Vec3D vec3d);
+    public abstract void explode(Vec3 pos);
 
     @Override
-    protected void onHitBlock(MovingObjectPositionBlock movingobjectpositionblock) {
-        super.onHitBlock(movingobjectpositionblock);
+    protected void onHitBlock(BlockHitResult blockHitResult) {
+        super.onHitBlock(blockHitResult);
         if (!this.level().isClientSide) {
-            BaseBlockPosition baseblockposition = movingobjectpositionblock.getDirection().getNormal();
-            Vec3D vec3d = Vec3D.atLowerCornerOf(baseblockposition).multiply(0.25D, 0.25D, 0.25D);
-            Vec3D vec3d1 = movingobjectpositionblock.getLocation().add(vec3d);
+            Vec3i baseblockposition = blockHitResult.getDirection().getNormal();
+            Vec3 vec3d = Vec3.atLowerCornerOf(baseblockposition).multiply(0.25D, 0.25D, 0.25D);
+            Vec3 vec3d1 = blockHitResult.getLocation().add(vec3d);
 
             this.explode(vec3d1);
             this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
@@ -123,8 +122,8 @@ public abstract class AbstractWindCharge extends EntityFireball implements ItemS
     }
 
     @Override
-    protected void onHit(MovingObjectPosition movingobjectposition) {
-        super.onHit(movingobjectposition);
+    protected void onHit(HitResult hitResult) {
+        super.onHit(hitResult);
         if (!this.level().isClientSide) {
             this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
         }
@@ -153,7 +152,7 @@ public abstract class AbstractWindCharge extends EntityFireball implements ItemS
 
     @Nullable
     @Override
-    protected ParticleParam getTrailParticle() {
+    protected ParticleOptions getTrailParticle() {
         return null;
     }
 
@@ -169,7 +168,7 @@ public abstract class AbstractWindCharge extends EntityFireball implements ItemS
     }
 
     @Override
-    public boolean hurt(DamageSource damagesource, float f) {
+    public boolean hurt(DamageSource source, float amount) {
         return false;
     }
 }

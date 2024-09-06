@@ -5,44 +5,43 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Dynamic;
 import javax.annotation.Nullable;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.protocol.game.PacketDebug;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.sounds.SoundEffects;
-import net.minecraft.tags.TagsItem;
-import net.minecraft.world.EnumHand;
-import net.minecraft.world.EnumInteractionResult;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.game.DebugPackets;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.EntityAgeable;
-import net.minecraft.world.entity.EntityInsentient;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.EnumMobSpawn;
-import net.minecraft.world.entity.GroupDataEntity;
-import net.minecraft.world.entity.ai.BehaviorController;
-import net.minecraft.world.entity.ai.attributes.AttributeProvider;
-import net.minecraft.world.entity.ai.attributes.GenericAttributes;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.SmoothSwimmingLookControl;
 import net.minecraft.world.entity.ai.control.SmoothSwimmingMoveControl;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.ai.navigation.NavigationAbstract;
-import net.minecraft.world.entity.ai.navigation.NavigationGuardian;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.ai.navigation.WaterBoundPathNavigation;
 import net.minecraft.world.entity.ai.sensing.Sensor;
 import net.minecraft.world.entity.ai.sensing.SensorType;
+import net.minecraft.world.entity.animal.AbstractFish;
 import net.minecraft.world.entity.animal.Bucketable;
-import net.minecraft.world.entity.animal.EntityFish;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.level.World;
-
+import net.minecraft.world.level.Level;
 // CraftBukkit start
 import org.bukkit.event.entity.EntityRemoveEvent;
 // CraftBukkit end
 
-public class Tadpole extends EntityFish {
+public class Tadpole extends AbstractFish {
 
     @VisibleForTesting
     public static int ticksToBeFrog = Math.abs(-24000);
@@ -52,41 +51,41 @@ public class Tadpole extends EntityFish {
     protected static final ImmutableList<SensorType<? extends Sensor<? super Tadpole>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.HURT_BY, SensorType.FROG_TEMPTATIONS);
     protected static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.LOOK_TARGET, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.PATH, MemoryModuleType.NEAREST_VISIBLE_ADULT, MemoryModuleType.TEMPTATION_COOLDOWN_TICKS, MemoryModuleType.IS_TEMPTED, MemoryModuleType.TEMPTING_PLAYER, MemoryModuleType.BREED_TARGET, MemoryModuleType.IS_PANICKING);
 
-    public Tadpole(EntityTypes<? extends EntityFish> entitytypes, World world) {
-        super(entitytypes, world);
+    public Tadpole(EntityType<? extends AbstractFish> type, Level world) {
+        super(type, world);
         this.moveControl = new SmoothSwimmingMoveControl(this, 85, 10, 0.02F, 0.1F, true);
         this.lookControl = new SmoothSwimmingLookControl(this, 10);
     }
 
     @Override
-    protected NavigationAbstract createNavigation(World world) {
-        return new NavigationGuardian(this, world);
+    protected PathNavigation createNavigation(Level world) {
+        return new WaterBoundPathNavigation(this, world);
     }
 
     @Override
-    protected BehaviorController.b<Tadpole> brainProvider() {
-        return BehaviorController.provider(Tadpole.MEMORY_TYPES, Tadpole.SENSOR_TYPES);
+    protected Brain.Provider<Tadpole> brainProvider() {
+        return Brain.provider(Tadpole.MEMORY_TYPES, Tadpole.SENSOR_TYPES);
     }
 
     @Override
-    protected BehaviorController<?> makeBrain(Dynamic<?> dynamic) {
+    protected Brain<?> makeBrain(Dynamic<?> dynamic) {
         return TadpoleAi.makeBrain(this.brainProvider().makeBrain(dynamic));
     }
 
     @Override
-    public BehaviorController<Tadpole> getBrain() {
-        return (BehaviorController<Tadpole>) super.getBrain(); // CraftBukkit - decompile error
+    public Brain<Tadpole> getBrain() {
+        return (Brain<Tadpole>) super.getBrain(); // CraftBukkit - decompile error
     }
 
     @Override
-    protected SoundEffect getFlopSound() {
-        return SoundEffects.TADPOLE_FLOP;
+    protected SoundEvent getFlopSound() {
+        return SoundEvents.TADPOLE_FLOP;
     }
 
     @Override
     protected void customServerAiStep() {
         this.level().getProfiler().push("tadpoleBrain");
-        this.getBrain().tick((WorldServer) this.level(), this);
+        this.getBrain().tick((ServerLevel) this.level(), this);
         this.level().getProfiler().pop();
         this.level().getProfiler().push("tadpoleActivityUpdate");
         TadpoleAi.updateActivity(this);
@@ -94,8 +93,8 @@ public class Tadpole extends EntityFish {
         super.customServerAiStep();
     }
 
-    public static AttributeProvider.Builder createAttributes() {
-        return EntityInsentient.createMobAttributes().add(GenericAttributes.MOVEMENT_SPEED, 1.0D).add(GenericAttributes.MAX_HEALTH, 6.0D);
+    public static AttributeSupplier.Builder createAttributes() {
+        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 1.0D).add(Attributes.MAX_HEALTH, 6.0D);
     }
 
     @Override
@@ -108,51 +107,51 @@ public class Tadpole extends EntityFish {
     }
 
     @Override
-    public void addAdditionalSaveData(NBTTagCompound nbttagcompound) {
-        super.addAdditionalSaveData(nbttagcompound);
-        nbttagcompound.putInt("Age", this.age);
+    public void addAdditionalSaveData(CompoundTag nbt) {
+        super.addAdditionalSaveData(nbt);
+        nbt.putInt("Age", this.age);
     }
 
     @Override
-    public void readAdditionalSaveData(NBTTagCompound nbttagcompound) {
-        super.readAdditionalSaveData(nbttagcompound);
-        this.setAge(nbttagcompound.getInt("Age"));
+    public void readAdditionalSaveData(CompoundTag nbt) {
+        super.readAdditionalSaveData(nbt);
+        this.setAge(nbt.getInt("Age"));
     }
 
     @Nullable
     @Override
-    protected SoundEffect getAmbientSound() {
+    protected SoundEvent getAmbientSound() {
         return null;
     }
 
     @Nullable
     @Override
-    protected SoundEffect getHurtSound(DamageSource damagesource) {
-        return SoundEffects.TADPOLE_HURT;
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.TADPOLE_HURT;
     }
 
     @Nullable
     @Override
-    protected SoundEffect getDeathSound() {
-        return SoundEffects.TADPOLE_DEATH;
+    public SoundEvent getDeathSound() {
+        return SoundEvents.TADPOLE_DEATH;
     }
 
     @Override
-    public EnumInteractionResult mobInteract(EntityHuman entityhuman, EnumHand enumhand) {
-        ItemStack itemstack = entityhuman.getItemInHand(enumhand);
+    public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        ItemStack itemstack = player.getItemInHand(hand);
 
         if (this.isFood(itemstack)) {
-            this.feed(entityhuman, itemstack);
-            return EnumInteractionResult.sidedSuccess(this.level().isClientSide);
+            this.feed(player, itemstack);
+            return InteractionResult.sidedSuccess(this.level().isClientSide);
         } else {
-            return (EnumInteractionResult) Bucketable.bucketMobPickup(entityhuman, enumhand, this).orElse(super.mobInteract(entityhuman, enumhand));
+            return (InteractionResult) Bucketable.bucketMobPickup(player, hand, this).orElse(super.mobInteract(player, hand));
         }
     }
 
     @Override
     protected void sendDebugPackets() {
         super.sendDebugPackets();
-        PacketDebug.sendEntityBrain(this);
+        DebugPackets.sendEntityBrain(this);
     }
 
     @Override
@@ -161,21 +160,21 @@ public class Tadpole extends EntityFish {
     }
 
     @Override
-    public void setFromBucket(boolean flag) {}
+    public void setFromBucket(boolean fromBucket) {}
 
     @Override
-    public void saveToBucketTag(ItemStack itemstack) {
-        Bucketable.saveDefaultDataToBucketTag(this, itemstack);
-        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, itemstack, (nbttagcompound) -> {
+    public void saveToBucketTag(ItemStack stack) {
+        Bucketable.saveDefaultDataToBucketTag(this, stack);
+        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, stack, (nbttagcompound) -> {
             nbttagcompound.putInt("Age", this.getAge());
         });
     }
 
     @Override
-    public void loadFromBucketTag(NBTTagCompound nbttagcompound) {
-        Bucketable.loadDefaultDataFromBucketTag(this, nbttagcompound);
-        if (nbttagcompound.contains("Age")) {
-            this.setAge(nbttagcompound.getInt("Age"));
+    public void loadFromBucketTag(CompoundTag nbt) {
+        Bucketable.loadDefaultDataFromBucketTag(this, nbt);
+        if (nbt.contains("Age")) {
+            this.setAge(nbt.getInt("Age"));
         }
 
     }
@@ -186,34 +185,34 @@ public class Tadpole extends EntityFish {
     }
 
     @Override
-    public SoundEffect getPickupSound() {
-        return SoundEffects.BUCKET_FILL_TADPOLE;
+    public SoundEvent getPickupSound() {
+        return SoundEvents.BUCKET_FILL_TADPOLE;
     }
 
-    private boolean isFood(ItemStack itemstack) {
-        return itemstack.is(TagsItem.FROG_FOOD);
+    private boolean isFood(ItemStack stack) {
+        return stack.is(ItemTags.FROG_FOOD);
     }
 
-    private void feed(EntityHuman entityhuman, ItemStack itemstack) {
-        this.usePlayerItem(entityhuman, itemstack);
-        this.ageUp(EntityAgeable.getSpeedUpSecondsWhenFeeding(this.getTicksLeftUntilAdult()));
-        this.level().addParticle(Particles.HAPPY_VILLAGER, this.getRandomX(1.0D), this.getRandomY() + 0.5D, this.getRandomZ(1.0D), 0.0D, 0.0D, 0.0D);
+    private void feed(Player player, ItemStack stack) {
+        this.usePlayerItem(player, stack);
+        this.ageUp(AgeableMob.getSpeedUpSecondsWhenFeeding(this.getTicksLeftUntilAdult()));
+        this.level().addParticle(ParticleTypes.HAPPY_VILLAGER, this.getRandomX(1.0D), this.getRandomY() + 0.5D, this.getRandomZ(1.0D), 0.0D, 0.0D, 0.0D);
     }
 
-    private void usePlayerItem(EntityHuman entityhuman, ItemStack itemstack) {
-        itemstack.consume(1, entityhuman);
+    private void usePlayerItem(Player player, ItemStack stack) {
+        stack.consume(1, player);
     }
 
     private int getAge() {
         return this.age;
     }
 
-    private void ageUp(int i) {
-        this.setAge(this.age + i * 20);
+    private void ageUp(int seconds) {
+        this.setAge(this.age + seconds * 20);
     }
 
-    private void setAge(int i) {
-        this.age = i;
+    private void setAge(int tadpoleAge) {
+        this.age = tadpoleAge;
         if (this.age >= Tadpole.ticksToBeFrog) {
             this.ageUp();
         }
@@ -221,14 +220,14 @@ public class Tadpole extends EntityFish {
     }
 
     private void ageUp() {
-        World world = this.level();
+        Level world = this.level();
 
-        if (world instanceof WorldServer worldserver) {
-            Frog frog = (Frog) EntityTypes.FROG.create(this.level());
+        if (world instanceof ServerLevel worldserver) {
+            Frog frog = (Frog) EntityType.FROG.create(this.level());
 
             if (frog != null) {
                 frog.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
-                frog.finalizeSpawn(worldserver, this.level().getCurrentDifficultyAt(frog.blockPosition()), EnumMobSpawn.CONVERSION, (GroupDataEntity) null);
+                frog.finalizeSpawn(worldserver, this.level().getCurrentDifficultyAt(frog.blockPosition()), MobSpawnType.CONVERSION, (SpawnGroupData) null);
                 frog.setNoAi(this.isNoAi());
                 if (this.hasCustomName()) {
                     frog.setCustomName(this.getCustomName());
@@ -243,7 +242,7 @@ public class Tadpole extends EntityFish {
                 }
                 // CraftBukkit end
                 frog.fudgePositionAfterSizeChange(this.getDimensions(this.getPose()));
-                this.playSound(SoundEffects.TADPOLE_GROW_UP, 0.15F, 1.0F);
+                this.playSound(SoundEvents.TADPOLE_GROW_UP, 0.15F, 1.0F);
                 worldserver.addFreshEntityWithPassengers(frog, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.METAMORPHOSIS); // CraftBukkit - add SpawnReason
                 this.discard(EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
             }

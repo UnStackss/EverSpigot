@@ -3,22 +3,22 @@ package net.minecraft.world.entity.ai.village;
 import com.mojang.logging.LogUtils;
 import java.util.Iterator;
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BiomeTags;
-import net.minecraft.util.MathHelper;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.EnumMobSpawn;
-import net.minecraft.world.entity.GroupDataEntity;
-import net.minecraft.world.entity.monster.EntityMonster;
-import net.minecraft.world.entity.monster.EntityZombie;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.level.MobSpawner;
-import net.minecraft.world.level.levelgen.HeightMap;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.CustomSpawner;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
-public class VillageSiege implements MobSpawner {
+public class VillageSiege implements CustomSpawner {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private boolean hasSetupSiege;
@@ -34,19 +34,19 @@ public class VillageSiege implements MobSpawner {
     }
 
     @Override
-    public int tick(WorldServer worldserver, boolean flag, boolean flag1) {
-        if (!worldserver.isDay() && flag) {
-            float f = worldserver.getTimeOfDay(0.0F);
+    public int tick(ServerLevel world, boolean spawnMonsters, boolean spawnAnimals) {
+        if (!world.isDay() && spawnMonsters) {
+            float f = world.getTimeOfDay(0.0F);
 
             if ((double) f == 0.5D) {
-                this.siegeState = worldserver.random.nextInt(10) == 0 ? VillageSiege.State.SIEGE_TONIGHT : VillageSiege.State.SIEGE_DONE;
+                this.siegeState = world.random.nextInt(10) == 0 ? VillageSiege.State.SIEGE_TONIGHT : VillageSiege.State.SIEGE_DONE;
             }
 
             if (this.siegeState == VillageSiege.State.SIEGE_DONE) {
                 return 0;
             } else {
                 if (!this.hasSetupSiege) {
-                    if (!this.tryToSetupSiege(worldserver)) {
+                    if (!this.tryToSetupSiege(world)) {
                         return 0;
                     }
 
@@ -59,7 +59,7 @@ public class VillageSiege implements MobSpawner {
                 } else {
                     this.nextSpawnTime = 2;
                     if (this.zombiesToSpawn > 0) {
-                        this.trySpawn(worldserver);
+                        this.trySpawn(world);
                         --this.zombiesToSpawn;
                     } else {
                         this.siegeState = VillageSiege.State.SIEGE_DONE;
@@ -75,23 +75,23 @@ public class VillageSiege implements MobSpawner {
         }
     }
 
-    private boolean tryToSetupSiege(WorldServer worldserver) {
-        Iterator iterator = worldserver.players().iterator();
+    private boolean tryToSetupSiege(ServerLevel world) {
+        Iterator iterator = world.players().iterator();
 
         while (iterator.hasNext()) {
-            EntityHuman entityhuman = (EntityHuman) iterator.next();
+            Player entityhuman = (Player) iterator.next();
 
             if (!entityhuman.isSpectator()) {
-                BlockPosition blockposition = entityhuman.blockPosition();
+                BlockPos blockposition = entityhuman.blockPosition();
 
-                if (worldserver.isVillage(blockposition) && !worldserver.getBiome(blockposition).is(BiomeTags.WITHOUT_ZOMBIE_SIEGES)) {
+                if (world.isVillage(blockposition) && !world.getBiome(blockposition).is(BiomeTags.WITHOUT_ZOMBIE_SIEGES)) {
                     for (int i = 0; i < 10; ++i) {
-                        float f = worldserver.random.nextFloat() * 6.2831855F;
+                        float f = world.random.nextFloat() * 6.2831855F;
 
-                        this.spawnX = blockposition.getX() + MathHelper.floor(MathHelper.cos(f) * 32.0F);
+                        this.spawnX = blockposition.getX() + Mth.floor(Mth.cos(f) * 32.0F);
                         this.spawnY = blockposition.getY();
-                        this.spawnZ = blockposition.getZ() + MathHelper.floor(MathHelper.sin(f) * 32.0F);
-                        if (this.findRandomSpawnPos(worldserver, new BlockPosition(this.spawnX, this.spawnY, this.spawnZ)) != null) {
+                        this.spawnZ = blockposition.getZ() + Mth.floor(Mth.sin(f) * 32.0F);
+                        if (this.findRandomSpawnPos(world, new BlockPos(this.spawnX, this.spawnY, this.spawnZ)) != null) {
                             this.nextSpawnTime = 0;
                             this.zombiesToSpawn = 20;
                             break;
@@ -106,35 +106,35 @@ public class VillageSiege implements MobSpawner {
         return false;
     }
 
-    private void trySpawn(WorldServer worldserver) {
-        Vec3D vec3d = this.findRandomSpawnPos(worldserver, new BlockPosition(this.spawnX, this.spawnY, this.spawnZ));
+    private void trySpawn(ServerLevel world) {
+        Vec3 vec3d = this.findRandomSpawnPos(world, new BlockPos(this.spawnX, this.spawnY, this.spawnZ));
 
         if (vec3d != null) {
-            EntityZombie entityzombie;
+            Zombie entityzombie;
 
             try {
-                entityzombie = new EntityZombie(worldserver);
-                entityzombie.finalizeSpawn(worldserver, worldserver.getCurrentDifficultyAt(entityzombie.blockPosition()), EnumMobSpawn.EVENT, (GroupDataEntity) null);
+                entityzombie = new Zombie(world);
+                entityzombie.finalizeSpawn(world, world.getCurrentDifficultyAt(entityzombie.blockPosition()), MobSpawnType.EVENT, (SpawnGroupData) null);
             } catch (Exception exception) {
                 VillageSiege.LOGGER.warn("Failed to create zombie for village siege at {}", vec3d, exception);
                 return;
             }
 
-            entityzombie.moveTo(vec3d.x, vec3d.y, vec3d.z, worldserver.random.nextFloat() * 360.0F, 0.0F);
-            worldserver.addFreshEntityWithPassengers(entityzombie, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_INVASION); // CraftBukkit
+            entityzombie.moveTo(vec3d.x, vec3d.y, vec3d.z, world.random.nextFloat() * 360.0F, 0.0F);
+            world.addFreshEntityWithPassengers(entityzombie, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_INVASION); // CraftBukkit
         }
     }
 
     @Nullable
-    private Vec3D findRandomSpawnPos(WorldServer worldserver, BlockPosition blockposition) {
+    private Vec3 findRandomSpawnPos(ServerLevel world, BlockPos pos) {
         for (int i = 0; i < 10; ++i) {
-            int j = blockposition.getX() + worldserver.random.nextInt(16) - 8;
-            int k = blockposition.getZ() + worldserver.random.nextInt(16) - 8;
-            int l = worldserver.getHeight(HeightMap.Type.WORLD_SURFACE, j, k);
-            BlockPosition blockposition1 = new BlockPosition(j, l, k);
+            int j = pos.getX() + world.random.nextInt(16) - 8;
+            int k = pos.getZ() + world.random.nextInt(16) - 8;
+            int l = world.getHeight(Heightmap.Types.WORLD_SURFACE, j, k);
+            BlockPos blockposition1 = new BlockPos(j, l, k);
 
-            if (worldserver.isVillage(blockposition1) && EntityMonster.checkMonsterSpawnRules(EntityTypes.ZOMBIE, worldserver, EnumMobSpawn.EVENT, blockposition1, worldserver.random)) {
-                return Vec3D.atBottomCenterOf(blockposition1);
+            if (world.isVillage(blockposition1) && Monster.checkMonsterSpawnRules(EntityType.ZOMBIE, world, MobSpawnType.EVENT, blockposition1, world.random)) {
+                return Vec3.atBottomCenterOf(blockposition1);
             }
         }
 

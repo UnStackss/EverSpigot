@@ -5,23 +5,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.util.List;
 import net.minecraft.SharedConstants;
-import net.minecraft.commands.CommandDispatcher;
-import net.minecraft.core.IRegistry;
-import net.minecraft.core.IRegistryCustom;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.LayeredRegistryAccess;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.RegistryDataLoader;
-import net.minecraft.server.DataPackResources;
-import net.minecraft.server.DispenserRegistry;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.server.RegistryLayer;
+import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.server.WorldLoader;
-import net.minecraft.server.packs.EnumResourcePackType;
-import net.minecraft.server.packs.repository.ResourcePackLoader;
-import net.minecraft.server.packs.repository.ResourcePackRepository;
-import net.minecraft.server.packs.repository.ResourcePackSourceVanilla;
-import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.server.packs.repository.ServerPacksSource;
+import net.minecraft.server.packs.resources.MultiPackResourceManager;
 import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.world.level.biome.BiomeBase;
+import net.minecraft.world.level.biome.Biome;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
@@ -38,24 +38,24 @@ public abstract class AbstractTestingBase {
     // Materials that only exist in block form (or are legacy)
     public static final List<Material> INVALIDATED_MATERIALS;
 
-    public static final DataPackResources DATA_PACK;
-    public static final IRegistryCustom.Dimension REGISTRY_CUSTOM;
-    public static final IRegistry<BiomeBase> BIOMES;
+    public static final ReloadableServerResources DATA_PACK;
+    public static final RegistryAccess.Frozen REGISTRY_CUSTOM;
+    public static final Registry<Biome> BIOMES;
 
     static {
         SharedConstants.tryDetectVersion();
-        DispenserRegistry.bootStrap();
+        Bootstrap.bootStrap();
         // Populate available packs
-        ResourcePackRepository resourceRepository = ResourcePackSourceVanilla.createVanillaTrustedRepository();
+        PackRepository resourceRepository = ServerPacksSource.createVanillaTrustedRepository();
         resourceRepository.reload();
         // Set up resource manager
-        ResourceManager resourceManager = new ResourceManager(EnumResourcePackType.SERVER_DATA, resourceRepository.getAvailablePacks().stream().map(ResourcePackLoader::open).toList());
+        MultiPackResourceManager resourceManager = new MultiPackResourceManager(PackType.SERVER_DATA, resourceRepository.getAvailablePacks().stream().map(Pack::open).toList());
         // add tags and loot tables for unit tests
         LayeredRegistryAccess<RegistryLayer> layers = RegistryLayer.createRegistryAccess();
         layers = WorldLoader.loadAndReplaceLayer(resourceManager, layers, RegistryLayer.WORLDGEN, RegistryDataLoader.WORLDGEN_REGISTRIES);
         REGISTRY_CUSTOM = layers.compositeAccess().freeze();
         // Register vanilla pack
-        DATA_PACK = DataPackResources.loadResources(resourceManager, layers, FeatureFlags.REGISTRY.allFlags(), CommandDispatcher.ServerType.DEDICATED, 0, MoreExecutors.directExecutor(), MoreExecutors.directExecutor()).join();
+        DATA_PACK = ReloadableServerResources.loadResources(resourceManager, layers, FeatureFlags.REGISTRY.allFlags(), Commands.CommandSelection.DEDICATED, 0, MoreExecutors.directExecutor(), MoreExecutors.directExecutor()).join();
         // Bind tags
         DATA_PACK.updateRegistryTags();
         // Biome shortcut

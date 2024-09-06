@@ -4,17 +4,16 @@ import com.mojang.datafixers.util.Either;
 import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.nbt.GameProfileSerializer;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.protocol.game.PacketPlayOutAttachEntity;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.world.entity.decoration.EntityLeash;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.IMaterial;
-import net.minecraft.world.level.World;
-
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.Level;
 // CraftBukkit start
 import org.bukkit.event.entity.EntityUnleashEvent;
 import org.bukkit.event.entity.EntityUnleashEvent.UnleashReason;
@@ -27,9 +26,9 @@ public interface Leashable {
     double LEASH_ELASTIC_DIST = 6.0D;
 
     @Nullable
-    Leashable.a getLeashData();
+    Leashable.LeashData getLeashData();
 
-    void setLeashData(@Nullable Leashable.a leashable_a);
+    void setLeashData(@Nullable Leashable.LeashData leashData);
 
     default boolean isLeashed() {
         return this.getLeashData() != null && this.getLeashData().leashHolder != null;
@@ -47,21 +46,21 @@ public interface Leashable {
         return true;
     }
 
-    default void setDelayedLeashHolderId(int i) {
-        this.setLeashData(new Leashable.a(i));
-        dropLeash((Entity & Leashable) this, false, false); // CraftBukkit - decompile error
+    default void setDelayedLeashHolderId(int unresolvedLeashHolderId) {
+        this.setLeashData(new Leashable.LeashData(unresolvedLeashHolderId));
+        Leashable.dropLeash((Entity & Leashable) this, false, false); // CraftBukkit - decompile error
     }
 
     @Nullable
-    default Leashable.a readLeashData(NBTTagCompound nbttagcompound) {
-        if (nbttagcompound.contains("leash", 10)) {
-            return new Leashable.a(Either.left(nbttagcompound.getCompound("leash").getUUID("UUID")));
+    default Leashable.LeashData readLeashData(CompoundTag nbt) {
+        if (nbt.contains("leash", 10)) {
+            return new Leashable.LeashData(Either.left(nbt.getCompound("leash").getUUID("UUID")));
         } else {
-            if (nbttagcompound.contains("leash", 11)) {
-                Either<UUID, BlockPosition> either = (Either) GameProfileSerializer.readBlockPos(nbttagcompound, "leash").map(Either::right).orElse(null); // CraftBukkit - decompile error
+            if (nbt.contains("leash", 11)) {
+                Either<UUID, BlockPos> either = (Either) NbtUtils.readBlockPos(nbt, "leash").map(Either::right).orElse(null); // CraftBukkit - decompile error
 
                 if (either != null) {
-                    return new Leashable.a(either);
+                    return new Leashable.LeashData(either);
                 }
             }
 
@@ -69,131 +68,131 @@ public interface Leashable {
         }
     }
 
-    default void writeLeashData(NBTTagCompound nbttagcompound, @Nullable Leashable.a leashable_a) {
-        if (leashable_a != null) {
-            Either<UUID, BlockPosition> either = leashable_a.delayedLeashInfo;
-            Entity entity = leashable_a.leashHolder;
+    default void writeLeashData(CompoundTag nbt, @Nullable Leashable.LeashData leashData) {
+        if (leashData != null) {
+            Either<UUID, BlockPos> either = leashData.delayedLeashInfo;
+            Entity entity = leashData.leashHolder;
             // CraftBukkit start - SPIGOT-7487: Don't save (and possible drop) leash, when the holder was removed by a plugin
             if (entity != null && entity.pluginRemoved) {
                 return;
             }
             // CraftBukkit end
 
-            if (entity instanceof EntityLeash) {
-                EntityLeash entityleash = (EntityLeash) entity;
+            if (entity instanceof LeashFenceKnotEntity) {
+                LeashFenceKnotEntity entityleash = (LeashFenceKnotEntity) entity;
 
                 either = Either.right(entityleash.getPos());
-            } else if (leashable_a.leashHolder != null) {
-                either = Either.left(leashable_a.leashHolder.getUUID());
+            } else if (leashData.leashHolder != null) {
+                either = Either.left(leashData.leashHolder.getUUID());
             }
 
             if (either != null) {
-                nbttagcompound.put("leash", (NBTBase) either.map((uuid) -> {
-                    NBTTagCompound nbttagcompound1 = new NBTTagCompound();
+                nbt.put("leash", (Tag) either.map((uuid) -> {
+                    CompoundTag nbttagcompound1 = new CompoundTag();
 
                     nbttagcompound1.putUUID("UUID", uuid);
                     return nbttagcompound1;
-                }, GameProfileSerializer::writeBlockPos));
+                }, NbtUtils::writeBlockPos));
             }
         }
     }
 
-    private static <E extends Entity & Leashable> void restoreLeashFromSave(E e0, Leashable.a leashable_a) {
-        if (leashable_a.delayedLeashInfo != null) {
-            World world = e0.level();
+    private static <E extends Entity & Leashable> void restoreLeashFromSave(E entity, Leashable.LeashData leashData) {
+        if (leashData.delayedLeashInfo != null) {
+            Level world = entity.level();
 
-            if (world instanceof WorldServer) {
-                WorldServer worldserver = (WorldServer) world;
-                Optional<UUID> optional = leashable_a.delayedLeashInfo.left();
-                Optional<BlockPosition> optional1 = leashable_a.delayedLeashInfo.right();
+            if (world instanceof ServerLevel) {
+                ServerLevel worldserver = (ServerLevel) world;
+                Optional<UUID> optional = leashData.delayedLeashInfo.left();
+                Optional<BlockPos> optional1 = leashData.delayedLeashInfo.right();
 
                 if (optional.isPresent()) {
-                    Entity entity = worldserver.getEntity((UUID) optional.get());
+                    Entity entity1 = worldserver.getEntity((UUID) optional.get());
 
-                    if (entity != null) {
-                        setLeashedTo(e0, entity, true);
+                    if (entity1 != null) {
+                        Leashable.setLeashedTo(entity, entity1, true);
                         return;
                     }
                 } else if (optional1.isPresent()) {
-                    setLeashedTo(e0, EntityLeash.getOrCreateKnot(worldserver, (BlockPosition) optional1.get()), true);
+                    Leashable.setLeashedTo(entity, LeashFenceKnotEntity.getOrCreateKnot(worldserver, (BlockPos) optional1.get()), true);
                     return;
                 }
 
-                if (e0.tickCount > 100) {
-                    e0.forceDrops = true; // CraftBukkit
-                    e0.spawnAtLocation((IMaterial) Items.LEAD);
-                    e0.forceDrops = false; // CraftBukkit
-                    ((Leashable) e0).setLeashData((Leashable.a) null);
+                if (entity.tickCount > 100) {
+                    entity.forceDrops = true; // CraftBukkit
+                    entity.spawnAtLocation((ItemLike) Items.LEAD);
+                    entity.forceDrops = false; // CraftBukkit
+                    ((Leashable) entity).setLeashData((Leashable.LeashData) null);
                 }
             }
         }
 
     }
 
-    default void dropLeash(boolean flag, boolean flag1) {
-        dropLeash((Entity & Leashable) this, flag, flag1); // CraftBukkit - decompile error
+    default void dropLeash(boolean sendPacket, boolean dropItem) {
+        Leashable.dropLeash((Entity & Leashable) this, sendPacket, dropItem); // CraftBukkit - decompile error
     }
 
-    private static <E extends Entity & Leashable> void dropLeash(E e0, boolean flag, boolean flag1) {
-        Leashable.a leashable_a = ((Leashable) e0).getLeashData();
+    private static <E extends Entity & Leashable> void dropLeash(E entity, boolean sendPacket, boolean dropItem) {
+        Leashable.LeashData leashable_a = ((Leashable) entity).getLeashData();
 
         if (leashable_a != null && leashable_a.leashHolder != null) {
-            ((Leashable) e0).setLeashData((Leashable.a) null);
-            if (!e0.level().isClientSide && flag1) {
-                e0.forceDrops = true; // CraftBukkit
-                e0.spawnAtLocation((IMaterial) Items.LEAD);
-                e0.forceDrops = false; // CraftBukkit
+            ((Leashable) entity).setLeashData((Leashable.LeashData) null);
+            if (!entity.level().isClientSide && dropItem) {
+                entity.forceDrops = true; // CraftBukkit
+                entity.spawnAtLocation((ItemLike) Items.LEAD);
+                entity.forceDrops = false; // CraftBukkit
             }
 
-            if (flag) {
-                World world = e0.level();
+            if (sendPacket) {
+                Level world = entity.level();
 
-                if (world instanceof WorldServer) {
-                    WorldServer worldserver = (WorldServer) world;
+                if (world instanceof ServerLevel) {
+                    ServerLevel worldserver = (ServerLevel) world;
 
-                    worldserver.getChunkSource().broadcast(e0, new PacketPlayOutAttachEntity(e0, (Entity) null));
+                    worldserver.getChunkSource().broadcast(entity, new ClientboundSetEntityLinkPacket(entity, (Entity) null));
                 }
             }
         }
 
     }
 
-    static <E extends Entity & Leashable> void tickLeash(E e0) {
-        Leashable.a leashable_a = ((Leashable) e0).getLeashData();
+    static <E extends Entity & Leashable> void tickLeash(E entity) {
+        Leashable.LeashData leashable_a = ((Leashable) entity).getLeashData();
 
         if (leashable_a != null && leashable_a.delayedLeashInfo != null) {
-            restoreLeashFromSave(e0, leashable_a);
+            Leashable.restoreLeashFromSave(entity, leashable_a);
         }
 
         if (leashable_a != null && leashable_a.leashHolder != null) {
-            if (!e0.isAlive() || !leashable_a.leashHolder.isAlive()) {
-                e0.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(e0.getBukkitEntity(), (!e0.isAlive()) ? UnleashReason.PLAYER_UNLEASH : UnleashReason.HOLDER_GONE)); // CraftBukkit
-                dropLeash(e0, true, !e0.pluginRemoved); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
+            if (!entity.isAlive() || !leashable_a.leashHolder.isAlive()) {
+                entity.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(entity.getBukkitEntity(), (!entity.isAlive()) ? UnleashReason.PLAYER_UNLEASH : UnleashReason.HOLDER_GONE)); // CraftBukkit
+                Leashable.dropLeash(entity, true, !entity.pluginRemoved); // CraftBukkit - SPIGOT-7487: Don't drop leash, when the holder was removed by a plugin
             }
 
-            Entity entity = ((Leashable) e0).getLeashHolder();
+            Entity entity1 = ((Leashable) entity).getLeashHolder();
 
-            if (entity != null && entity.level() == e0.level()) {
-                float f = e0.distanceTo(entity);
+            if (entity1 != null && entity1.level() == entity.level()) {
+                float f = entity.distanceTo(entity1);
 
-                if (!((Leashable) e0).handleLeashAtDistance(entity, f)) {
+                if (!((Leashable) entity).handleLeashAtDistance(entity1, f)) {
                     return;
                 }
 
                 if ((double) f > 10.0D) {
-                    ((Leashable) e0).leashTooFarBehaviour();
+                    ((Leashable) entity).leashTooFarBehaviour();
                 } else if ((double) f > 6.0D) {
-                    ((Leashable) e0).elasticRangeLeashBehaviour(entity, f);
-                    e0.checkSlowFallDistance();
+                    ((Leashable) entity).elasticRangeLeashBehaviour(entity1, f);
+                    entity.checkSlowFallDistance();
                 } else {
-                    ((Leashable) e0).closeRangeLeashBehaviour(entity);
+                    ((Leashable) entity).closeRangeLeashBehaviour(entity1);
                 }
             }
 
         }
     }
 
-    default boolean handleLeashAtDistance(Entity entity, float f) {
+    default boolean handleLeashAtDistance(Entity leashHolder, float distance) {
         return true;
     }
 
@@ -208,65 +207,65 @@ public interface Leashable {
 
     default void closeRangeLeashBehaviour(Entity entity) {}
 
-    default void elasticRangeLeashBehaviour(Entity entity, float f) {
-        legacyElasticRangeLeashBehaviour((Entity & Leashable) this, entity, f); // CraftBukkit - decompile error
+    default void elasticRangeLeashBehaviour(Entity leashHolder, float distance) {
+        Leashable.legacyElasticRangeLeashBehaviour((Entity & Leashable) this, leashHolder, distance); // CraftBukkit - decompile error
     }
 
-    private static <E extends Entity & Leashable> void legacyElasticRangeLeashBehaviour(E e0, Entity entity, float f) {
-        double d0 = (entity.getX() - e0.getX()) / (double) f;
-        double d1 = (entity.getY() - e0.getY()) / (double) f;
-        double d2 = (entity.getZ() - e0.getZ()) / (double) f;
+    private static <E extends Entity & Leashable> void legacyElasticRangeLeashBehaviour(E entity, Entity leashHolder, float distance) {
+        double d0 = (leashHolder.getX() - entity.getX()) / (double) distance;
+        double d1 = (leashHolder.getY() - entity.getY()) / (double) distance;
+        double d2 = (leashHolder.getZ() - entity.getZ()) / (double) distance;
 
-        e0.setDeltaMovement(e0.getDeltaMovement().add(Math.copySign(d0 * d0 * 0.4D, d0), Math.copySign(d1 * d1 * 0.4D, d1), Math.copySign(d2 * d2 * 0.4D, d2)));
+        entity.setDeltaMovement(entity.getDeltaMovement().add(Math.copySign(d0 * d0 * 0.4D, d0), Math.copySign(d1 * d1 * 0.4D, d1), Math.copySign(d2 * d2 * 0.4D, d2)));
     }
 
-    default void setLeashedTo(Entity entity, boolean flag) {
-        setLeashedTo((Entity & Leashable) this, entity, flag); // CraftBukkit - decompile error
+    default void setLeashedTo(Entity leashHolder, boolean sendPacket) {
+        Leashable.setLeashedTo((Entity & Leashable) this, leashHolder, sendPacket); // CraftBukkit - decompile error
     }
 
-    private static <E extends Entity & Leashable> void setLeashedTo(E e0, Entity entity, boolean flag) {
-        Leashable.a leashable_a = ((Leashable) e0).getLeashData();
+    private static <E extends Entity & Leashable> void setLeashedTo(E entity, Entity leashHolder, boolean sendPacket) {
+        Leashable.LeashData leashable_a = ((Leashable) entity).getLeashData();
 
         if (leashable_a == null) {
-            leashable_a = new Leashable.a(entity);
-            ((Leashable) e0).setLeashData(leashable_a);
+            leashable_a = new Leashable.LeashData(leashHolder);
+            ((Leashable) entity).setLeashData(leashable_a);
         } else {
-            leashable_a.setLeashHolder(entity);
+            leashable_a.setLeashHolder(leashHolder);
         }
 
-        if (flag) {
-            World world = e0.level();
+        if (sendPacket) {
+            Level world = entity.level();
 
-            if (world instanceof WorldServer) {
-                WorldServer worldserver = (WorldServer) world;
+            if (world instanceof ServerLevel) {
+                ServerLevel worldserver = (ServerLevel) world;
 
-                worldserver.getChunkSource().broadcast(e0, new PacketPlayOutAttachEntity(e0, entity));
+                worldserver.getChunkSource().broadcast(entity, new ClientboundSetEntityLinkPacket(entity, leashHolder));
             }
         }
 
-        if (e0.isPassenger()) {
-            e0.stopRiding();
+        if (entity.isPassenger()) {
+            entity.stopRiding();
         }
 
     }
 
     @Nullable
     default Entity getLeashHolder() {
-        return getLeashHolder((Entity & Leashable) this); // CraftBukkit - decompile error
+        return Leashable.getLeashHolder((Entity & Leashable) this); // CraftBukkit - decompile error
     }
 
     @Nullable
-    private static <E extends Entity & Leashable> Entity getLeashHolder(E e0) {
-        Leashable.a leashable_a = ((Leashable) e0).getLeashData();
+    private static <E extends Entity & Leashable> Entity getLeashHolder(E entity) {
+        Leashable.LeashData leashable_a = ((Leashable) entity).getLeashData();
 
         if (leashable_a == null) {
             return null;
         } else {
-            if (leashable_a.delayedLeashHolderId != 0 && e0.level().isClientSide) {
-                Entity entity = e0.level().getEntity(leashable_a.delayedLeashHolderId);
+            if (leashable_a.delayedLeashHolderId != 0 && entity.level().isClientSide) {
+                Entity entity1 = entity.level().getEntity(leashable_a.delayedLeashHolderId);
 
-                if (entity instanceof Entity) {
-                    leashable_a.setLeashHolder(entity);
+                if (entity1 instanceof Entity) {
+                    leashable_a.setLeashHolder(entity1);
                 }
             }
 
@@ -274,28 +273,28 @@ public interface Leashable {
         }
     }
 
-    public static final class a {
+    public static final class LeashData {
 
         int delayedLeashHolderId;
         @Nullable
         public Entity leashHolder;
         @Nullable
-        public Either<UUID, BlockPosition> delayedLeashInfo;
+        public Either<UUID, BlockPos> delayedLeashInfo;
 
-        a(Either<UUID, BlockPosition> either) {
-            this.delayedLeashInfo = either;
+        LeashData(Either<UUID, BlockPos> unresolvedLeashData) {
+            this.delayedLeashInfo = unresolvedLeashData;
         }
 
-        a(Entity entity) {
-            this.leashHolder = entity;
+        LeashData(Entity leashHolder) {
+            this.leashHolder = leashHolder;
         }
 
-        a(int i) {
-            this.delayedLeashHolderId = i;
+        LeashData(int unresolvedLeashHolderId) {
+            this.delayedLeashHolderId = unresolvedLeashHolderId;
         }
 
-        public void setLeashHolder(Entity entity) {
-            this.leashHolder = entity;
+        public void setLeashHolder(Entity leashHolder) {
+            this.leashHolder = leashHolder;
             this.delayedLeashInfo = null;
             this.delayedLeashHolderId = 0;
         }

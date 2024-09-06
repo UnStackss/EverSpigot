@@ -3,66 +3,66 @@ package net.minecraft.world.effect;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.core.Holder;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.UtilColor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.util.StringUtil;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.phys.Vec3D;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
 public final class MobEffectUtil {
 
     public MobEffectUtil() {}
 
-    public static IChatBaseComponent formatDuration(MobEffect mobeffect, float f, float f1) {
-        if (mobeffect.isInfiniteDuration()) {
-            return IChatBaseComponent.translatable("effect.duration.infinite");
+    public static Component formatDuration(MobEffectInstance effect, float multiplier, float tickRate) {
+        if (effect.isInfiniteDuration()) {
+            return Component.translatable("effect.duration.infinite");
         } else {
-            int i = MathHelper.floor((float) mobeffect.getDuration() * f);
+            int i = Mth.floor((float) effect.getDuration() * multiplier);
 
-            return IChatBaseComponent.literal(UtilColor.formatTickDuration(i, f1));
+            return Component.literal(StringUtil.formatTickDuration(i, tickRate));
         }
     }
 
-    public static boolean hasDigSpeed(EntityLiving entityliving) {
-        return entityliving.hasEffect(MobEffects.DIG_SPEED) || entityliving.hasEffect(MobEffects.CONDUIT_POWER);
+    public static boolean hasDigSpeed(LivingEntity entity) {
+        return entity.hasEffect(MobEffects.DIG_SPEED) || entity.hasEffect(MobEffects.CONDUIT_POWER);
     }
 
-    public static int getDigSpeedAmplification(EntityLiving entityliving) {
+    public static int getDigSpeedAmplification(LivingEntity entity) {
         int i = 0;
         int j = 0;
 
-        if (entityliving.hasEffect(MobEffects.DIG_SPEED)) {
-            i = entityliving.getEffect(MobEffects.DIG_SPEED).getAmplifier();
+        if (entity.hasEffect(MobEffects.DIG_SPEED)) {
+            i = entity.getEffect(MobEffects.DIG_SPEED).getAmplifier();
         }
 
-        if (entityliving.hasEffect(MobEffects.CONDUIT_POWER)) {
-            j = entityliving.getEffect(MobEffects.CONDUIT_POWER).getAmplifier();
+        if (entity.hasEffect(MobEffects.CONDUIT_POWER)) {
+            j = entity.getEffect(MobEffects.CONDUIT_POWER).getAmplifier();
         }
 
         return Math.max(i, j);
     }
 
-    public static boolean hasWaterBreathing(EntityLiving entityliving) {
-        return entityliving.hasEffect(MobEffects.WATER_BREATHING) || entityliving.hasEffect(MobEffects.CONDUIT_POWER);
+    public static boolean hasWaterBreathing(LivingEntity entity) {
+        return entity.hasEffect(MobEffects.WATER_BREATHING) || entity.hasEffect(MobEffects.CONDUIT_POWER);
     }
 
-    public static List<EntityPlayer> addEffectToPlayersAround(WorldServer worldserver, @Nullable Entity entity, Vec3D vec3d, double d0, MobEffect mobeffect, int i) {
+    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel world, @Nullable Entity entity, Vec3 origin, double range, MobEffectInstance statusEffectInstance, int duration) {
         // CraftBukkit start
-        return addEffectToPlayersAround(worldserver, entity, vec3d, d0, mobeffect, i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
+        return MobEffectUtil.addEffectToPlayersAround(world, entity, origin, range, statusEffectInstance, duration, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
     }
 
-    public static List<EntityPlayer> addEffectToPlayersAround(WorldServer worldserver, @Nullable Entity entity, Vec3D vec3d, double d0, MobEffect mobeffect, int i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
+    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel worldserver, @Nullable Entity entity, Vec3 vec3d, double d0, MobEffectInstance mobeffect, int i, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
         // CraftBukkit end
-        Holder<MobEffectList> holder = mobeffect.getEffect();
-        List<EntityPlayer> list = worldserver.getPlayers((entityplayer) -> {
+        Holder<MobEffect> holder = mobeffect.getEffect();
+        List<ServerPlayer> list = worldserver.getPlayers((entityplayer) -> {
             return entityplayer.gameMode.isSurvival() && (entity == null || !entity.isAlliedTo((Entity) entityplayer)) && vec3d.closerThan(entityplayer.position(), d0) && (!entityplayer.hasEffect(holder) || entityplayer.getEffect(holder).getAmplifier() < mobeffect.getAmplifier() || entityplayer.getEffect(holder).endsWithin(i - 1));
         });
 
         list.forEach((entityplayer) -> {
-            entityplayer.addEffect(new MobEffect(mobeffect), entity, cause); // CraftBukkit
+            entityplayer.addEffect(new MobEffectInstance(mobeffect), entity, cause); // CraftBukkit
         });
         return list;
     }

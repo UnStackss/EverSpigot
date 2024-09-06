@@ -2,9 +2,9 @@ package net.minecraft.server.players;
 
 import java.util.Iterator;
 import java.util.List;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.util.MathHelper;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 
 public class SleepStatus {
 
@@ -13,21 +13,21 @@ public class SleepStatus {
 
     public SleepStatus() {}
 
-    public boolean areEnoughSleeping(int i) {
-        return this.sleepingPlayers >= this.sleepersNeeded(i);
+    public boolean areEnoughSleeping(int percentage) {
+        return this.sleepingPlayers >= this.sleepersNeeded(percentage);
     }
 
-    public boolean areEnoughDeepSleeping(int i, List<EntityPlayer> list) {
+    public boolean areEnoughDeepSleeping(int percentage, List<ServerPlayer> players) {
         // CraftBukkit start
-        int j = (int) list.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping; }).count();
-        boolean anyDeepSleep = list.stream().anyMatch(EntityHuman::isSleepingLongEnough);
+        int j = (int) players.stream().filter((eh) -> { return eh.isSleepingLongEnough() || eh.fauxSleeping; }).count();
+        boolean anyDeepSleep = players.stream().anyMatch(Player::isSleepingLongEnough);
 
-        return anyDeepSleep && j >= this.sleepersNeeded(i);
+        return anyDeepSleep && j >= this.sleepersNeeded(percentage);
         // CraftBukkit end
     }
 
-    public int sleepersNeeded(int i) {
-        return Math.max(1, MathHelper.ceil((float) (this.activePlayers * i) / 100.0F));
+    public int sleepersNeeded(int percentage) {
+        return Math.max(1, Mth.ceil((float) (this.activePlayers * percentage) / 100.0F));
     }
 
     public void removeAllSleepers() {
@@ -38,17 +38,17 @@ public class SleepStatus {
         return this.sleepingPlayers;
     }
 
-    public boolean update(List<EntityPlayer> list) {
+    public boolean update(List<ServerPlayer> players) {
         int i = this.activePlayers;
         int j = this.sleepingPlayers;
 
         this.activePlayers = 0;
         this.sleepingPlayers = 0;
-        Iterator iterator = list.iterator();
+        Iterator iterator = players.iterator();
         boolean anySleep = false; // CraftBukkit
 
         while (iterator.hasNext()) {
-            EntityPlayer entityplayer = (EntityPlayer) iterator.next();
+            ServerPlayer entityplayer = (ServerPlayer) iterator.next();
 
             if (!entityplayer.isSpectator()) {
                 ++this.activePlayers;

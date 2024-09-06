@@ -29,111 +29,109 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.minecraft.BlockUtil;
 import net.minecraft.CrashReport;
-import net.minecraft.CrashReportSystemDetails;
+import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
-import net.minecraft.SystemUtils;
-import net.minecraft.advancements.CriterionTriggers;
-import net.minecraft.commands.CommandListenerWrapper;
-import net.minecraft.commands.ICommandListener;
-import net.minecraft.commands.arguments.ArgumentAnchor;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.Util;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.core.IRegistryCustom;
-import net.minecraft.core.SectionPosition;
-import net.minecraft.core.particles.ParticleParamBlock;
-import net.minecraft.core.particles.Particles;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagDouble;
-import net.minecraft.nbt.NBTTagFloat;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
-import net.minecraft.network.chat.ChatClickable;
-import net.minecraft.network.chat.ChatHoverable;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.network.chat.IChatMutableComponent;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.DoubleTag;
+import net.minecraft.nbt.FloatTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketListenerPlayOut;
-import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket;
 import net.minecraft.network.protocol.game.VecDeltaCodec;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SyncedDataHolder;
-import net.minecraft.resources.MinecraftKey;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.EntityTrackerEntry;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffect;
-import net.minecraft.sounds.SoundEffects;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.tags.TagsBlock;
-import net.minecraft.tags.TagsEntity;
-import net.minecraft.tags.TagsFluid;
-import net.minecraft.util.MathHelper;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.EnumHand;
-import net.minecraft.world.EnumInteractionResult;
-import net.minecraft.world.INamableTileEntity;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.Nameable;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageSources;
-import net.minecraft.world.entity.item.EntityItem;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.entity.projectile.IProjectile;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileDeflection;
-import net.minecraft.world.entity.vehicle.EntityBoat;
+import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.ChunkCoordIntPair;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.GameRules;
-import net.minecraft.world.level.IBlockAccess;
-import net.minecraft.world.level.IMaterial;
-import net.minecraft.world.level.RayTrace;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.BlockFenceGate;
-import net.minecraft.world.level.block.BlockHoney;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EnumBlockMirror;
-import net.minecraft.world.level.block.EnumBlockRotation;
-import net.minecraft.world.level.block.EnumRenderType;
+import net.minecraft.world.level.block.FenceGateBlock;
+import net.minecraft.world.level.block.HoneyBlock;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Portal;
-import net.minecraft.world.level.block.SoundEffectType;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.entity.EntityAccess;
 import net.minecraft.world.level.entity.EntityInLevelCallback;
 import net.minecraft.world.level.gameevent.DynamicGameEventListener;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraft.world.level.levelgen.HeightMap;
-import net.minecraft.world.level.material.EnumPistonReaction;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.FluidType;
-import net.minecraft.world.level.portal.BlockPortalShape;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.portal.DimensionTransition;
-import net.minecraft.world.phys.AxisAlignedBB;
-import net.minecraft.world.phys.MovingObjectPosition;
-import net.minecraft.world.phys.MovingObjectPositionBlock;
-import net.minecraft.world.phys.Vec2F;
-import net.minecraft.world.phys.Vec3D;
-import net.minecraft.world.phys.shapes.OperatorBoolean;
+import net.minecraft.world.level.portal.PortalShape;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraft.world.phys.shapes.VoxelShapeCollision;
-import net.minecraft.world.phys.shapes.VoxelShapes;
+import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.ScoreHolder;
-import net.minecraft.world.scores.ScoreboardTeam;
-import net.minecraft.world.scores.ScoreboardTeamBase;
+import net.minecraft.world.scores.Team;
 import org.slf4j.Logger;
-
-// CraftBukkit start
-import net.minecraft.network.protocol.game.PacketPlayOutAttachEntity;
-import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -170,31 +168,31 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.PluginManager;
 // CraftBukkit end
 
-public abstract class Entity implements SyncedDataHolder, INamableTileEntity, EntityAccess, ICommandListener, ScoreHolder {
+public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess, CommandSource, ScoreHolder {
 
     // CraftBukkit start
     private static final int CURRENT_LEVEL = 2;
-    static boolean isLevelAtLeast(NBTTagCompound tag, int level) {
+    static boolean isLevelAtLeast(CompoundTag tag, int level) {
         return tag.contains("Bukkit.updateLevel") && tag.getInt("Bukkit.updateLevel") >= level;
     }
 
     private CraftEntity bukkitEntity;
 
     public CraftEntity getBukkitEntity() {
-        if (bukkitEntity == null) {
-            bukkitEntity = CraftEntity.getEntity(level.getCraftServer(), this);
+        if (this.bukkitEntity == null) {
+            this.bukkitEntity = CraftEntity.getEntity(this.level.getCraftServer(), this);
         }
-        return bukkitEntity;
+        return this.bukkitEntity;
     }
 
     @Override
-    public CommandSender getBukkitSender(CommandListenerWrapper wrapper) {
-        return getBukkitEntity();
+    public CommandSender getBukkitSender(CommandSourceStack wrapper) {
+        return this.getBukkitEntity();
     }
 
     // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
     public int getDefaultMaxAirSupply() {
-        return TOTAL_AIR_SUPPLY;
+        return Entity.TOTAL_AIR_SUPPLY;
     }
     // CraftBukkit end
 
@@ -212,39 +210,39 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     public static final int BASE_TICKS_REQUIRED_TO_FREEZE = 140;
     public static final int FREEZE_HURT_FREQUENCY = 40;
     public static final int BASE_SAFE_FALL_DISTANCE = 3;
-    private static final AxisAlignedBB INITIAL_AABB = new AxisAlignedBB(0.0D, 0.0D, 0.0D, 0.0D, 0.0D, 0.0D);
+    private static final AABB INITIAL_AABB = new AABB(0.0D, 0.0D, 0.0D, 0.0D, 0.0D, 0.0D);
     private static final double WATER_FLOW_SCALE = 0.014D;
     private static final double LAVA_FAST_FLOW_SCALE = 0.007D;
     private static final double LAVA_SLOW_FLOW_SCALE = 0.0023333333333333335D;
     public static final String UUID_TAG = "UUID";
     private static double viewScale = 1.0D;
-    private final EntityTypes<?> type;
+    private final EntityType<?> type;
     private int id;
     public boolean blocksBuilding;
     public ImmutableList<Entity> passengers;
     protected int boardingCooldown;
     @Nullable
     private Entity vehicle;
-    private World level;
+    private Level level;
     public double xo;
     public double yo;
     public double zo;
-    private Vec3D position;
-    private BlockPosition blockPosition;
-    private ChunkCoordIntPair chunkPosition;
-    private Vec3D deltaMovement;
+    private Vec3 position;
+    private BlockPos blockPosition;
+    private ChunkPos chunkPosition;
+    private Vec3 deltaMovement;
     private float yRot;
     private float xRot;
     public float yRotO;
     public float xRotO;
-    private AxisAlignedBB bb;
+    private AABB bb;
     public boolean onGround;
     public boolean horizontalCollision;
     public boolean verticalCollision;
     public boolean verticalCollisionBelow;
     public boolean minorHorizontalCollision;
     public boolean hurtMarked;
-    protected Vec3D stuckSpeedMultiplier;
+    protected Vec3 stuckSpeedMultiplier;
     @Nullable
     private Entity.RemovalReason removalReason;
     public static final float DEFAULT_BB_WIDTH = 0.6F;
@@ -263,27 +261,27 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     public int tickCount;
     private int remainingFireTicks;
     public boolean wasTouchingWater;
-    protected Object2DoubleMap<TagKey<FluidType>> fluidHeight;
+    protected Object2DoubleMap<TagKey<Fluid>> fluidHeight;
     protected boolean wasEyeInWater;
-    private final Set<TagKey<FluidType>> fluidOnEyes;
+    private final Set<TagKey<Fluid>> fluidOnEyes;
     public int invulnerableTime;
     protected boolean firstTick;
-    protected final DataWatcher entityData;
-    protected static final DataWatcherObject<Byte> DATA_SHARED_FLAGS_ID = DataWatcher.defineId(Entity.class, DataWatcherRegistry.BYTE);
+    protected final SynchedEntityData entityData;
+    protected static final EntityDataAccessor<Byte> DATA_SHARED_FLAGS_ID = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BYTE);
     protected static final int FLAG_ONFIRE = 0;
     private static final int FLAG_SHIFT_KEY_DOWN = 1;
     private static final int FLAG_SPRINTING = 3;
     private static final int FLAG_SWIMMING = 4;
-    private static final int FLAG_INVISIBLE = 5;
+    public static final int FLAG_INVISIBLE = 5;
     protected static final int FLAG_GLOWING = 6;
     protected static final int FLAG_FALL_FLYING = 7;
-    private static final DataWatcherObject<Integer> DATA_AIR_SUPPLY_ID = DataWatcher.defineId(Entity.class, DataWatcherRegistry.INT);
-    private static final DataWatcherObject<Optional<IChatBaseComponent>> DATA_CUSTOM_NAME = DataWatcher.defineId(Entity.class, DataWatcherRegistry.OPTIONAL_COMPONENT);
-    private static final DataWatcherObject<Boolean> DATA_CUSTOM_NAME_VISIBLE = DataWatcher.defineId(Entity.class, DataWatcherRegistry.BOOLEAN);
-    private static final DataWatcherObject<Boolean> DATA_SILENT = DataWatcher.defineId(Entity.class, DataWatcherRegistry.BOOLEAN);
-    private static final DataWatcherObject<Boolean> DATA_NO_GRAVITY = DataWatcher.defineId(Entity.class, DataWatcherRegistry.BOOLEAN);
-    protected static final DataWatcherObject<EntityPose> DATA_POSE = DataWatcher.defineId(Entity.class, DataWatcherRegistry.POSE);
-    private static final DataWatcherObject<Integer> DATA_TICKS_FROZEN = DataWatcher.defineId(Entity.class, DataWatcherRegistry.INT);
+    private static final EntityDataAccessor<Integer> DATA_AIR_SUPPLY_ID = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Optional<Component>> DATA_CUSTOM_NAME = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.OPTIONAL_COMPONENT);
+    private static final EntityDataAccessor<Boolean> DATA_CUSTOM_NAME_VISIBLE = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_SILENT = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_NO_GRAVITY = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BOOLEAN);
+    protected static final EntityDataAccessor<net.minecraft.world.entity.Pose> DATA_POSE = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.POSE);
+    private static final EntityDataAccessor<Integer> DATA_TICKS_FROZEN = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.INT);
     private EntityInLevelCallback levelCallback;
     private final VecDeltaCodec packetPositionCodec;
     public boolean noCulling;
@@ -298,18 +296,18 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     private final Set<String> tags;
     private final double[] pistonDeltas;
     private long pistonDeltasGameTime;
-    private EntitySize dimensions;
+    private EntityDimensions dimensions;
     private float eyeHeight;
     public boolean isInPowderSnow;
     public boolean wasInPowderSnow;
     public boolean wasOnFire;
-    public Optional<BlockPosition> mainSupportingBlockPos;
+    public Optional<BlockPos> mainSupportingBlockPos;
     private boolean onGroundNoBlocks;
     private float crystalSoundIntensity;
     private int lastCrystalSoundPlayTick;
     public boolean hasVisualFire;
     @Nullable
-    private IBlockData inBlockState;
+    private BlockState inBlockState;
     // CraftBukkit start
     public boolean forceDrops;
     public boolean persist = true;
@@ -317,11 +315,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     public boolean valid;
     public boolean inWorld = false;
     public boolean generation;
-    public int maxAirTicks = getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
+    public int maxAirTicks = this.getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
     public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
     public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
     public boolean persistentInvisibility = false;
-    public BlockPosition lastLavaContact;
+    public BlockPos lastLavaContact;
     // Marks an entity, that it was removed by a plugin via Entity#remove
     // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
     public boolean pluginRemoved = false;
@@ -338,16 +336,16 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     public boolean isChunkLoaded() {
-        return level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
+        return this.level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
     }
     // CraftBukkit end
 
-    public Entity(EntityTypes<?> entitytypes, World world) {
+    public Entity(EntityType<?> type, Level world) {
         this.id = Entity.ENTITY_COUNTER.incrementAndGet();
         this.passengers = ImmutableList.of();
-        this.deltaMovement = Vec3D.ZERO;
+        this.deltaMovement = Vec3.ZERO;
         this.bb = Entity.INITIAL_AABB;
-        this.stuckSpeedMultiplier = Vec3D.ZERO;
+        this.stuckSpeedMultiplier = Vec3.ZERO;
         this.nextStep = 1.0F;
         this.random = RandomSource.create();
         this.remainingFireTicks = -this.getFireImmuneTicks();
@@ -356,19 +354,19 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.firstTick = true;
         this.levelCallback = EntityInLevelCallback.NULL;
         this.packetPositionCodec = new VecDeltaCodec();
-        this.uuid = MathHelper.createInsecureUUID(this.random);
+        this.uuid = Mth.createInsecureUUID(this.random);
         this.stringUUID = this.uuid.toString();
         this.tags = Sets.newHashSet();
         this.pistonDeltas = new double[]{0.0D, 0.0D, 0.0D};
         this.mainSupportingBlockPos = Optional.empty();
         this.onGroundNoBlocks = false;
         this.inBlockState = null;
-        this.type = entitytypes;
+        this.type = type;
         this.level = world;
-        this.dimensions = entitytypes.getDimensions();
-        this.position = Vec3D.ZERO;
-        this.blockPosition = BlockPosition.ZERO;
-        this.chunkPosition = ChunkCoordIntPair.ZERO;
+        this.dimensions = type.getDimensions();
+        this.position = Vec3.ZERO;
+        this.blockPosition = BlockPos.ZERO;
+        this.chunkPosition = ChunkPos.ZERO;
         // Spigot start
         if (world != null) {
             this.defaultActivationState = org.spigotmc.ActivationRange.initializeEntityActivationState(this, world.spigotConfig);
@@ -376,7 +374,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             this.defaultActivationState = false;
         }
         // Spigot end
-        DataWatcher.a datawatcher_a = new DataWatcher.a(this);
+        SynchedEntityData.Builder datawatcher_a = new SynchedEntityData.Builder(this);
 
         datawatcher_a.define(Entity.DATA_SHARED_FLAGS_ID, (byte) 0);
         datawatcher_a.define(Entity.DATA_AIR_SUPPLY_ID, this.getMaxAirSupply());
@@ -384,7 +382,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         datawatcher_a.define(Entity.DATA_CUSTOM_NAME, Optional.empty());
         datawatcher_a.define(Entity.DATA_SILENT, false);
         datawatcher_a.define(Entity.DATA_NO_GRAVITY, false);
-        datawatcher_a.define(Entity.DATA_POSE, EntityPose.STANDING);
+        datawatcher_a.define(Entity.DATA_POSE, net.minecraft.world.entity.Pose.STANDING);
         datawatcher_a.define(Entity.DATA_TICKS_FROZEN, 0);
         this.defineSynchedData(datawatcher_a);
         this.entityData = datawatcher_a.build();
@@ -392,15 +390,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.eyeHeight = this.dimensions.eyeHeight();
     }
 
-    public boolean isColliding(BlockPosition blockposition, IBlockData iblockdata) {
-        VoxelShape voxelshape = iblockdata.getCollisionShape(this.level(), blockposition, VoxelShapeCollision.of(this));
-        VoxelShape voxelshape1 = voxelshape.move((double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ());
+    public boolean isColliding(BlockPos pos, BlockState state) {
+        VoxelShape voxelshape = state.getCollisionShape(this.level(), pos, CollisionContext.of(this));
+        VoxelShape voxelshape1 = voxelshape.move((double) pos.getX(), (double) pos.getY(), (double) pos.getZ());
 
-        return VoxelShapes.joinIsNotEmpty(voxelshape1, VoxelShapes.create(this.getBoundingBox()), OperatorBoolean.AND);
+        return Shapes.joinIsNotEmpty(voxelshape1, Shapes.create(this.getBoundingBox()), BooleanOp.AND);
     }
 
     public int getTeamColor() {
-        ScoreboardTeam scoreboardteam = this.getTeam();
+        PlayerTeam scoreboardteam = this.getTeam();
 
         return scoreboardteam != null && scoreboardteam.getColor().getColor() != null ? scoreboardteam.getColor().getColor() : 16777215;
     }
@@ -420,15 +418,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     }
 
-    public void syncPacketPositionCodec(double d0, double d1, double d2) {
-        this.packetPositionCodec.setBase(new Vec3D(d0, d1, d2));
+    public void syncPacketPositionCodec(double x, double y, double z) {
+        this.packetPositionCodec.setBase(new Vec3(x, y, z));
     }
 
     public VecDeltaCodec getPositionCodec() {
         return this.packetPositionCodec;
     }
 
-    public EntityTypes<?> getType() {
+    public EntityType<?> getType() {
         return this.type;
     }
 
@@ -437,20 +435,20 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.id;
     }
 
-    public void setId(int i) {
-        this.id = i;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public Set<String> getTags() {
         return this.tags;
     }
 
-    public boolean addTag(String s) {
-        return this.tags.size() >= 1024 ? false : this.tags.add(s);
+    public boolean addTag(String tag) {
+        return this.tags.size() >= 1024 ? false : this.tags.add(tag);
     }
 
-    public boolean removeTag(String s) {
-        return this.tags.remove(s);
+    public boolean removeTag(String tag) {
+        return this.tags.remove(tag);
     }
 
     public void kill() {
@@ -468,18 +466,18 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         // CraftBukkit end
     }
 
-    protected abstract void defineSynchedData(DataWatcher.a datawatcher_a);
+    protected abstract void defineSynchedData(SynchedEntityData.Builder builder);
 
-    public DataWatcher getEntityData() {
+    public SynchedEntityData getEntityData() {
         return this.entityData;
     }
 
     // CraftBukkit start
-    public void refreshEntityData(EntityPlayer to) {
-        List<DataWatcher.c<?>> list = this.getEntityData().getNonDefaultValues();
+    public void refreshEntityData(ServerPlayer to) {
+        List<SynchedEntityData.DataValue<?>> list = this.getEntityData().getNonDefaultValues();
 
         if (list != null) {
-            to.connection.send(new PacketPlayOutEntityMetadata(this.getId(), list));
+            to.connection.send(new ClientboundSetEntityDataPacket(this.getId(), list));
         }
     }
     // CraftBukkit end
@@ -492,9 +490,9 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.id;
     }
 
-    public void remove(Entity.RemovalReason entity_removalreason) {
+    public void remove(Entity.RemovalReason reason) {
         // CraftBukkit start - add Bukkit remove cause
-        this.setRemoved(entity_removalreason, null);
+        this.setRemoved(reason, null);
     }
 
     public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
@@ -504,78 +502,78 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     public void onClientRemoval() {}
 
-    public void setPose(EntityPose entitypose) {
+    public void setPose(net.minecraft.world.entity.Pose pose) {
         // CraftBukkit start
-        if (entitypose == this.getPose()) {
+        if (pose == this.getPose()) {
             return;
         }
-        this.level.getCraftServer().getPluginManager().callEvent(new EntityPoseChangeEvent(this.getBukkitEntity(), Pose.values()[entitypose.ordinal()]));
+        this.level.getCraftServer().getPluginManager().callEvent(new EntityPoseChangeEvent(this.getBukkitEntity(), Pose.values()[pose.ordinal()]));
         // CraftBukkit end
-        this.entityData.set(Entity.DATA_POSE, entitypose);
+        this.entityData.set(Entity.DATA_POSE, pose);
     }
 
-    public EntityPose getPose() {
-        return (EntityPose) this.entityData.get(Entity.DATA_POSE);
+    public net.minecraft.world.entity.Pose getPose() {
+        return (net.minecraft.world.entity.Pose) this.entityData.get(Entity.DATA_POSE);
     }
 
-    public boolean hasPose(EntityPose entitypose) {
-        return this.getPose() == entitypose;
+    public boolean hasPose(net.minecraft.world.entity.Pose pose) {
+        return this.getPose() == pose;
     }
 
-    public boolean closerThan(Entity entity, double d0) {
-        return this.position().closerThan(entity.position(), d0);
+    public boolean closerThan(Entity entity, double radius) {
+        return this.position().closerThan(entity.position(), radius);
     }
 
-    public boolean closerThan(Entity entity, double d0, double d1) {
+    public boolean closerThan(Entity entity, double horizontalRadius, double verticalRadius) {
         double d2 = entity.getX() - this.getX();
         double d3 = entity.getY() - this.getY();
         double d4 = entity.getZ() - this.getZ();
 
-        return MathHelper.lengthSquared(d2, d4) < MathHelper.square(d0) && MathHelper.square(d3) < MathHelper.square(d1);
+        return Mth.lengthSquared(d2, d4) < Mth.square(horizontalRadius) && Mth.square(d3) < Mth.square(verticalRadius);
     }
 
-    protected void setRot(float f, float f1) {
+    public void setRot(float yaw, float pitch) {
         // CraftBukkit start - yaw was sometimes set to NaN, so we need to set it back to 0
-        if (Float.isNaN(f)) {
-            f = 0;
+        if (Float.isNaN(yaw)) {
+            yaw = 0;
         }
 
-        if (f == Float.POSITIVE_INFINITY || f == Float.NEGATIVE_INFINITY) {
-            if (this instanceof EntityPlayer) {
+        if (yaw == Float.POSITIVE_INFINITY || yaw == Float.NEGATIVE_INFINITY) {
+            if (this instanceof ServerPlayer) {
                 this.level.getCraftServer().getLogger().warning(this.getScoreboardName() + " was caught trying to crash the server with an invalid yaw");
                 ((CraftPlayer) this.getBukkitEntity()).kickPlayer("Infinite yaw (Hacking?)");
             }
-            f = 0;
+            yaw = 0;
         }
 
         // pitch was sometimes set to NaN, so we need to set it back to 0
-        if (Float.isNaN(f1)) {
-            f1 = 0;
+        if (Float.isNaN(pitch)) {
+            pitch = 0;
         }
 
-        if (f1 == Float.POSITIVE_INFINITY || f1 == Float.NEGATIVE_INFINITY) {
-            if (this instanceof EntityPlayer) {
+        if (pitch == Float.POSITIVE_INFINITY || pitch == Float.NEGATIVE_INFINITY) {
+            if (this instanceof ServerPlayer) {
                 this.level.getCraftServer().getLogger().warning(this.getScoreboardName() + " was caught trying to crash the server with an invalid pitch");
                 ((CraftPlayer) this.getBukkitEntity()).kickPlayer("Infinite pitch (Hacking?)");
             }
-            f1 = 0;
+            pitch = 0;
         }
         // CraftBukkit end
 
-        this.setYRot(f % 360.0F);
-        this.setXRot(f1 % 360.0F);
+        this.setYRot(yaw % 360.0F);
+        this.setXRot(pitch % 360.0F);
     }
 
-    public final void setPos(Vec3D vec3d) {
-        this.setPos(vec3d.x(), vec3d.y(), vec3d.z());
+    public final void setPos(Vec3 pos) {
+        this.setPos(pos.x(), pos.y(), pos.z());
     }
 
-    public void setPos(double d0, double d1, double d2) {
-        this.setPosRaw(d0, d1, d2);
+    public void setPos(double x, double y, double z) {
+        this.setPosRaw(x, y, z);
         this.setBoundingBox(this.makeBoundingBox());
     }
 
-    protected AxisAlignedBB makeBoundingBox() {
+    protected AABB makeBoundingBox() {
         return this.dimensions.makeBoundingBox(this.position);
     }
 
@@ -583,16 +581,16 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.setPos(this.position.x, this.position.y, this.position.z);
     }
 
-    public void turn(double d0, double d1) {
-        float f = (float) d1 * 0.15F;
-        float f1 = (float) d0 * 0.15F;
+    public void turn(double cursorDeltaX, double cursorDeltaY) {
+        float f = (float) cursorDeltaY * 0.15F;
+        float f1 = (float) cursorDeltaX * 0.15F;
 
         this.setXRot(this.getXRot() + f);
         this.setYRot(this.getYRot() + f1);
-        this.setXRot(MathHelper.clamp(this.getXRot(), -90.0F, 90.0F));
+        this.setXRot(Mth.clamp(this.getXRot(), -90.0F, 90.0F));
         this.xRotO += f;
         this.yRotO += f1;
-        this.xRotO = MathHelper.clamp(this.xRotO, -90.0F, 90.0F);
+        this.xRotO = Mth.clamp(this.xRotO, -90.0F, 90.0F);
         if (this.vehicle != null) {
             this.vehicle.onPassengerTurned(this);
         }
@@ -606,7 +604,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     // CraftBukkit start
     public void postTick() {
         // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
-        if (!(this instanceof EntityPlayer)) {
+        if (!(this instanceof ServerPlayer)) {
             this.handlePortal();
         }
     }
@@ -626,7 +624,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.walkDistO = this.walkDist;
         this.xRotO = this.getXRot();
         this.yRotO = this.getYRot();
-        if (this instanceof EntityPlayer) this.handlePortal(); // CraftBukkit - // Moved up to postTick
+        if (this instanceof ServerPlayer) this.handlePortal(); // CraftBukkit - // Moved up to postTick
         if (this.canSpawnSprintParticle()) {
             this.spawnSprintParticle();
         }
@@ -654,7 +652,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
             if (this.getTicksFrozen() > 0) {
                 this.setTicksFrozen(0);
-                this.level().levelEvent((EntityHuman) null, 1009, this.blockPosition, 1);
+                this.level().levelEvent((Player) null, 1009, this.blockPosition, 1);
             }
         }
 
@@ -680,8 +678,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.level().getProfiler().pop();
     }
 
-    public void setSharedFlagOnFire(boolean flag) {
-        this.setSharedFlag(0, flag || this.hasVisualFire);
+    public void setSharedFlagOnFire(boolean onFire) {
+        this.setSharedFlag(0, onFire || this.hasVisualFire);
     }
 
     public void checkBelowWorld() {
@@ -695,8 +693,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.portalCooldown = this.getDimensionChangingDelay();
     }
 
-    public void setPortalCooldown(int i) {
-        this.portalCooldown = i;
+    public void setPortalCooldown(int portalCooldown) {
+        this.portalCooldown = portalCooldown;
     }
 
     public int getPortalCooldown() {
@@ -717,9 +715,9 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     public void lavaHurt() {
         if (!this.fireImmune()) {
             // CraftBukkit start - Fallen in lava TODO: this event spams!
-            if (this instanceof EntityLiving && remainingFireTicks <= 0) {
+            if (this instanceof net.minecraft.world.entity.LivingEntity && this.remainingFireTicks <= 0) {
                 // not on fire yet
-                org.bukkit.block.Block damager = (lastLavaContact == null) ? null : org.bukkit.craftbukkit.block.CraftBlock.at(level, lastLavaContact);
+                org.bukkit.block.Block damager = (this.lastLavaContact == null) ? null : org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.lastLavaContact);
                 org.bukkit.entity.Entity damagee = this.getBukkitEntity();
                 EntityCombustEvent combustEvent = new org.bukkit.event.entity.EntityCombustByBlockEvent(damager, damagee, 15);
                 this.level.getCraftServer().getPluginManager().callEvent(combustEvent);
@@ -732,17 +730,17 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 this.igniteForSeconds(15.0F, false);
             }
 
-            if (this.hurt(this.damageSources().lava().directBlock(level, lastLavaContact), 4.0F)) {
-                this.playSound(SoundEffects.GENERIC_BURN, 0.4F, 2.0F + this.random.nextFloat() * 0.4F);
+            if (this.hurt(this.damageSources().lava().directBlock(this.level, this.lastLavaContact), 4.0F)) {
+                this.playSound(SoundEvents.GENERIC_BURN, 0.4F, 2.0F + this.random.nextFloat() * 0.4F);
             }
             // CraftBukkit end - we also don't throw an event unless the object in lava is living, to save on some event calls
 
         }
     }
 
-    public final void igniteForSeconds(float f) {
+    public final void igniteForSeconds(float seconds) {
         // CraftBukkit start
-        this.igniteForSeconds(f, true);
+        this.igniteForSeconds(seconds, true);
     }
 
     public final void igniteForSeconds(float f, boolean callEvent) {
@@ -757,18 +755,18 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             f = event.getDuration();
         }
         // CraftBukkit end
-        this.igniteForTicks(MathHelper.floor(f * 20.0F));
+        this.igniteForTicks(Mth.floor(f * 20.0F));
     }
 
-    public void igniteForTicks(int i) {
-        if (this.remainingFireTicks < i) {
-            this.setRemainingFireTicks(i);
+    public void igniteForTicks(int ticks) {
+        if (this.remainingFireTicks < ticks) {
+            this.setRemainingFireTicks(ticks);
         }
 
     }
 
-    public void setRemainingFireTicks(int i) {
-        this.remainingFireTicks = i;
+    public void setRemainingFireTicks(int fireTicks) {
+        this.remainingFireTicks = fireTicks;
     }
 
     public int getRemainingFireTicks() {
@@ -783,37 +781,37 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD); // CraftBukkit - add Bukkit remove cause
     }
 
-    public boolean isFree(double d0, double d1, double d2) {
-        return this.isFree(this.getBoundingBox().move(d0, d1, d2));
+    public boolean isFree(double offsetX, double offsetY, double offsetZ) {
+        return this.isFree(this.getBoundingBox().move(offsetX, offsetY, offsetZ));
     }
 
-    private boolean isFree(AxisAlignedBB axisalignedbb) {
-        return this.level().noCollision(this, axisalignedbb) && !this.level().containsAnyLiquid(axisalignedbb);
+    private boolean isFree(AABB box) {
+        return this.level().noCollision(this, box) && !this.level().containsAnyLiquid(box);
     }
 
-    public void setOnGround(boolean flag) {
-        this.onGround = flag;
-        this.checkSupportingBlock(flag, (Vec3D) null);
+    public void setOnGround(boolean onGround) {
+        this.onGround = onGround;
+        this.checkSupportingBlock(onGround, (Vec3) null);
     }
 
-    public void setOnGroundWithMovement(boolean flag, Vec3D vec3d) {
-        this.onGround = flag;
-        this.checkSupportingBlock(flag, vec3d);
+    public void setOnGroundWithMovement(boolean onGround, Vec3 movement) {
+        this.onGround = onGround;
+        this.checkSupportingBlock(onGround, movement);
     }
 
-    public boolean isSupportedBy(BlockPosition blockposition) {
-        return this.mainSupportingBlockPos.isPresent() && ((BlockPosition) this.mainSupportingBlockPos.get()).equals(blockposition);
+    public boolean isSupportedBy(BlockPos pos) {
+        return this.mainSupportingBlockPos.isPresent() && ((BlockPos) this.mainSupportingBlockPos.get()).equals(pos);
     }
 
-    protected void checkSupportingBlock(boolean flag, @Nullable Vec3D vec3d) {
-        if (flag) {
-            AxisAlignedBB axisalignedbb = this.getBoundingBox();
-            AxisAlignedBB axisalignedbb1 = new AxisAlignedBB(axisalignedbb.minX, axisalignedbb.minY - 1.0E-6D, axisalignedbb.minZ, axisalignedbb.maxX, axisalignedbb.minY, axisalignedbb.maxZ);
-            Optional<BlockPosition> optional = this.level.findSupportingBlock(this, axisalignedbb1);
+    protected void checkSupportingBlock(boolean onGround, @Nullable Vec3 movement) {
+        if (onGround) {
+            AABB axisalignedbb = this.getBoundingBox();
+            AABB axisalignedbb1 = new AABB(axisalignedbb.minX, axisalignedbb.minY - 1.0E-6D, axisalignedbb.minZ, axisalignedbb.maxX, axisalignedbb.minY, axisalignedbb.maxZ);
+            Optional<BlockPos> optional = this.level.findSupportingBlock(this, axisalignedbb1);
 
             if (!optional.isPresent() && !this.onGroundNoBlocks) {
-                if (vec3d != null) {
-                    AxisAlignedBB axisalignedbb2 = axisalignedbb1.move(-vec3d.x, 0.0D, -vec3d.z);
+                if (movement != null) {
+                    AABB axisalignedbb2 = axisalignedbb1.move(-movement.x, 0.0D, -movement.z);
 
                     optional = this.level.findSupportingBlock(this, axisalignedbb2);
                     this.mainSupportingBlockPos = optional;
@@ -836,35 +834,35 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.onGround;
     }
 
-    public void move(EnumMoveType enummovetype, Vec3D vec3d) {
+    public void move(MoverType movementType, Vec3 movement) {
         org.bukkit.craftbukkit.SpigotTimings.entityMoveTimer.startTiming(); // Spigot
         if (this.noPhysics) {
-            this.setPos(this.getX() + vec3d.x, this.getY() + vec3d.y, this.getZ() + vec3d.z);
+            this.setPos(this.getX() + movement.x, this.getY() + movement.y, this.getZ() + movement.z);
         } else {
             this.wasOnFire = this.isOnFire();
-            if (enummovetype == EnumMoveType.PISTON) {
-                vec3d = this.limitPistonMovement(vec3d);
-                if (vec3d.equals(Vec3D.ZERO)) {
+            if (movementType == MoverType.PISTON) {
+                movement = this.limitPistonMovement(movement);
+                if (movement.equals(Vec3.ZERO)) {
                     return;
                 }
             }
 
             this.level().getProfiler().push("move");
             if (this.stuckSpeedMultiplier.lengthSqr() > 1.0E-7D) {
-                vec3d = vec3d.multiply(this.stuckSpeedMultiplier);
-                this.stuckSpeedMultiplier = Vec3D.ZERO;
-                this.setDeltaMovement(Vec3D.ZERO);
+                movement = movement.multiply(this.stuckSpeedMultiplier);
+                this.stuckSpeedMultiplier = Vec3.ZERO;
+                this.setDeltaMovement(Vec3.ZERO);
             }
 
-            vec3d = this.maybeBackOffFromEdge(vec3d, enummovetype);
-            Vec3D vec3d1 = this.collide(vec3d);
+            movement = this.maybeBackOffFromEdge(movement, movementType);
+            Vec3 vec3d1 = this.collide(movement);
             double d0 = vec3d1.lengthSqr();
 
             if (d0 > 1.0E-7D) {
                 if (this.fallDistance != 0.0F && d0 >= 1.0D) {
-                    MovingObjectPositionBlock movingobjectpositionblock = this.level().clip(new RayTrace(this.position(), this.position().add(vec3d1), RayTrace.BlockCollisionOption.FALLDAMAGE_RESETTING, RayTrace.FluidCollisionOption.WATER, this));
+                    BlockHitResult movingobjectpositionblock = this.level().clip(new ClipContext(this.position(), this.position().add(vec3d1), ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
 
-                    if (movingobjectpositionblock.getType() != MovingObjectPosition.EnumMovingObjectType.MISS) {
+                    if (movingobjectpositionblock.getType() != HitResult.Type.MISS) {
                         this.resetFallDistance();
                     }
                 }
@@ -874,12 +872,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
             this.level().getProfiler().pop();
             this.level().getProfiler().push("rest");
-            boolean flag = !MathHelper.equal(vec3d.x, vec3d1.x);
-            boolean flag1 = !MathHelper.equal(vec3d.z, vec3d1.z);
+            boolean flag = !Mth.equal(movement.x, vec3d1.x);
+            boolean flag1 = !Mth.equal(movement.z, vec3d1.z);
 
             this.horizontalCollision = flag || flag1;
-            this.verticalCollision = vec3d.y != vec3d1.y;
-            this.verticalCollisionBelow = this.verticalCollision && vec3d.y < 0.0D;
+            this.verticalCollision = movement.y != vec3d1.y;
+            this.verticalCollisionBelow = this.verticalCollision && movement.y < 0.0D;
             if (this.horizontalCollision) {
                 this.minorHorizontalCollision = this.isHorizontalCollisionMinor(vec3d1);
             } else {
@@ -887,43 +885,43 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             }
 
             this.setOnGroundWithMovement(this.verticalCollisionBelow, vec3d1);
-            BlockPosition blockposition = this.getOnPosLegacy();
-            IBlockData iblockdata = this.level().getBlockState(blockposition);
+            BlockPos blockposition = this.getOnPosLegacy();
+            BlockState iblockdata = this.level().getBlockState(blockposition);
 
             this.checkFallDamage(vec3d1.y, this.onGround(), iblockdata, blockposition);
             if (this.isRemoved()) {
                 this.level().getProfiler().pop();
             } else {
                 if (this.horizontalCollision) {
-                    Vec3D vec3d2 = this.getDeltaMovement();
+                    Vec3 vec3d2 = this.getDeltaMovement();
 
                     this.setDeltaMovement(flag ? 0.0D : vec3d2.x, vec3d2.y, flag1 ? 0.0D : vec3d2.z);
                 }
 
                 Block block = iblockdata.getBlock();
 
-                if (vec3d.y != vec3d1.y) {
+                if (movement.y != vec3d1.y) {
                     block.updateEntityAfterFallOn(this.level(), this);
                 }
 
                 // CraftBukkit start
-                if (horizontalCollision && getBukkitEntity() instanceof Vehicle) {
+                if (this.horizontalCollision && this.getBukkitEntity() instanceof Vehicle) {
                     Vehicle vehicle = (Vehicle) this.getBukkitEntity();
-                    org.bukkit.block.Block bl = this.level.getWorld().getBlockAt(MathHelper.floor(this.getX()), MathHelper.floor(this.getY()), MathHelper.floor(this.getZ()));
+                    org.bukkit.block.Block bl = this.level.getWorld().getBlockAt(Mth.floor(this.getX()), Mth.floor(this.getY()), Mth.floor(this.getZ()));
 
-                    if (vec3d.x > vec3d1.x) {
+                    if (movement.x > vec3d1.x) {
                         bl = bl.getRelative(BlockFace.EAST);
-                    } else if (vec3d.x < vec3d1.x) {
+                    } else if (movement.x < vec3d1.x) {
                         bl = bl.getRelative(BlockFace.WEST);
-                    } else if (vec3d.z > vec3d1.z) {
+                    } else if (movement.z > vec3d1.z) {
                         bl = bl.getRelative(BlockFace.SOUTH);
-                    } else if (vec3d.z < vec3d1.z) {
+                    } else if (movement.z < vec3d1.z) {
                         bl = bl.getRelative(BlockFace.NORTH);
                     }
 
                     if (!bl.getType().isAir()) {
                         VehicleBlockCollisionEvent event = new VehicleBlockCollisionEvent(vehicle, bl);
-                        level.getCraftServer().getPluginManager().callEvent(event);
+                        this.level.getCraftServer().getPluginManager().callEvent(event);
                     }
                 }
                 // CraftBukkit end
@@ -940,8 +938,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                     double d3 = vec3d1.z;
 
                     this.flyDist += (float) (vec3d1.length() * 0.6D);
-                    BlockPosition blockposition1 = this.getOnPos();
-                    IBlockData iblockdata1 = this.level().getBlockState(blockposition1);
+                    BlockPos blockposition1 = this.getOnPos();
+                    BlockState iblockdata1 = this.level().getBlockState(blockposition1);
                     boolean flag2 = this.isStateClimbable(iblockdata1);
 
                     if (!flag2) {
@@ -952,10 +950,10 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                     this.moveDist += (float) Math.sqrt(d1 * d1 + d2 * d2 + d3 * d3) * 0.6F;
                     if (this.moveDist > this.nextStep && !iblockdata1.isAir()) {
                         boolean flag3 = blockposition1.equals(blockposition);
-                        boolean flag4 = this.vibrationAndSoundEffectsFromBlock(blockposition, iblockdata, entity_movementemission.emitsSounds(), flag3, vec3d);
+                        boolean flag4 = this.vibrationAndSoundEffectsFromBlock(blockposition, iblockdata, entity_movementemission.emitsSounds(), flag3, movement);
 
                         if (!flag3) {
-                            flag4 |= this.vibrationAndSoundEffectsFromBlock(blockposition1, iblockdata1, false, entity_movementemission.emitsEvents(), vec3d);
+                            flag4 |= this.vibrationAndSoundEffectsFromBlock(blockposition1, iblockdata1, false, entity_movementemission.emitsEvents(), movement);
                         }
 
                         if (flag4) {
@@ -980,7 +978,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
                 this.setDeltaMovement(this.getDeltaMovement().multiply((double) f, 1.0D, (double) f));
                 if (this.level().getBlockStatesIfLoaded(this.getBoundingBox().deflate(1.0E-6D)).noneMatch((iblockdata2) -> {
-                    return iblockdata2.is(TagsBlock.FIRE) || iblockdata2.is(Blocks.LAVA);
+                    return iblockdata2.is(BlockTags.FIRE) || iblockdata2.is(Blocks.LAVA);
                 })) {
                     if (this.remainingFireTicks <= 0) {
                         this.setRemainingFireTicks(-this.getFireImmuneTicks());
@@ -1001,23 +999,23 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         org.bukkit.craftbukkit.SpigotTimings.entityMoveTimer.stopTiming(); // Spigot
     }
 
-    private boolean isStateClimbable(IBlockData iblockdata) {
-        return iblockdata.is(TagsBlock.CLIMBABLE) || iblockdata.is(Blocks.POWDER_SNOW);
+    private boolean isStateClimbable(BlockState state) {
+        return state.is(BlockTags.CLIMBABLE) || state.is(Blocks.POWDER_SNOW);
     }
 
-    private boolean vibrationAndSoundEffectsFromBlock(BlockPosition blockposition, IBlockData iblockdata, boolean flag, boolean flag1, Vec3D vec3d) {
-        if (iblockdata.isAir()) {
+    private boolean vibrationAndSoundEffectsFromBlock(BlockPos pos, BlockState state, boolean playSound, boolean emitEvent, Vec3 movement) {
+        if (state.isAir()) {
             return false;
         } else {
-            boolean flag2 = this.isStateClimbable(iblockdata);
+            boolean flag2 = this.isStateClimbable(state);
 
-            if ((this.onGround() || flag2 || this.isCrouching() && vec3d.y == 0.0D || this.isOnRails()) && !this.isSwimming()) {
-                if (flag) {
-                    this.walkingStepSound(blockposition, iblockdata);
+            if ((this.onGround() || flag2 || this.isCrouching() && movement.y == 0.0D || this.isOnRails()) && !this.isSwimming()) {
+                if (playSound) {
+                    this.walkingStepSound(pos, state);
                 }
 
-                if (flag1) {
-                    this.level().gameEvent((Holder) GameEvent.STEP, this.position(), GameEvent.a.of(this, iblockdata));
+                if (emitEvent) {
+                    this.level().gameEvent((Holder) GameEvent.STEP, this.position(), GameEvent.Context.of(this, state));
                 }
 
                 return true;
@@ -1027,7 +1025,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
     }
 
-    protected boolean isHorizontalCollisionMinor(Vec3D vec3d) {
+    protected boolean isHorizontalCollisionMinor(Vec3 adjustedMovement) {
         return false;
     }
 
@@ -1036,7 +1034,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             this.checkInsideBlocks();
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Checking entity block collision");
-            CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Entity being checked for collision");
+            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Entity being checked for collision");
 
             this.fillCrashReportCategory(crashreportsystemdetails);
             throw new ReportedException(crashreport);
@@ -1044,7 +1042,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     protected void playEntityOnFireExtinguishedSound() {
-        this.playSound(SoundEffects.GENERIC_EXTINGUISH_FIRE, 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+        this.playSound(SoundEvents.GENERIC_EXTINGUISH_FIRE, 0.7F, 1.6F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
     }
 
     public void extinguishFire() {
@@ -1067,35 +1065,35 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     /** @deprecated */
     @Deprecated
-    public BlockPosition getOnPosLegacy() {
+    public BlockPos getOnPosLegacy() {
         return this.getOnPos(0.2F);
     }
 
-    public BlockPosition getBlockPosBelowThatAffectsMyMovement() {
+    public BlockPos getBlockPosBelowThatAffectsMyMovement() {
         return this.getOnPos(0.500001F);
     }
 
-    public BlockPosition getOnPos() {
+    public BlockPos getOnPos() {
         return this.getOnPos(1.0E-5F);
     }
 
-    protected BlockPosition getOnPos(float f) {
+    protected BlockPos getOnPos(float offset) {
         if (this.mainSupportingBlockPos.isPresent()) {
-            BlockPosition blockposition = (BlockPosition) this.mainSupportingBlockPos.get();
+            BlockPos blockposition = (BlockPos) this.mainSupportingBlockPos.get();
 
-            if (f <= 1.0E-5F) {
+            if (offset <= 1.0E-5F) {
                 return blockposition;
             } else {
-                IBlockData iblockdata = this.level().getBlockState(blockposition);
+                BlockState iblockdata = this.level().getBlockState(blockposition);
 
-                return ((double) f > 0.5D || !iblockdata.is(TagsBlock.FENCES)) && !iblockdata.is(TagsBlock.WALLS) && !(iblockdata.getBlock() instanceof BlockFenceGate) ? blockposition.atY(MathHelper.floor(this.position.y - (double) f)) : blockposition;
+                return ((double) offset > 0.5D || !iblockdata.is(BlockTags.FENCES)) && !iblockdata.is(BlockTags.WALLS) && !(iblockdata.getBlock() instanceof FenceGateBlock) ? blockposition.atY(Mth.floor(this.position.y - (double) offset)) : blockposition;
             }
         } else {
-            int i = MathHelper.floor(this.position.x);
-            int j = MathHelper.floor(this.position.y - (double) f);
-            int k = MathHelper.floor(this.position.z);
+            int i = Mth.floor(this.position.x);
+            int j = Mth.floor(this.position.y - (double) offset);
+            int k = Mth.floor(this.position.z);
 
-            return new BlockPosition(i, j, k);
+            return new BlockPos(i, j, k);
         }
     }
 
@@ -1107,19 +1105,19 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     protected float getBlockSpeedFactor() {
-        IBlockData iblockdata = this.level().getBlockState(this.blockPosition());
+        BlockState iblockdata = this.level().getBlockState(this.blockPosition());
         float f = iblockdata.getBlock().getSpeedFactor();
 
         return !iblockdata.is(Blocks.WATER) && !iblockdata.is(Blocks.BUBBLE_COLUMN) ? ((double) f == 1.0D ? this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getSpeedFactor() : f) : f;
     }
 
-    protected Vec3D maybeBackOffFromEdge(Vec3D vec3d, EnumMoveType enummovetype) {
-        return vec3d;
+    protected Vec3 maybeBackOffFromEdge(Vec3 movement, MoverType type) {
+        return movement;
     }
 
-    protected Vec3D limitPistonMovement(Vec3D vec3d) {
-        if (vec3d.lengthSqr() <= 1.0E-7D) {
-            return vec3d;
+    protected Vec3 limitPistonMovement(Vec3 movement) {
+        if (movement.lengthSqr() <= 1.0E-7D) {
+            return movement;
         } else {
             long i = this.level().getGameTime();
 
@@ -1130,56 +1128,56 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
             double d0;
 
-            if (vec3d.x != 0.0D) {
-                d0 = this.applyPistonMovementRestriction(EnumDirection.EnumAxis.X, vec3d.x);
-                return Math.abs(d0) <= 9.999999747378752E-6D ? Vec3D.ZERO : new Vec3D(d0, 0.0D, 0.0D);
-            } else if (vec3d.y != 0.0D) {
-                d0 = this.applyPistonMovementRestriction(EnumDirection.EnumAxis.Y, vec3d.y);
-                return Math.abs(d0) <= 9.999999747378752E-6D ? Vec3D.ZERO : new Vec3D(0.0D, d0, 0.0D);
-            } else if (vec3d.z != 0.0D) {
-                d0 = this.applyPistonMovementRestriction(EnumDirection.EnumAxis.Z, vec3d.z);
-                return Math.abs(d0) <= 9.999999747378752E-6D ? Vec3D.ZERO : new Vec3D(0.0D, 0.0D, d0);
+            if (movement.x != 0.0D) {
+                d0 = this.applyPistonMovementRestriction(Direction.Axis.X, movement.x);
+                return Math.abs(d0) <= 9.999999747378752E-6D ? Vec3.ZERO : new Vec3(d0, 0.0D, 0.0D);
+            } else if (movement.y != 0.0D) {
+                d0 = this.applyPistonMovementRestriction(Direction.Axis.Y, movement.y);
+                return Math.abs(d0) <= 9.999999747378752E-6D ? Vec3.ZERO : new Vec3(0.0D, d0, 0.0D);
+            } else if (movement.z != 0.0D) {
+                d0 = this.applyPistonMovementRestriction(Direction.Axis.Z, movement.z);
+                return Math.abs(d0) <= 9.999999747378752E-6D ? Vec3.ZERO : new Vec3(0.0D, 0.0D, d0);
             } else {
-                return Vec3D.ZERO;
+                return Vec3.ZERO;
             }
         }
     }
 
-    private double applyPistonMovementRestriction(EnumDirection.EnumAxis enumdirection_enumaxis, double d0) {
-        int i = enumdirection_enumaxis.ordinal();
-        double d1 = MathHelper.clamp(d0 + this.pistonDeltas[i], -0.51D, 0.51D);
+    private double applyPistonMovementRestriction(Direction.Axis axis, double offsetFactor) {
+        int i = axis.ordinal();
+        double d1 = Mth.clamp(offsetFactor + this.pistonDeltas[i], -0.51D, 0.51D);
 
-        d0 = d1 - this.pistonDeltas[i];
+        offsetFactor = d1 - this.pistonDeltas[i];
         this.pistonDeltas[i] = d1;
-        return d0;
+        return offsetFactor;
     }
 
-    private Vec3D collide(Vec3D vec3d) {
-        AxisAlignedBB axisalignedbb = this.getBoundingBox();
-        List<VoxelShape> list = this.level().getEntityCollisions(this, axisalignedbb.expandTowards(vec3d));
-        Vec3D vec3d1 = vec3d.lengthSqr() == 0.0D ? vec3d : collideBoundingBox(this, vec3d, axisalignedbb, this.level(), list);
-        boolean flag = vec3d.x != vec3d1.x;
-        boolean flag1 = vec3d.y != vec3d1.y;
-        boolean flag2 = vec3d.z != vec3d1.z;
-        boolean flag3 = flag1 && vec3d.y < 0.0D;
+    private Vec3 collide(Vec3 movement) {
+        AABB axisalignedbb = this.getBoundingBox();
+        List<VoxelShape> list = this.level().getEntityCollisions(this, axisalignedbb.expandTowards(movement));
+        Vec3 vec3d1 = movement.lengthSqr() == 0.0D ? movement : Entity.collideBoundingBox(this, movement, axisalignedbb, this.level(), list);
+        boolean flag = movement.x != vec3d1.x;
+        boolean flag1 = movement.y != vec3d1.y;
+        boolean flag2 = movement.z != vec3d1.z;
+        boolean flag3 = flag1 && movement.y < 0.0D;
 
         if (this.maxUpStep() > 0.0F && (flag3 || this.onGround()) && (flag || flag2)) {
-            AxisAlignedBB axisalignedbb1 = flag3 ? axisalignedbb.move(0.0D, vec3d1.y, 0.0D) : axisalignedbb;
-            AxisAlignedBB axisalignedbb2 = axisalignedbb1.expandTowards(vec3d.x, (double) this.maxUpStep(), vec3d.z);
+            AABB axisalignedbb1 = flag3 ? axisalignedbb.move(0.0D, vec3d1.y, 0.0D) : axisalignedbb;
+            AABB axisalignedbb2 = axisalignedbb1.expandTowards(movement.x, (double) this.maxUpStep(), movement.z);
 
             if (!flag3) {
                 axisalignedbb2 = axisalignedbb2.expandTowards(0.0D, -9.999999747378752E-6D, 0.0D);
             }
 
-            List<VoxelShape> list1 = collectColliders(this, this.level, list, axisalignedbb2);
+            List<VoxelShape> list1 = Entity.collectColliders(this, this.level, list, axisalignedbb2);
             float f = (float) vec3d1.y;
-            float[] afloat = collectCandidateStepUpHeights(axisalignedbb1, list1, this.maxUpStep(), f);
+            float[] afloat = Entity.collectCandidateStepUpHeights(axisalignedbb1, list1, this.maxUpStep(), f);
             float[] afloat1 = afloat;
             int i = afloat.length;
 
             for (int j = 0; j < i; ++j) {
                 float f1 = afloat1[j];
-                Vec3D vec3d2 = collideWithShapes(new Vec3D(vec3d.x, (double) f1, vec3d.z), axisalignedbb1, list1);
+                Vec3 vec3d2 = Entity.collideWithShapes(new Vec3(movement.x, (double) f1, movement.z), axisalignedbb1, list1);
 
                 if (vec3d2.horizontalDistanceSqr() > vec3d1.horizontalDistanceSqr()) {
                     double d0 = axisalignedbb.minY - axisalignedbb1.minY;
@@ -1192,20 +1190,20 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return vec3d1;
     }
 
-    private static float[] collectCandidateStepUpHeights(AxisAlignedBB axisalignedbb, List<VoxelShape> list, float f, float f1) {
+    private static float[] collectCandidateStepUpHeights(AABB collisionBox, List<VoxelShape> collisions, float f, float stepHeight) {
         FloatArraySet floatarrayset = new FloatArraySet(4);
-        Iterator iterator = list.iterator();
+        Iterator iterator = collisions.iterator();
 
         while (iterator.hasNext()) {
             VoxelShape voxelshape = (VoxelShape) iterator.next();
-            DoubleList doublelist = voxelshape.getCoords(EnumDirection.EnumAxis.Y);
+            DoubleList doublelist = voxelshape.getCoords(Direction.Axis.Y);
             DoubleListIterator doublelistiterator = doublelist.iterator();
 
             while (doublelistiterator.hasNext()) {
                 double d0 = (Double) doublelistiterator.next();
-                float f2 = (float) (d0 - axisalignedbb.minY);
+                float f2 = (float) (d0 - collisionBox.minY);
 
-                if (f2 >= 0.0F && f2 != f1) {
+                if (f2 >= 0.0F && f2 != stepHeight) {
                     if (f2 > f) {
                         break;
                     }
@@ -1221,66 +1219,66 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return afloat;
     }
 
-    public static Vec3D collideBoundingBox(@Nullable Entity entity, Vec3D vec3d, AxisAlignedBB axisalignedbb, World world, List<VoxelShape> list) {
-        List<VoxelShape> list1 = collectColliders(entity, world, list, axisalignedbb.expandTowards(vec3d));
+    public static Vec3 collideBoundingBox(@Nullable Entity entity, Vec3 movement, AABB entityBoundingBox, Level world, List<VoxelShape> collisions) {
+        List<VoxelShape> list1 = Entity.collectColliders(entity, world, collisions, entityBoundingBox.expandTowards(movement));
 
-        return collideWithShapes(vec3d, axisalignedbb, list1);
+        return Entity.collideWithShapes(movement, entityBoundingBox, list1);
     }
 
-    private static List<VoxelShape> collectColliders(@Nullable Entity entity, World world, List<VoxelShape> list, AxisAlignedBB axisalignedbb) {
-        Builder<VoxelShape> builder = ImmutableList.builderWithExpectedSize(list.size() + 1);
+    private static List<VoxelShape> collectColliders(@Nullable Entity entity, Level world, List<VoxelShape> regularCollisions, AABB movingEntityBoundingBox) {
+        Builder<VoxelShape> builder = ImmutableList.builderWithExpectedSize(regularCollisions.size() + 1);
 
-        if (!list.isEmpty()) {
-            builder.addAll(list);
+        if (!regularCollisions.isEmpty()) {
+            builder.addAll(regularCollisions);
         }
 
         WorldBorder worldborder = world.getWorldBorder();
-        boolean flag = entity != null && worldborder.isInsideCloseToBorder(entity, axisalignedbb);
+        boolean flag = entity != null && worldborder.isInsideCloseToBorder(entity, movingEntityBoundingBox);
 
         if (flag) {
             builder.add(worldborder.getCollisionShape());
         }
 
-        builder.addAll(world.getBlockCollisions(entity, axisalignedbb));
+        builder.addAll(world.getBlockCollisions(entity, movingEntityBoundingBox));
         return builder.build();
     }
 
-    private static Vec3D collideWithShapes(Vec3D vec3d, AxisAlignedBB axisalignedbb, List<VoxelShape> list) {
-        if (list.isEmpty()) {
-            return vec3d;
+    private static Vec3 collideWithShapes(Vec3 movement, AABB entityBoundingBox, List<VoxelShape> collisions) {
+        if (collisions.isEmpty()) {
+            return movement;
         } else {
-            double d0 = vec3d.x;
-            double d1 = vec3d.y;
-            double d2 = vec3d.z;
+            double d0 = movement.x;
+            double d1 = movement.y;
+            double d2 = movement.z;
 
             if (d1 != 0.0D) {
-                d1 = VoxelShapes.collide(EnumDirection.EnumAxis.Y, axisalignedbb, list, d1);
+                d1 = Shapes.collide(Direction.Axis.Y, entityBoundingBox, collisions, d1);
                 if (d1 != 0.0D) {
-                    axisalignedbb = axisalignedbb.move(0.0D, d1, 0.0D);
+                    entityBoundingBox = entityBoundingBox.move(0.0D, d1, 0.0D);
                 }
             }
 
             boolean flag = Math.abs(d0) < Math.abs(d2);
 
             if (flag && d2 != 0.0D) {
-                d2 = VoxelShapes.collide(EnumDirection.EnumAxis.Z, axisalignedbb, list, d2);
+                d2 = Shapes.collide(Direction.Axis.Z, entityBoundingBox, collisions, d2);
                 if (d2 != 0.0D) {
-                    axisalignedbb = axisalignedbb.move(0.0D, 0.0D, d2);
+                    entityBoundingBox = entityBoundingBox.move(0.0D, 0.0D, d2);
                 }
             }
 
             if (d0 != 0.0D) {
-                d0 = VoxelShapes.collide(EnumDirection.EnumAxis.X, axisalignedbb, list, d0);
+                d0 = Shapes.collide(Direction.Axis.X, entityBoundingBox, collisions, d0);
                 if (!flag && d0 != 0.0D) {
-                    axisalignedbb = axisalignedbb.move(d0, 0.0D, 0.0D);
+                    entityBoundingBox = entityBoundingBox.move(d0, 0.0D, 0.0D);
                 }
             }
 
             if (!flag && d2 != 0.0D) {
-                d2 = VoxelShapes.collide(EnumDirection.EnumAxis.Z, axisalignedbb, list, d2);
+                d2 = Shapes.collide(Direction.Axis.Z, entityBoundingBox, collisions, d2);
             }
 
-            return new Vec3D(d0, d1, d2);
+            return new Vec3(d0, d1, d2);
         }
     }
 
@@ -1288,39 +1286,39 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return (float) ((int) this.moveDist + 1);
     }
 
-    protected SoundEffect getSwimSound() {
-        return SoundEffects.GENERIC_SWIM;
+    protected SoundEvent getSwimSound() {
+        return SoundEvents.GENERIC_SWIM;
     }
 
-    protected SoundEffect getSwimSplashSound() {
-        return SoundEffects.GENERIC_SPLASH;
+    protected SoundEvent getSwimSplashSound() {
+        return SoundEvents.GENERIC_SPLASH;
     }
 
-    protected SoundEffect getSwimHighSpeedSplashSound() {
-        return SoundEffects.GENERIC_SPLASH;
+    protected SoundEvent getSwimHighSpeedSplashSound() {
+        return SoundEvents.GENERIC_SPLASH;
     }
 
     // CraftBukkit start - Add delegate methods
-    public SoundEffect getSwimSound0() {
-        return getSwimSound();
+    public SoundEvent getSwimSound0() {
+        return this.getSwimSound();
     }
 
-    public SoundEffect getSwimSplashSound0() {
-        return getSwimSplashSound();
+    public SoundEvent getSwimSplashSound0() {
+        return this.getSwimSplashSound();
     }
 
-    public SoundEffect getSwimHighSpeedSplashSound0() {
-        return getSwimHighSpeedSplashSound();
+    public SoundEvent getSwimHighSpeedSplashSound0() {
+        return this.getSwimHighSpeedSplashSound();
     }
     // CraftBukkit end
 
     protected void checkInsideBlocks() {
-        AxisAlignedBB axisalignedbb = this.getBoundingBox();
-        BlockPosition blockposition = BlockPosition.containing(axisalignedbb.minX + 1.0E-7D, axisalignedbb.minY + 1.0E-7D, axisalignedbb.minZ + 1.0E-7D);
-        BlockPosition blockposition1 = BlockPosition.containing(axisalignedbb.maxX - 1.0E-7D, axisalignedbb.maxY - 1.0E-7D, axisalignedbb.maxZ - 1.0E-7D);
+        AABB axisalignedbb = this.getBoundingBox();
+        BlockPos blockposition = BlockPos.containing(axisalignedbb.minX + 1.0E-7D, axisalignedbb.minY + 1.0E-7D, axisalignedbb.minZ + 1.0E-7D);
+        BlockPos blockposition1 = BlockPos.containing(axisalignedbb.maxX - 1.0E-7D, axisalignedbb.maxY - 1.0E-7D, axisalignedbb.maxZ - 1.0E-7D);
 
         if (this.level().hasChunksAt(blockposition, blockposition1)) {
-            BlockPosition.MutableBlockPosition blockposition_mutableblockposition = new BlockPosition.MutableBlockPosition();
+            BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 
             for (int i = blockposition.getX(); i <= blockposition1.getX(); ++i) {
                 for (int j = blockposition.getY(); j <= blockposition1.getY(); ++j) {
@@ -1330,16 +1328,16 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                         }
 
                         blockposition_mutableblockposition.set(i, j, k);
-                        IBlockData iblockdata = this.level().getBlockState(blockposition_mutableblockposition);
+                        BlockState iblockdata = this.level().getBlockState(blockposition_mutableblockposition);
 
                         try {
                             iblockdata.entityInside(this.level(), blockposition_mutableblockposition, this);
                             this.onInsideBlock(iblockdata);
                         } catch (Throwable throwable) {
                             CrashReport crashreport = CrashReport.forThrowable(throwable, "Colliding entity with block");
-                            CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Block being collided with");
+                            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Block being collided with");
 
-                            CrashReportSystemDetails.populateBlockDetails(crashreportsystemdetails, this.level(), blockposition_mutableblockposition, iblockdata);
+                            CrashReportCategory.populateBlockDetails(crashreportsystemdetails, this.level(), blockposition_mutableblockposition, iblockdata);
                             throw new ReportedException(crashreport);
                         }
                     }
@@ -1349,27 +1347,27 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     }
 
-    protected void onInsideBlock(IBlockData iblockdata) {}
+    protected void onInsideBlock(BlockState state) {}
 
-    public BlockPosition adjustSpawnLocation(WorldServer worldserver, BlockPosition blockposition) {
-        BlockPosition blockposition1 = worldserver.getSharedSpawnPos();
-        Vec3D vec3d = blockposition1.getCenter();
-        int i = worldserver.getChunkAt(blockposition1).getHeight(HeightMap.Type.MOTION_BLOCKING_NO_LEAVES, blockposition1.getX(), blockposition1.getZ()) + 1;
+    public BlockPos adjustSpawnLocation(ServerLevel world, BlockPos basePos) {
+        BlockPos blockposition1 = world.getSharedSpawnPos();
+        Vec3 vec3d = blockposition1.getCenter();
+        int i = world.getChunkAt(blockposition1).getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, blockposition1.getX(), blockposition1.getZ()) + 1;
 
-        return BlockPosition.containing(vec3d.x, (double) i, vec3d.z);
+        return BlockPos.containing(vec3d.x, (double) i, vec3d.z);
     }
 
-    public void gameEvent(Holder<GameEvent> holder, @Nullable Entity entity) {
-        this.level().gameEvent(entity, holder, this.position);
+    public void gameEvent(Holder<GameEvent> event, @Nullable Entity entity) {
+        this.level().gameEvent(entity, event, this.position);
     }
 
-    public void gameEvent(Holder<GameEvent> holder) {
-        this.gameEvent(holder, this);
+    public void gameEvent(Holder<GameEvent> event) {
+        this.gameEvent(event, this);
     }
 
-    private void walkingStepSound(BlockPosition blockposition, IBlockData iblockdata) {
-        this.playStepSound(blockposition, iblockdata);
-        if (this.shouldPlayAmethystStepSound(iblockdata)) {
+    private void walkingStepSound(BlockPos pos, BlockState state) {
+        this.playStepSound(pos, state);
+        if (this.shouldPlayAmethystStepSound(state)) {
             this.playAmethystStepSound();
         }
 
@@ -1378,40 +1376,40 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     protected void waterSwimSound() {
         Entity entity = (Entity) Objects.requireNonNullElse(this.getControllingPassenger(), this);
         float f = entity == this ? 0.35F : 0.4F;
-        Vec3D vec3d = entity.getDeltaMovement();
+        Vec3 vec3d = entity.getDeltaMovement();
         float f1 = Math.min(1.0F, (float) Math.sqrt(vec3d.x * vec3d.x * 0.20000000298023224D + vec3d.y * vec3d.y + vec3d.z * vec3d.z * 0.20000000298023224D) * f);
 
         this.playSwimSound(f1);
     }
 
-    protected BlockPosition getPrimaryStepSoundBlockPos(BlockPosition blockposition) {
-        BlockPosition blockposition1 = blockposition.above();
-        IBlockData iblockdata = this.level().getBlockState(blockposition1);
+    protected BlockPos getPrimaryStepSoundBlockPos(BlockPos pos) {
+        BlockPos blockposition1 = pos.above();
+        BlockState iblockdata = this.level().getBlockState(blockposition1);
 
-        return !iblockdata.is(TagsBlock.INSIDE_STEP_SOUND_BLOCKS) && !iblockdata.is(TagsBlock.COMBINATION_STEP_SOUND_BLOCKS) ? blockposition : blockposition1;
+        return !iblockdata.is(BlockTags.INSIDE_STEP_SOUND_BLOCKS) && !iblockdata.is(BlockTags.COMBINATION_STEP_SOUND_BLOCKS) ? pos : blockposition1;
     }
 
-    protected void playCombinationStepSounds(IBlockData iblockdata, IBlockData iblockdata1) {
-        SoundEffectType soundeffecttype = iblockdata.getSoundType();
+    protected void playCombinationStepSounds(BlockState primaryState, BlockState secondaryState) {
+        SoundType soundeffecttype = primaryState.getSoundType();
 
         this.playSound(soundeffecttype.getStepSound(), soundeffecttype.getVolume() * 0.15F, soundeffecttype.getPitch());
-        this.playMuffledStepSound(iblockdata1);
+        this.playMuffledStepSound(secondaryState);
     }
 
-    protected void playMuffledStepSound(IBlockData iblockdata) {
-        SoundEffectType soundeffecttype = iblockdata.getSoundType();
+    protected void playMuffledStepSound(BlockState state) {
+        SoundType soundeffecttype = state.getSoundType();
 
         this.playSound(soundeffecttype.getStepSound(), soundeffecttype.getVolume() * 0.05F, soundeffecttype.getPitch() * 0.8F);
     }
 
-    protected void playStepSound(BlockPosition blockposition, IBlockData iblockdata) {
-        SoundEffectType soundeffecttype = iblockdata.getSoundType();
+    protected void playStepSound(BlockPos pos, BlockState state) {
+        SoundType soundeffecttype = state.getSoundType();
 
         this.playSound(soundeffecttype.getStepSound(), soundeffecttype.getVolume() * 0.15F, soundeffecttype.getPitch());
     }
 
-    private boolean shouldPlayAmethystStepSound(IBlockData iblockdata) {
-        return iblockdata.is(TagsBlock.CRYSTAL_SOUND_BLOCKS) && this.tickCount >= this.lastCrystalSoundPlayTick + 20;
+    private boolean shouldPlayAmethystStepSound(BlockState state) {
+        return state.is(BlockTags.CRYSTAL_SOUND_BLOCKS) && this.tickCount >= this.lastCrystalSoundPlayTick + 20;
     }
 
     private void playAmethystStepSound() {
@@ -1420,12 +1418,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         float f = 0.5F + this.crystalSoundIntensity * this.random.nextFloat() * 1.2F;
         float f1 = 0.1F + this.crystalSoundIntensity * 1.2F;
 
-        this.playSound(SoundEffects.AMETHYST_BLOCK_CHIME, f1, f);
+        this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, f1, f);
         this.lastCrystalSoundPlayTick = this.tickCount;
     }
 
-    protected void playSwimSound(float f) {
-        this.playSound(this.getSwimSound(), f, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+    protected void playSwimSound(float volume) {
+        this.playSound(this.getSwimSound(), volume, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
     }
 
     protected void onFlap() {}
@@ -1434,16 +1432,16 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return false;
     }
 
-    public void playSound(SoundEffect soundeffect, float f, float f1) {
+    public void playSound(SoundEvent sound, float volume, float pitch) {
         if (!this.isSilent()) {
-            this.level().playSound((EntityHuman) null, this.getX(), this.getY(), this.getZ(), soundeffect, this.getSoundSource(), f, f1);
+            this.level().playSound((Player) null, this.getX(), this.getY(), this.getZ(), sound, this.getSoundSource(), volume, pitch);
         }
 
     }
 
-    public void playSound(SoundEffect soundeffect) {
+    public void playSound(SoundEvent event) {
         if (!this.isSilent()) {
-            this.playSound(soundeffect, 1.0F, 1.0F);
+            this.playSound(event, 1.0F, 1.0F);
         }
 
     }
@@ -1452,16 +1450,16 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return (Boolean) this.entityData.get(Entity.DATA_SILENT);
     }
 
-    public void setSilent(boolean flag) {
-        this.entityData.set(Entity.DATA_SILENT, flag);
+    public void setSilent(boolean silent) {
+        this.entityData.set(Entity.DATA_SILENT, silent);
     }
 
     public boolean isNoGravity() {
         return (Boolean) this.entityData.get(Entity.DATA_NO_GRAVITY);
     }
 
-    public void setNoGravity(boolean flag) {
-        this.entityData.set(Entity.DATA_NO_GRAVITY, flag);
+    public void setNoGravity(boolean noGravity) {
+        this.entityData.set(Entity.DATA_NO_GRAVITY, noGravity);
     }
 
     protected double getDefaultGravity() {
@@ -1489,18 +1487,18 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return false;
     }
 
-    protected void checkFallDamage(double d0, boolean flag, IBlockData iblockdata, BlockPosition blockposition) {
-        if (flag) {
+    protected void checkFallDamage(double heightDifference, boolean onGround, BlockState state, BlockPos landedPosition) {
+        if (onGround) {
             if (this.fallDistance > 0.0F) {
-                iblockdata.getBlock().fallOn(this.level(), iblockdata, blockposition, this, this.fallDistance);
-                this.level().gameEvent((Holder) GameEvent.HIT_GROUND, this.position, GameEvent.a.of(this, (IBlockData) this.mainSupportingBlockPos.map((blockposition1) -> {
+                state.getBlock().fallOn(this.level(), state, landedPosition, this, this.fallDistance);
+                this.level().gameEvent((Holder) GameEvent.HIT_GROUND, this.position, GameEvent.Context.of(this, (BlockState) this.mainSupportingBlockPos.map((blockposition1) -> {
                     return this.level().getBlockState(blockposition1);
-                }).orElse(iblockdata)));
+                }).orElse(state)));
             }
 
             this.resetFallDistance();
-        } else if (d0 < 0.0D) {
-            this.fallDistance -= (float) d0;
+        } else if (heightDifference < 0.0D) {
+            this.fallDistance -= (float) heightDifference;
         }
 
     }
@@ -1509,8 +1507,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.getType().fireImmune();
     }
 
-    public boolean causeFallDamage(float f, float f1, DamageSource damagesource) {
-        if (this.type.is(TagsEntity.FALL_DAMAGE_IMMUNE)) {
+    public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
+        if (this.type.is(EntityTypeTags.FALL_DAMAGE_IMMUNE)) {
             return false;
         } else {
             if (this.isVehicle()) {
@@ -1519,7 +1517,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 while (iterator.hasNext()) {
                     Entity entity = (Entity) iterator.next();
 
-                    entity.causeFallDamage(f, f1, damagesource);
+                    entity.causeFallDamage(fallDistance, damageMultiplier, damageSource);
                 }
             }
 
@@ -1531,13 +1529,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.wasTouchingWater;
     }
 
-    private boolean isInRain() {
-        BlockPosition blockposition = this.blockPosition();
+    public boolean isInRain() {
+        BlockPos blockposition = this.blockPosition();
 
-        return this.level().isRainingAt(blockposition) || this.level().isRainingAt(BlockPosition.containing((double) blockposition.getX(), this.getBoundingBox().maxY, (double) blockposition.getZ()));
+        return this.level().isRainingAt(blockposition) || this.level().isRainingAt(BlockPos.containing((double) blockposition.getX(), this.getBoundingBox().maxY, (double) blockposition.getZ()));
     }
 
-    private boolean isInBubbleColumn() {
+    public boolean isInBubbleColumn() {
         return this.getInBlockState().is(Blocks.BUBBLE_COLUMN);
     }
 
@@ -1565,7 +1563,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         if (this.isSwimming()) {
             this.setSwimming(this.isSprinting() && this.isInWater() && !this.isPassenger());
         } else {
-            this.setSwimming(this.isSprinting() && this.isUnderWater() && !this.isPassenger() && this.level().getFluidState(this.blockPosition).is(TagsFluid.WATER));
+            this.setSwimming(this.isSprinting() && this.isUnderWater() && !this.isPassenger() && this.level().getFluidState(this.blockPosition).is(FluidTags.WATER));
         }
 
     }
@@ -1574,7 +1572,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.fluidHeight.clear();
         this.updateInWaterStateAndDoWaterCurrentPushing();
         double d0 = this.level().dimensionType().ultraWarm() ? 0.007D : 0.0023333333333333335D;
-        boolean flag = this.updateFluidHeightAndDoFluidPushing(TagsFluid.LAVA, d0);
+        boolean flag = this.updateFluidHeightAndDoFluidPushing(FluidTags.LAVA, d0);
 
         return this.isInWater() || flag;
     }
@@ -1582,14 +1580,14 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     void updateInWaterStateAndDoWaterCurrentPushing() {
         Entity entity = this.getVehicle();
 
-        if (entity instanceof EntityBoat entityboat) {
+        if (entity instanceof Boat entityboat) {
             if (!entityboat.isUnderWater()) {
                 this.wasTouchingWater = false;
                 return;
             }
         }
 
-        if (this.updateFluidHeightAndDoFluidPushing(TagsFluid.WATER, 0.014D)) {
+        if (this.updateFluidHeightAndDoFluidPushing(FluidTags.WATER, 0.014D)) {
             if (!this.wasTouchingWater && !this.firstTick) {
                 this.doWaterSplashEffect();
             }
@@ -1604,19 +1602,19 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     private void updateFluidOnEyes() {
-        this.wasEyeInWater = this.isEyeInFluid(TagsFluid.WATER);
+        this.wasEyeInWater = this.isEyeInFluid(FluidTags.WATER);
         this.fluidOnEyes.clear();
         double d0 = this.getEyeY();
         Entity entity = this.getVehicle();
 
-        if (entity instanceof EntityBoat entityboat) {
+        if (entity instanceof Boat entityboat) {
             if (!entityboat.isUnderWater() && entityboat.getBoundingBox().maxY >= d0 && entityboat.getBoundingBox().minY <= d0) {
                 return;
             }
         }
 
-        BlockPosition blockposition = BlockPosition.containing(this.getX(), d0, this.getZ());
-        Fluid fluid = this.level().getFluidState(blockposition);
+        BlockPos blockposition = BlockPos.containing(this.getX(), d0, this.getZ());
+        FluidState fluid = this.level().getFluidState(blockposition);
         double d1 = (double) ((float) blockposition.getY() + fluid.getHeight(this.level(), blockposition));
 
         if (d1 > d0) {
@@ -1632,7 +1630,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     protected void doWaterSplashEffect() {
         Entity entity = (Entity) Objects.requireNonNullElse(this.getControllingPassenger(), this);
         float f = entity == this ? 0.2F : 0.9F;
-        Vec3D vec3d = entity.getDeltaMovement();
+        Vec3 vec3d = entity.getDeltaMovement();
         float f1 = Math.min(1.0F, (float) Math.sqrt(vec3d.x * vec3d.x * 0.20000000298023224D + vec3d.y * vec3d.y + vec3d.z * vec3d.z * 0.20000000298023224D) * f);
 
         if (f1 < 0.25F) {
@@ -1641,7 +1639,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             this.playSound(this.getSwimHighSpeedSplashSound(), f1, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
         }
 
-        float f2 = (float) MathHelper.floor(this.getY());
+        float f2 = (float) Mth.floor(this.getY());
 
         double d0;
         double d1;
@@ -1650,13 +1648,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         for (i = 0; (float) i < 1.0F + this.dimensions.width() * 20.0F; ++i) {
             d0 = (this.random.nextDouble() * 2.0D - 1.0D) * (double) this.dimensions.width();
             d1 = (this.random.nextDouble() * 2.0D - 1.0D) * (double) this.dimensions.width();
-            this.level().addParticle(Particles.BUBBLE, this.getX() + d0, (double) (f2 + 1.0F), this.getZ() + d1, vec3d.x, vec3d.y - this.random.nextDouble() * 0.20000000298023224D, vec3d.z);
+            this.level().addParticle(ParticleTypes.BUBBLE, this.getX() + d0, (double) (f2 + 1.0F), this.getZ() + d1, vec3d.x, vec3d.y - this.random.nextDouble() * 0.20000000298023224D, vec3d.z);
         }
 
         for (i = 0; (float) i < 1.0F + this.dimensions.width() * 20.0F; ++i) {
             d0 = (this.random.nextDouble() * 2.0D - 1.0D) * (double) this.dimensions.width();
             d1 = (this.random.nextDouble() * 2.0D - 1.0D) * (double) this.dimensions.width();
-            this.level().addParticle(Particles.SPLASH, this.getX() + d0, (double) (f2 + 1.0F), this.getZ() + d1, vec3d.x, vec3d.y, vec3d.z);
+            this.level().addParticle(ParticleTypes.SPLASH, this.getX() + d0, (double) (f2 + 1.0F), this.getZ() + d1, vec3d.x, vec3d.y, vec3d.z);
         }
 
         this.gameEvent(GameEvent.SPLASH);
@@ -1664,11 +1662,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     /** @deprecated */
     @Deprecated
-    protected IBlockData getBlockStateOnLegacy() {
+    protected BlockState getBlockStateOnLegacy() {
         return this.level().getBlockState(this.getOnPosLegacy());
     }
 
-    public IBlockData getBlockStateOn() {
+    public BlockState getBlockStateOn() {
         return this.level().getBlockState(this.getOnPos());
     }
 
@@ -1677,105 +1675,105 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     protected void spawnSprintParticle() {
-        BlockPosition blockposition = this.getOnPosLegacy();
-        IBlockData iblockdata = this.level().getBlockState(blockposition);
+        BlockPos blockposition = this.getOnPosLegacy();
+        BlockState iblockdata = this.level().getBlockState(blockposition);
 
-        if (iblockdata.getRenderShape() != EnumRenderType.INVISIBLE) {
-            Vec3D vec3d = this.getDeltaMovement();
-            BlockPosition blockposition1 = this.blockPosition();
+        if (iblockdata.getRenderShape() != RenderShape.INVISIBLE) {
+            Vec3 vec3d = this.getDeltaMovement();
+            BlockPos blockposition1 = this.blockPosition();
             double d0 = this.getX() + (this.random.nextDouble() - 0.5D) * (double) this.dimensions.width();
             double d1 = this.getZ() + (this.random.nextDouble() - 0.5D) * (double) this.dimensions.width();
 
             if (blockposition1.getX() != blockposition.getX()) {
-                d0 = MathHelper.clamp(d0, (double) blockposition.getX(), (double) blockposition.getX() + 1.0D);
+                d0 = Mth.clamp(d0, (double) blockposition.getX(), (double) blockposition.getX() + 1.0D);
             }
 
             if (blockposition1.getZ() != blockposition.getZ()) {
-                d1 = MathHelper.clamp(d1, (double) blockposition.getZ(), (double) blockposition.getZ() + 1.0D);
+                d1 = Mth.clamp(d1, (double) blockposition.getZ(), (double) blockposition.getZ() + 1.0D);
             }
 
-            this.level().addParticle(new ParticleParamBlock(Particles.BLOCK, iblockdata), d0, this.getY() + 0.1D, d1, vec3d.x * -4.0D, 1.5D, vec3d.z * -4.0D);
+            this.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, iblockdata), d0, this.getY() + 0.1D, d1, vec3d.x * -4.0D, 1.5D, vec3d.z * -4.0D);
         }
 
     }
 
-    public boolean isEyeInFluid(TagKey<FluidType> tagkey) {
-        return this.fluidOnEyes.contains(tagkey);
+    public boolean isEyeInFluid(TagKey<Fluid> fluidTag) {
+        return this.fluidOnEyes.contains(fluidTag);
     }
 
     public boolean isInLava() {
-        return !this.firstTick && this.fluidHeight.getDouble(TagsFluid.LAVA) > 0.0D;
+        return !this.firstTick && this.fluidHeight.getDouble(FluidTags.LAVA) > 0.0D;
     }
 
-    public void moveRelative(float f, Vec3D vec3d) {
-        Vec3D vec3d1 = getInputVector(vec3d, f, this.getYRot());
+    public void moveRelative(float speed, Vec3 movementInput) {
+        Vec3 vec3d1 = Entity.getInputVector(movementInput, speed, this.getYRot());
 
         this.setDeltaMovement(this.getDeltaMovement().add(vec3d1));
     }
 
-    private static Vec3D getInputVector(Vec3D vec3d, float f, float f1) {
-        double d0 = vec3d.lengthSqr();
+    private static Vec3 getInputVector(Vec3 movementInput, float speed, float yaw) {
+        double d0 = movementInput.lengthSqr();
 
         if (d0 < 1.0E-7D) {
-            return Vec3D.ZERO;
+            return Vec3.ZERO;
         } else {
-            Vec3D vec3d1 = (d0 > 1.0D ? vec3d.normalize() : vec3d).scale((double) f);
-            float f2 = MathHelper.sin(f1 * 0.017453292F);
-            float f3 = MathHelper.cos(f1 * 0.017453292F);
+            Vec3 vec3d1 = (d0 > 1.0D ? movementInput.normalize() : movementInput).scale((double) speed);
+            float f2 = Mth.sin(yaw * 0.017453292F);
+            float f3 = Mth.cos(yaw * 0.017453292F);
 
-            return new Vec3D(vec3d1.x * (double) f3 - vec3d1.z * (double) f2, vec3d1.y, vec3d1.z * (double) f3 + vec3d1.x * (double) f2);
+            return new Vec3(vec3d1.x * (double) f3 - vec3d1.z * (double) f2, vec3d1.y, vec3d1.z * (double) f3 + vec3d1.x * (double) f2);
         }
     }
 
     /** @deprecated */
     @Deprecated
     public float getLightLevelDependentMagicValue() {
-        return this.level().hasChunkAt(this.getBlockX(), this.getBlockZ()) ? this.level().getLightLevelDependentMagicValue(BlockPosition.containing(this.getX(), this.getEyeY(), this.getZ())) : 0.0F;
+        return this.level().hasChunkAt(this.getBlockX(), this.getBlockZ()) ? this.level().getLightLevelDependentMagicValue(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())) : 0.0F;
     }
 
-    public void absMoveTo(double d0, double d1, double d2, float f, float f1) {
-        this.absMoveTo(d0, d1, d2);
-        this.absRotateTo(f, f1);
+    public void absMoveTo(double x, double y, double z, float yaw, float pitch) {
+        this.absMoveTo(x, y, z);
+        this.absRotateTo(yaw, pitch);
     }
 
-    public void absRotateTo(float f, float f1) {
-        this.setYRot(f % 360.0F);
-        this.setXRot(MathHelper.clamp(f1, -90.0F, 90.0F) % 360.0F);
+    public void absRotateTo(float yaw, float pitch) {
+        this.setYRot(yaw % 360.0F);
+        this.setXRot(Mth.clamp(pitch, -90.0F, 90.0F) % 360.0F);
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
     }
 
-    public void absMoveTo(double d0, double d1, double d2) {
-        double d3 = MathHelper.clamp(d0, -3.0E7D, 3.0E7D);
-        double d4 = MathHelper.clamp(d2, -3.0E7D, 3.0E7D);
+    public void absMoveTo(double x, double y, double z) {
+        double d3 = Mth.clamp(x, -3.0E7D, 3.0E7D);
+        double d4 = Mth.clamp(z, -3.0E7D, 3.0E7D);
 
         this.xo = d3;
-        this.yo = d1;
+        this.yo = y;
         this.zo = d4;
-        this.setPos(d3, d1, d4);
-        if (valid) level.getChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4); // CraftBukkit
+        this.setPos(d3, y, d4);
+        if (this.valid) this.level.getChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4); // CraftBukkit
     }
 
-    public void moveTo(Vec3D vec3d) {
-        this.moveTo(vec3d.x, vec3d.y, vec3d.z);
+    public void moveTo(Vec3 pos) {
+        this.moveTo(pos.x, pos.y, pos.z);
     }
 
-    public void moveTo(double d0, double d1, double d2) {
-        this.moveTo(d0, d1, d2, this.getYRot(), this.getXRot());
+    public void moveTo(double x, double y, double z) {
+        this.moveTo(x, y, z, this.getYRot(), this.getXRot());
     }
 
-    public void moveTo(BlockPosition blockposition, float f, float f1) {
-        this.moveTo(blockposition.getBottomCenter(), f, f1);
+    public void moveTo(BlockPos pos, float yaw, float pitch) {
+        this.moveTo(pos.getBottomCenter(), yaw, pitch);
     }
 
-    public void moveTo(Vec3D vec3d, float f, float f1) {
-        this.moveTo(vec3d.x, vec3d.y, vec3d.z, f, f1);
+    public void moveTo(Vec3 pos, float yaw, float pitch) {
+        this.moveTo(pos.x, pos.y, pos.z, yaw, pitch);
     }
 
-    public void moveTo(double d0, double d1, double d2, float f, float f1) {
-        this.setPosRaw(d0, d1, d2);
-        this.setYRot(f);
-        this.setXRot(f1);
+    public void moveTo(double x, double y, double z, float yaw, float pitch) {
+        this.setPosRaw(x, y, z);
+        this.setYRot(yaw);
+        this.setXRot(pitch);
         this.setOldPosAndRot();
         this.reapplyPosition();
     }
@@ -1800,13 +1798,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         float f1 = (float) (this.getY() - entity.getY());
         float f2 = (float) (this.getZ() - entity.getZ());
 
-        return MathHelper.sqrt(f * f + f1 * f1 + f2 * f2);
+        return Mth.sqrt(f * f + f1 * f1 + f2 * f2);
     }
 
-    public double distanceToSqr(double d0, double d1, double d2) {
-        double d3 = this.getX() - d0;
-        double d4 = this.getY() - d1;
-        double d5 = this.getZ() - d2;
+    public double distanceToSqr(double x, double y, double z) {
+        double d3 = this.getX() - x;
+        double d4 = this.getY() - y;
+        double d5 = this.getZ() - z;
 
         return d3 * d3 + d4 * d4 + d5 * d5;
     }
@@ -1815,22 +1813,22 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.distanceToSqr(entity.position());
     }
 
-    public double distanceToSqr(Vec3D vec3d) {
-        double d0 = this.getX() - vec3d.x;
-        double d1 = this.getY() - vec3d.y;
-        double d2 = this.getZ() - vec3d.z;
+    public double distanceToSqr(Vec3 vector) {
+        double d0 = this.getX() - vector.x;
+        double d1 = this.getY() - vector.y;
+        double d2 = this.getZ() - vector.z;
 
         return d0 * d0 + d1 * d1 + d2 * d2;
     }
 
-    public void playerTouch(EntityHuman entityhuman) {}
+    public void playerTouch(Player player) {}
 
     public void push(Entity entity) {
         if (!this.isPassengerOfSameVehicle(entity)) {
             if (!entity.noPhysics && !this.noPhysics) {
                 double d0 = entity.getX() - this.getX();
                 double d1 = entity.getZ() - this.getZ();
-                double d2 = MathHelper.absMax(d0, d1);
+                double d2 = Mth.absMax(d0, d1);
 
                 if (d2 >= 0.009999999776482582D) {
                     d2 = Math.sqrt(d2);
@@ -1859,12 +1857,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
     }
 
-    public void push(Vec3D vec3d) {
-        this.push(vec3d.x, vec3d.y, vec3d.z);
+    public void push(Vec3 velocity) {
+        this.push(velocity.x, velocity.y, velocity.z);
     }
 
-    public void push(double d0, double d1, double d2) {
-        this.setDeltaMovement(this.getDeltaMovement().add(d0, d1, d2));
+    public void push(double deltaX, double deltaY, double deltaZ) {
+        this.setDeltaMovement(this.getDeltaMovement().add(deltaX, deltaY, deltaZ));
         this.hasImpulse = true;
     }
 
@@ -1872,8 +1870,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.hurtMarked = true;
     }
 
-    public boolean hurt(DamageSource damagesource, float f) {
-        if (this.isInvulnerableTo(damagesource)) {
+    public boolean hurt(DamageSource source, float amount) {
+        if (this.isInvulnerableTo(source)) {
             return false;
         } else {
             this.markHurt();
@@ -1881,71 +1879,71 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
     }
 
-    public final Vec3D getViewVector(float f) {
-        return this.calculateViewVector(this.getViewXRot(f), this.getViewYRot(f));
+    public final Vec3 getViewVector(float tickDelta) {
+        return this.calculateViewVector(this.getViewXRot(tickDelta), this.getViewYRot(tickDelta));
     }
 
-    public EnumDirection getNearestViewDirection() {
-        return EnumDirection.getNearest(this.getViewVector(1.0F));
+    public Direction getNearestViewDirection() {
+        return Direction.getNearest(this.getViewVector(1.0F));
     }
 
-    public float getViewXRot(float f) {
-        return f == 1.0F ? this.getXRot() : MathHelper.lerp(f, this.xRotO, this.getXRot());
+    public float getViewXRot(float tickDelta) {
+        return tickDelta == 1.0F ? this.getXRot() : Mth.lerp(tickDelta, this.xRotO, this.getXRot());
     }
 
-    public float getViewYRot(float f) {
-        return f == 1.0F ? this.getYRot() : MathHelper.lerp(f, this.yRotO, this.getYRot());
+    public float getViewYRot(float tickDelta) {
+        return tickDelta == 1.0F ? this.getYRot() : Mth.lerp(tickDelta, this.yRotO, this.getYRot());
     }
 
-    public final Vec3D calculateViewVector(float f, float f1) {
-        float f2 = f * 0.017453292F;
-        float f3 = -f1 * 0.017453292F;
-        float f4 = MathHelper.cos(f3);
-        float f5 = MathHelper.sin(f3);
-        float f6 = MathHelper.cos(f2);
-        float f7 = MathHelper.sin(f2);
+    public final Vec3 calculateViewVector(float pitch, float yaw) {
+        float f2 = pitch * 0.017453292F;
+        float f3 = -yaw * 0.017453292F;
+        float f4 = Mth.cos(f3);
+        float f5 = Mth.sin(f3);
+        float f6 = Mth.cos(f2);
+        float f7 = Mth.sin(f2);
 
-        return new Vec3D((double) (f5 * f6), (double) (-f7), (double) (f4 * f6));
+        return new Vec3((double) (f5 * f6), (double) (-f7), (double) (f4 * f6));
     }
 
-    public final Vec3D getUpVector(float f) {
-        return this.calculateUpVector(this.getViewXRot(f), this.getViewYRot(f));
+    public final Vec3 getUpVector(float tickDelta) {
+        return this.calculateUpVector(this.getViewXRot(tickDelta), this.getViewYRot(tickDelta));
     }
 
-    protected final Vec3D calculateUpVector(float f, float f1) {
-        return this.calculateViewVector(f - 90.0F, f1);
+    protected final Vec3 calculateUpVector(float pitch, float yaw) {
+        return this.calculateViewVector(pitch - 90.0F, yaw);
     }
 
-    public final Vec3D getEyePosition() {
-        return new Vec3D(this.getX(), this.getEyeY(), this.getZ());
+    public final Vec3 getEyePosition() {
+        return new Vec3(this.getX(), this.getEyeY(), this.getZ());
     }
 
-    public final Vec3D getEyePosition(float f) {
-        double d0 = MathHelper.lerp((double) f, this.xo, this.getX());
-        double d1 = MathHelper.lerp((double) f, this.yo, this.getY()) + (double) this.getEyeHeight();
-        double d2 = MathHelper.lerp((double) f, this.zo, this.getZ());
+    public final Vec3 getEyePosition(float tickDelta) {
+        double d0 = Mth.lerp((double) tickDelta, this.xo, this.getX());
+        double d1 = Mth.lerp((double) tickDelta, this.yo, this.getY()) + (double) this.getEyeHeight();
+        double d2 = Mth.lerp((double) tickDelta, this.zo, this.getZ());
 
-        return new Vec3D(d0, d1, d2);
+        return new Vec3(d0, d1, d2);
     }
 
-    public Vec3D getLightProbePosition(float f) {
-        return this.getEyePosition(f);
+    public Vec3 getLightProbePosition(float tickDelta) {
+        return this.getEyePosition(tickDelta);
     }
 
-    public final Vec3D getPosition(float f) {
-        double d0 = MathHelper.lerp((double) f, this.xo, this.getX());
-        double d1 = MathHelper.lerp((double) f, this.yo, this.getY());
-        double d2 = MathHelper.lerp((double) f, this.zo, this.getZ());
+    public final Vec3 getPosition(float delta) {
+        double d0 = Mth.lerp((double) delta, this.xo, this.getX());
+        double d1 = Mth.lerp((double) delta, this.yo, this.getY());
+        double d2 = Mth.lerp((double) delta, this.zo, this.getZ());
 
-        return new Vec3D(d0, d1, d2);
+        return new Vec3(d0, d1, d2);
     }
 
-    public MovingObjectPosition pick(double d0, float f, boolean flag) {
-        Vec3D vec3d = this.getEyePosition(f);
-        Vec3D vec3d1 = this.getViewVector(f);
-        Vec3D vec3d2 = vec3d.add(vec3d1.x * d0, vec3d1.y * d0, vec3d1.z * d0);
+    public HitResult pick(double maxDistance, float tickDelta, boolean includeFluids) {
+        Vec3 vec3d = this.getEyePosition(tickDelta);
+        Vec3 vec3d1 = this.getViewVector(tickDelta);
+        Vec3 vec3d2 = vec3d.add(vec3d1.x * maxDistance, vec3d1.y * maxDistance, vec3d1.z * maxDistance);
 
-        return this.level().clip(new RayTrace(vec3d, vec3d2, RayTrace.BlockCollisionOption.OUTLINE, flag ? RayTrace.FluidCollisionOption.ANY : RayTrace.FluidCollisionOption.NONE, this));
+        return this.level().clip(new ClipContext(vec3d, vec3d2, ClipContext.Block.OUTLINE, includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE, this));
     }
 
     public boolean canBeHitByProjectile() {
@@ -1962,27 +1960,27 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     // CraftBukkit start - collidable API
     public boolean canCollideWithBukkit(Entity entity) {
-        return isPushable();
+        return this.isPushable();
     }
     // CraftBukkit end
 
-    public void awardKillScore(Entity entity, int i, DamageSource damagesource) {
-        if (entity instanceof EntityPlayer) {
-            CriterionTriggers.ENTITY_KILLED_PLAYER.trigger((EntityPlayer) entity, this, damagesource);
+    public void awardKillScore(Entity entityKilled, int score, DamageSource damageSource) {
+        if (entityKilled instanceof ServerPlayer) {
+            CriteriaTriggers.ENTITY_KILLED_PLAYER.trigger((ServerPlayer) entityKilled, this, damageSource);
         }
 
     }
 
-    public boolean shouldRender(double d0, double d1, double d2) {
-        double d3 = this.getX() - d0;
-        double d4 = this.getY() - d1;
-        double d5 = this.getZ() - d2;
+    public boolean shouldRender(double cameraX, double cameraY, double cameraZ) {
+        double d3 = this.getX() - cameraX;
+        double d4 = this.getY() - cameraY;
+        double d5 = this.getZ() - cameraZ;
         double d6 = d3 * d3 + d4 * d4 + d5 * d5;
 
         return this.shouldRenderAtSqrDistance(d6);
     }
 
-    public boolean shouldRenderAtSqrDistance(double d0) {
+    public boolean shouldRenderAtSqrDistance(double distance) {
         double d1 = this.getBoundingBox().getSize();
 
         if (Double.isNaN(d1)) {
@@ -1990,15 +1988,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
 
         d1 *= 64.0D * Entity.viewScale;
-        return d0 < d1 * d1;
+        return distance < d1 * d1;
     }
 
-    public boolean saveAsPassenger(NBTTagCompound nbttagcompound) {
+    public boolean saveAsPassenger(CompoundTag nbt) {
         // CraftBukkit start - allow excluding certain data when saving
-        return saveAsPassenger(nbttagcompound, true);
+        return this.saveAsPassenger(nbt, true);
     }
 
-    public boolean saveAsPassenger(NBTTagCompound nbttagcompound, boolean includeAll) {
+    public boolean saveAsPassenger(CompoundTag nbttagcompound, boolean includeAll) {
         // CraftBukkit end
         if (this.removalReason != null && !this.removalReason.shouldSave()) {
             return false;
@@ -2015,16 +2013,16 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
     }
 
-    public boolean save(NBTTagCompound nbttagcompound) {
-        return this.isPassenger() ? false : this.saveAsPassenger(nbttagcompound);
+    public boolean save(CompoundTag nbt) {
+        return this.isPassenger() ? false : this.saveAsPassenger(nbt);
     }
 
-    public NBTTagCompound saveWithoutId(NBTTagCompound nbttagcompound) {
+    public CompoundTag saveWithoutId(CompoundTag nbt) {
         // CraftBukkit start - allow excluding certain data when saving
-        return saveWithoutId(nbttagcompound, true);
+        return this.saveWithoutId(nbt, true);
     }
 
-    public NBTTagCompound saveWithoutId(NBTTagCompound nbttagcompound, boolean includeAll) {
+    public CompoundTag saveWithoutId(CompoundTag nbttagcompound, boolean includeAll) {
         // CraftBukkit end
         try {
             // CraftBukkit start - selectively save position
@@ -2037,7 +2035,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             }
             // CraftBukkit end
 
-            Vec3D vec3d = this.getDeltaMovement();
+            Vec3 vec3d = this.getDeltaMovement();
 
             nbttagcompound.put("Motion", this.newDoubleList(vec3d.x, vec3d.y, vec3d.z));
 
@@ -2063,10 +2061,10 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             if (includeAll) {
                 nbttagcompound.putUUID("UUID", this.getUUID());
                 // PAIL: Check above UUID reads 1.8 properly, ie: UUIDMost / UUIDLeast
-                nbttagcompound.putLong("WorldUUIDLeast", ((WorldServer) this.level).getWorld().getUID().getLeastSignificantBits());
-                nbttagcompound.putLong("WorldUUIDMost", ((WorldServer) this.level).getWorld().getUID().getMostSignificantBits());
+                nbttagcompound.putLong("WorldUUIDLeast", ((ServerLevel) this.level).getWorld().getUID().getLeastSignificantBits());
+                nbttagcompound.putLong("WorldUUIDMost", ((ServerLevel) this.level).getWorld().getUID().getMostSignificantBits());
             }
-            nbttagcompound.putInt("Bukkit.updateLevel", CURRENT_LEVEL);
+            nbttagcompound.putInt("Bukkit.updateLevel", Entity.CURRENT_LEVEL);
             if (!this.persist) {
                 nbttagcompound.putBoolean("Bukkit.persist", this.persist);
             }
@@ -2077,15 +2075,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 nbttagcompound.putBoolean("Bukkit.invisible", this.persistentInvisibility);
             }
             // SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
-            if (maxAirTicks != getDefaultMaxAirSupply()) {
-                nbttagcompound.putInt("Bukkit.MaxAirSupply", getMaxAirSupply());
+            if (this.maxAirTicks != this.getDefaultMaxAirSupply()) {
+                nbttagcompound.putInt("Bukkit.MaxAirSupply", this.getMaxAirSupply());
             }
             nbttagcompound.putInt("Spigot.ticksLived", this.tickCount);
             // CraftBukkit end
-            IChatBaseComponent ichatbasecomponent = this.getCustomName();
+            Component ichatbasecomponent = this.getCustomName();
 
             if (ichatbasecomponent != null) {
-                nbttagcompound.putString("CustomName", IChatBaseComponent.ChatSerializer.toJson(ichatbasecomponent, this.registryAccess()));
+                nbttagcompound.putString("CustomName", Component.Serializer.toJson(ichatbasecomponent, this.registryAccess()));
             }
 
             if (this.isCustomNameVisible()) {
@@ -2114,17 +2112,17 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 nbttagcompound.putBoolean("HasVisualFire", this.hasVisualFire);
             }
 
-            NBTTagList nbttaglist;
+            ListTag nbttaglist;
             Iterator iterator;
 
             if (!this.tags.isEmpty()) {
-                nbttaglist = new NBTTagList();
+                nbttaglist = new ListTag();
                 iterator = this.tags.iterator();
 
                 while (iterator.hasNext()) {
                     String s = (String) iterator.next();
 
-                    nbttaglist.add(NBTTagString.valueOf(s));
+                    nbttaglist.add(StringTag.valueOf(s));
                 }
 
                 nbttagcompound.put("Tags", nbttaglist);
@@ -2132,12 +2130,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
             this.addAdditionalSaveData(nbttagcompound, includeAll); // CraftBukkit - pass on includeAll
             if (this.isVehicle()) {
-                nbttaglist = new NBTTagList();
+                nbttaglist = new ListTag();
                 iterator = this.getPassengers().iterator();
 
                 while (iterator.hasNext()) {
                     Entity entity = (Entity) iterator.next();
-                    NBTTagCompound nbttagcompound1 = new NBTTagCompound();
+                    CompoundTag nbttagcompound1 = new CompoundTag();
 
                     if (entity.saveAsPassenger(nbttagcompound1, includeAll)) { // CraftBukkit - pass on includeAll
                         nbttaglist.add(nbttagcompound1);
@@ -2157,18 +2155,18 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             return nbttagcompound;
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Saving entity NBT");
-            CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Entity being saved");
+            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Entity being saved");
 
             this.fillCrashReportCategory(crashreportsystemdetails);
             throw new ReportedException(crashreport);
         }
     }
 
-    public void load(NBTTagCompound nbttagcompound) {
+    public void load(CompoundTag nbt) {
         try {
-            NBTTagList nbttaglist = nbttagcompound.getList("Pos", 6);
-            NBTTagList nbttaglist1 = nbttagcompound.getList("Motion", 6);
-            NBTTagList nbttaglist2 = nbttagcompound.getList("Rotation", 5);
+            ListTag nbttaglist = nbt.getList("Pos", 6);
+            ListTag nbttaglist1 = nbt.getList("Motion", 6);
+            ListTag nbttaglist2 = nbt.getList("Rotation", 5);
             double d0 = nbttaglist1.getDouble(0);
             double d1 = nbttaglist1.getDouble(1);
             double d2 = nbttaglist1.getDouble(2);
@@ -2176,23 +2174,23 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             this.setDeltaMovement(Math.abs(d0) > 10.0D ? 0.0D : d0, Math.abs(d1) > 10.0D ? 0.0D : d1, Math.abs(d2) > 10.0D ? 0.0D : d2);
             double d3 = 3.0000512E7D;
 
-            this.setPosRaw(MathHelper.clamp(nbttaglist.getDouble(0), -3.0000512E7D, 3.0000512E7D), MathHelper.clamp(nbttaglist.getDouble(1), -2.0E7D, 2.0E7D), MathHelper.clamp(nbttaglist.getDouble(2), -3.0000512E7D, 3.0000512E7D));
+            this.setPosRaw(Mth.clamp(nbttaglist.getDouble(0), -3.0000512E7D, 3.0000512E7D), Mth.clamp(nbttaglist.getDouble(1), -2.0E7D, 2.0E7D), Mth.clamp(nbttaglist.getDouble(2), -3.0000512E7D, 3.0000512E7D));
             this.setYRot(nbttaglist2.getFloat(0));
             this.setXRot(nbttaglist2.getFloat(1));
             this.setOldPosAndRot();
             this.setYHeadRot(this.getYRot());
             this.setYBodyRot(this.getYRot());
-            this.fallDistance = nbttagcompound.getFloat("FallDistance");
-            this.remainingFireTicks = nbttagcompound.getShort("Fire");
-            if (nbttagcompound.contains("Air")) {
-                this.setAirSupply(nbttagcompound.getShort("Air"));
+            this.fallDistance = nbt.getFloat("FallDistance");
+            this.remainingFireTicks = nbt.getShort("Fire");
+            if (nbt.contains("Air")) {
+                this.setAirSupply(nbt.getShort("Air"));
             }
 
-            this.onGround = nbttagcompound.getBoolean("OnGround");
-            this.invulnerable = nbttagcompound.getBoolean("Invulnerable");
-            this.portalCooldown = nbttagcompound.getInt("PortalCooldown");
-            if (nbttagcompound.hasUUID("UUID")) {
-                this.uuid = nbttagcompound.getUUID("UUID");
+            this.onGround = nbt.getBoolean("OnGround");
+            this.invulnerable = nbt.getBoolean("Invulnerable");
+            this.portalCooldown = nbt.getInt("PortalCooldown");
+            if (nbt.hasUUID("UUID")) {
+                this.uuid = nbt.getUUID("UUID");
                 this.stringUUID = this.uuid.toString();
             }
 
@@ -2200,25 +2198,25 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 if (Double.isFinite((double) this.getYRot()) && Double.isFinite((double) this.getXRot())) {
                     this.reapplyPosition();
                     this.setRot(this.getYRot(), this.getXRot());
-                    if (nbttagcompound.contains("CustomName", 8)) {
-                        String s = nbttagcompound.getString("CustomName");
+                    if (nbt.contains("CustomName", 8)) {
+                        String s = nbt.getString("CustomName");
 
                         try {
-                            this.setCustomName(IChatBaseComponent.ChatSerializer.fromJson(s, this.registryAccess()));
+                            this.setCustomName(Component.Serializer.fromJson(s, this.registryAccess()));
                         } catch (Exception exception) {
                             Entity.LOGGER.warn("Failed to parse entity custom name {}", s, exception);
                         }
                     }
 
-                    this.setCustomNameVisible(nbttagcompound.getBoolean("CustomNameVisible"));
-                    this.setSilent(nbttagcompound.getBoolean("Silent"));
-                    this.setNoGravity(nbttagcompound.getBoolean("NoGravity"));
-                    this.setGlowingTag(nbttagcompound.getBoolean("Glowing"));
-                    this.setTicksFrozen(nbttagcompound.getInt("TicksFrozen"));
-                    this.hasVisualFire = nbttagcompound.getBoolean("HasVisualFire");
-                    if (nbttagcompound.contains("Tags", 9)) {
+                    this.setCustomNameVisible(nbt.getBoolean("CustomNameVisible"));
+                    this.setSilent(nbt.getBoolean("Silent"));
+                    this.setNoGravity(nbt.getBoolean("NoGravity"));
+                    this.setGlowingTag(nbt.getBoolean("Glowing"));
+                    this.setTicksFrozen(nbt.getInt("TicksFrozen"));
+                    this.hasVisualFire = nbt.getBoolean("HasVisualFire");
+                    if (nbt.contains("Tags", 9)) {
                         this.tags.clear();
-                        NBTTagList nbttaglist3 = nbttagcompound.getList("Tags", 8);
+                        ListTag nbttaglist3 = nbt.getList("Tags", 8);
                         int i = Math.min(nbttaglist3.size(), 1024);
 
                         for (int j = 0; j < i; ++j) {
@@ -2226,7 +2224,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                         }
                     }
 
-                    this.readAdditionalSaveData(nbttagcompound);
+                    this.readAdditionalSaveData(nbt);
                     if (this.repositionEntityAfterLoad()) {
                         this.reapplyPosition();
                     }
@@ -2240,42 +2238,42 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
             // CraftBukkit start
             // Spigot start
-            if (this instanceof EntityLiving) {
-                this.tickCount = nbttagcompound.getInt("Spigot.ticksLived");
+            if (this instanceof net.minecraft.world.entity.LivingEntity) {
+                this.tickCount = nbt.getInt("Spigot.ticksLived");
             }
             // Spigot end
-            this.persist = !nbttagcompound.contains("Bukkit.persist") || nbttagcompound.getBoolean("Bukkit.persist");
-            this.visibleByDefault = !nbttagcompound.contains("Bukkit.visibleByDefault") || nbttagcompound.getBoolean("Bukkit.visibleByDefault");
+            this.persist = !nbt.contains("Bukkit.persist") || nbt.getBoolean("Bukkit.persist");
+            this.visibleByDefault = !nbt.contains("Bukkit.visibleByDefault") || nbt.getBoolean("Bukkit.visibleByDefault");
             // SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
-            if (nbttagcompound.contains("Bukkit.MaxAirSupply")) {
-                maxAirTicks = nbttagcompound.getInt("Bukkit.MaxAirSupply");
+            if (nbt.contains("Bukkit.MaxAirSupply")) {
+                this.maxAirTicks = nbt.getInt("Bukkit.MaxAirSupply");
             }
             // CraftBukkit end
 
             // CraftBukkit start - Reset world
-            if (this instanceof EntityPlayer) {
+            if (this instanceof ServerPlayer) {
                 Server server = Bukkit.getServer();
                 org.bukkit.World bworld = null;
 
                 // TODO: Remove World related checks, replaced with WorldUID
-                String worldName = nbttagcompound.getString("world");
+                String worldName = nbt.getString("world");
 
-                if (nbttagcompound.contains("WorldUUIDMost") && nbttagcompound.contains("WorldUUIDLeast")) {
-                    UUID uid = new UUID(nbttagcompound.getLong("WorldUUIDMost"), nbttagcompound.getLong("WorldUUIDLeast"));
+                if (nbt.contains("WorldUUIDMost") && nbt.contains("WorldUUIDLeast")) {
+                    UUID uid = new UUID(nbt.getLong("WorldUUIDMost"), nbt.getLong("WorldUUIDLeast"));
                     bworld = server.getWorld(uid);
                 } else {
                     bworld = server.getWorld(worldName);
                 }
 
                 if (bworld == null) {
-                    bworld = ((org.bukkit.craftbukkit.CraftServer) server).getServer().getLevel(World.OVERWORLD).getWorld();
+                    bworld = ((org.bukkit.craftbukkit.CraftServer) server).getServer().getLevel(Level.OVERWORLD).getWorld();
                 }
 
-                ((EntityPlayer) this).setLevel(bworld == null ? null : ((CraftWorld) bworld).getHandle());
+                ((ServerPlayer) this).setLevel(bworld == null ? null : ((CraftWorld) bworld).getHandle());
             }
-            this.getBukkitEntity().readBukkitValues(nbttagcompound);
-            if (nbttagcompound.contains("Bukkit.invisible")) {
-                boolean bukkitInvisible = nbttagcompound.getBoolean("Bukkit.invisible");
+            this.getBukkitEntity().readBukkitValues(nbt);
+            if (nbt.contains("Bukkit.invisible")) {
+                boolean bukkitInvisible = nbt.getBoolean("Bukkit.invisible");
                 this.setInvisible(bukkitInvisible);
                 this.persistentInvisibility = bukkitInvisible;
             }
@@ -2283,7 +2281,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Loading entity NBT");
-            CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Entity being loaded");
+            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Entity being loaded");
 
             this.fillCrashReportCategory(crashreportsystemdetails);
             throw new ReportedException(crashreport);
@@ -2296,79 +2294,79 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     @Nullable
     public final String getEncodeId() {
-        EntityTypes<?> entitytypes = this.getType();
-        MinecraftKey minecraftkey = EntityTypes.getKey(entitytypes);
+        EntityType<?> entitytypes = this.getType();
+        ResourceLocation minecraftkey = EntityType.getKey(entitytypes);
 
         return entitytypes.canSerialize() && minecraftkey != null ? minecraftkey.toString() : null;
     }
 
     // CraftBukkit start - allow excluding certain data when saving
-    protected void addAdditionalSaveData(NBTTagCompound nbttagcompound, boolean includeAll) {
-        addAdditionalSaveData(nbttagcompound);
+    protected void addAdditionalSaveData(CompoundTag nbttagcompound, boolean includeAll) {
+        this.addAdditionalSaveData(nbttagcompound);
     }
     // CraftBukkit end
 
-    protected abstract void readAdditionalSaveData(NBTTagCompound nbttagcompound);
+    protected abstract void readAdditionalSaveData(CompoundTag nbt);
 
-    protected abstract void addAdditionalSaveData(NBTTagCompound nbttagcompound);
+    protected abstract void addAdditionalSaveData(CompoundTag nbt);
 
-    protected NBTTagList newDoubleList(double... adouble) {
-        NBTTagList nbttaglist = new NBTTagList();
-        double[] adouble1 = adouble;
-        int i = adouble.length;
+    protected ListTag newDoubleList(double... values) {
+        ListTag nbttaglist = new ListTag();
+        double[] adouble1 = values;
+        int i = values.length;
 
         for (int j = 0; j < i; ++j) {
             double d0 = adouble1[j];
 
-            nbttaglist.add(NBTTagDouble.valueOf(d0));
+            nbttaglist.add(DoubleTag.valueOf(d0));
         }
 
         return nbttaglist;
     }
 
-    protected NBTTagList newFloatList(float... afloat) {
-        NBTTagList nbttaglist = new NBTTagList();
-        float[] afloat1 = afloat;
-        int i = afloat.length;
+    protected ListTag newFloatList(float... values) {
+        ListTag nbttaglist = new ListTag();
+        float[] afloat1 = values;
+        int i = values.length;
 
         for (int j = 0; j < i; ++j) {
             float f = afloat1[j];
 
-            nbttaglist.add(NBTTagFloat.valueOf(f));
+            nbttaglist.add(FloatTag.valueOf(f));
         }
 
         return nbttaglist;
     }
 
     @Nullable
-    public EntityItem spawnAtLocation(IMaterial imaterial) {
-        return this.spawnAtLocation(imaterial, 0);
+    public ItemEntity spawnAtLocation(ItemLike item) {
+        return this.spawnAtLocation(item, 0);
     }
 
     @Nullable
-    public EntityItem spawnAtLocation(IMaterial imaterial, int i) {
-        return this.spawnAtLocation(new ItemStack(imaterial), (float) i);
+    public ItemEntity spawnAtLocation(ItemLike item, int yOffset) {
+        return this.spawnAtLocation(new ItemStack(item), (float) yOffset);
     }
 
     @Nullable
-    public EntityItem spawnAtLocation(ItemStack itemstack) {
-        return this.spawnAtLocation(itemstack, 0.0F);
+    public ItemEntity spawnAtLocation(ItemStack stack) {
+        return this.spawnAtLocation(stack, 0.0F);
     }
 
     @Nullable
-    public EntityItem spawnAtLocation(ItemStack itemstack, float f) {
-        if (itemstack.isEmpty()) {
+    public ItemEntity spawnAtLocation(ItemStack stack, float yOffset) {
+        if (stack.isEmpty()) {
             return null;
         } else if (this.level().isClientSide) {
             return null;
         } else {
             // CraftBukkit start - Capture drops for death event
-            if (this instanceof EntityLiving && !((EntityLiving) this).forceDrops) {
-                ((EntityLiving) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemstack));
+            if (this instanceof net.minecraft.world.entity.LivingEntity && !((net.minecraft.world.entity.LivingEntity) this).forceDrops) {
+                ((net.minecraft.world.entity.LivingEntity) this).drops.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(stack));
                 return null;
             }
             // CraftBukkit end
-            EntityItem entityitem = new EntityItem(this.level(), this.getX(), this.getY() + (double) f, this.getZ(), itemstack);
+            ItemEntity entityitem = new ItemEntity(this.level(), this.getX(), this.getY() + (double) yOffset, this.getZ(), stack);
 
             entityitem.setDefaultPickUpDelay();
             // CraftBukkit start
@@ -2392,57 +2390,57 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             return false;
         } else {
             float f = this.dimensions.width() * 0.8F;
-            AxisAlignedBB axisalignedbb = AxisAlignedBB.ofSize(this.getEyePosition(), (double) f, 1.0E-6D, (double) f);
+            AABB axisalignedbb = AABB.ofSize(this.getEyePosition(), (double) f, 1.0E-6D, (double) f);
 
-            return BlockPosition.betweenClosedStream(axisalignedbb).anyMatch((blockposition) -> {
-                IBlockData iblockdata = this.level().getBlockState(blockposition);
+            return BlockPos.betweenClosedStream(axisalignedbb).anyMatch((blockposition) -> {
+                BlockState iblockdata = this.level().getBlockState(blockposition);
 
-                return !iblockdata.isAir() && iblockdata.isSuffocating(this.level(), blockposition) && VoxelShapes.joinIsNotEmpty(iblockdata.getCollisionShape(this.level(), blockposition).move((double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ()), VoxelShapes.create(axisalignedbb), OperatorBoolean.AND);
+                return !iblockdata.isAir() && iblockdata.isSuffocating(this.level(), blockposition) && Shapes.joinIsNotEmpty(iblockdata.getCollisionShape(this.level(), blockposition).move((double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ()), Shapes.create(axisalignedbb), BooleanOp.AND);
             });
         }
     }
 
-    public EnumInteractionResult interact(EntityHuman entityhuman, EnumHand enumhand) {
+    public InteractionResult interact(Player player, InteractionHand hand) {
         if (this.isAlive() && this instanceof Leashable leashable) {
-            if (leashable.getLeashHolder() == entityhuman) {
+            if (leashable.getLeashHolder() == player) {
                 if (!this.level().isClientSide()) {
                     // CraftBukkit start - fire PlayerUnleashEntityEvent
-                    if (CraftEventFactory.callPlayerUnleashEntityEvent(this, entityhuman, enumhand).isCancelled()) {
-                        ((EntityPlayer) entityhuman).connection.send(new PacketPlayOutAttachEntity(this, leashable.getLeashHolder()));
-                        return EnumInteractionResult.PASS;
+                    if (CraftEventFactory.callPlayerUnleashEntityEvent(this, player, hand).isCancelled()) {
+                        ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
+                        return InteractionResult.PASS;
                     }
                     // CraftBukkit end
-                    leashable.dropLeash(true, !entityhuman.hasInfiniteMaterials());
-                    this.gameEvent(GameEvent.ENTITY_INTERACT, entityhuman);
+                    leashable.dropLeash(true, !player.hasInfiniteMaterials());
+                    this.gameEvent(GameEvent.ENTITY_INTERACT, player);
                 }
 
-                return EnumInteractionResult.sidedSuccess(this.level().isClientSide);
+                return InteractionResult.sidedSuccess(this.level().isClientSide);
             }
 
-            ItemStack itemstack = entityhuman.getItemInHand(enumhand);
+            ItemStack itemstack = player.getItemInHand(hand);
 
             if (itemstack.is(Items.LEAD) && leashable.canHaveALeashAttachedToIt()) {
                 if (!this.level().isClientSide()) {
                     // CraftBukkit start - fire PlayerLeashEntityEvent
-                    if (CraftEventFactory.callPlayerLeashEntityEvent(this, entityhuman, entityhuman, enumhand).isCancelled()) {
-                        ((EntityPlayer) entityhuman).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
-                        ((EntityPlayer) entityhuman).connection.send(new PacketPlayOutAttachEntity(this, leashable.getLeashHolder()));
-                        return EnumInteractionResult.PASS;
+                    if (CraftEventFactory.callPlayerLeashEntityEvent(this, player, player, hand).isCancelled()) {
+                        ((ServerPlayer) player).resendItemInHands(); // SPIGOT-7615: Resend to fix client desync with used item
+                        ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(this, leashable.getLeashHolder()));
+                        return InteractionResult.PASS;
                     }
                     // CraftBukkit end
-                    leashable.setLeashedTo(entityhuman, true);
+                    leashable.setLeashedTo(player, true);
                 }
 
                 itemstack.shrink(1);
-                return EnumInteractionResult.sidedSuccess(this.level().isClientSide);
+                return InteractionResult.sidedSuccess(this.level().isClientSide);
             }
         }
 
-        return EnumInteractionResult.PASS;
+        return InteractionResult.PASS;
     }
 
-    public boolean canCollideWith(Entity entity) {
-        return entity.canBeCollidedWith() && !this.isPassengerOfSameVehicle(entity);
+    public boolean canCollideWith(Entity other) {
+        return other.canBeCollidedWith() && !this.isPassengerOfSameVehicle(other);
     }
 
     public boolean canBeCollidedWith() {
@@ -2450,44 +2448,44 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     public void rideTick() {
-        this.setDeltaMovement(Vec3D.ZERO);
+        this.setDeltaMovement(Vec3.ZERO);
         this.tick();
         if (this.isPassenger()) {
             this.getVehicle().positionRider(this);
         }
     }
 
-    public final void positionRider(Entity entity) {
-        if (this.hasPassenger(entity)) {
-            this.positionRider(entity, Entity::setPos);
+    public final void positionRider(Entity passenger) {
+        if (this.hasPassenger(passenger)) {
+            this.positionRider(passenger, Entity::setPos);
         }
     }
 
-    protected void positionRider(Entity entity, Entity.MoveFunction entity_movefunction) {
-        Vec3D vec3d = this.getPassengerRidingPosition(entity);
-        Vec3D vec3d1 = entity.getVehicleAttachmentPoint(this);
+    protected void positionRider(Entity passenger, Entity.MoveFunction positionUpdater) {
+        Vec3 vec3d = this.getPassengerRidingPosition(passenger);
+        Vec3 vec3d1 = passenger.getVehicleAttachmentPoint(this);
 
-        entity_movefunction.accept(entity, vec3d.x - vec3d1.x, vec3d.y - vec3d1.y, vec3d.z - vec3d1.z);
+        positionUpdater.accept(passenger, vec3d.x - vec3d1.x, vec3d.y - vec3d1.y, vec3d.z - vec3d1.z);
     }
 
-    public void onPassengerTurned(Entity entity) {}
+    public void onPassengerTurned(Entity passenger) {}
 
-    public Vec3D getVehicleAttachmentPoint(Entity entity) {
+    public Vec3 getVehicleAttachmentPoint(Entity vehicle) {
         return this.getAttachments().get(EntityAttachment.VEHICLE, 0, this.yRot);
     }
 
-    public Vec3D getPassengerRidingPosition(Entity entity) {
-        return this.position().add(this.getPassengerAttachmentPoint(entity, this.dimensions, 1.0F));
+    public Vec3 getPassengerRidingPosition(Entity passenger) {
+        return this.position().add(this.getPassengerAttachmentPoint(passenger, this.dimensions, 1.0F));
     }
 
-    protected Vec3D getPassengerAttachmentPoint(Entity entity, EntitySize entitysize, float f) {
-        return getDefaultPassengerAttachmentPoint(this, entity, entitysize.attachments());
+    protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scaleFactor) {
+        return Entity.getDefaultPassengerAttachmentPoint(this, passenger, dimensions.attachments());
     }
 
-    protected static Vec3D getDefaultPassengerAttachmentPoint(Entity entity, Entity entity1, EntityAttachments entityattachments) {
-        int i = entity.getPassengers().indexOf(entity1);
+    protected static Vec3 getDefaultPassengerAttachmentPoint(Entity vehicle, Entity passenger, EntityAttachments attachments) {
+        int i = vehicle.getPassengers().indexOf(passenger);
 
-        return entityattachments.getClamped(EntityAttachment.PASSENGER, i, entity.yRot);
+        return attachments.getClamped(EntityAttachment.PASSENGER, i, vehicle.yRot);
     }
 
     public boolean startRiding(Entity entity) {
@@ -2495,10 +2493,10 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     public boolean showVehicleHealth() {
-        return this instanceof EntityLiving;
+        return this instanceof net.minecraft.world.entity.LivingEntity;
     }
 
-    public boolean startRiding(Entity entity, boolean flag) {
+    public boolean startRiding(Entity entity, boolean force) {
         if (entity == this.vehicle) {
             return false;
         } else if (!entity.couldAcceptPassenger()) {
@@ -2510,7 +2508,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 }
             }
 
-            if (!flag && (!this.canRide(entity) || !entity.canAddPassenger(this))) {
+            if (!force && (!this.canRide(entity) || !entity.canAddPassenger(this))) {
                 return false;
             } else {
                 // CraftBukkit start
@@ -2538,13 +2536,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                     this.stopRiding();
                 }
 
-                this.setPose(EntityPose.STANDING);
+                this.setPose(net.minecraft.world.entity.Pose.STANDING);
                 this.vehicle = entity;
                 this.vehicle.addPassenger(this);
                 entity.getIndirectPassengersStream().filter((entity2) -> {
-                    return entity2 instanceof EntityPlayer;
+                    return entity2 instanceof ServerPlayer;
                 }).forEach((entity2) -> {
-                    CriterionTriggers.START_RIDING_TRIGGER.trigger((EntityPlayer) entity2);
+                    CriteriaTriggers.START_RIDING_TRIGGER.trigger((ServerPlayer) entity2);
                 });
                 return true;
             }
@@ -2576,25 +2574,25 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.removeVehicle();
     }
 
-    protected void addPassenger(Entity entity) {
-        if (entity.getVehicle() != this) {
+    protected void addPassenger(Entity passenger) {
+        if (passenger.getVehicle() != this) {
             throw new IllegalStateException("Use x.startRiding(y), not y.addPassenger(x)");
         } else {
             if (this.passengers.isEmpty()) {
-                this.passengers = ImmutableList.of(entity);
+                this.passengers = ImmutableList.of(passenger);
             } else {
                 List<Entity> list = Lists.newArrayList(this.passengers);
 
-                if (!this.level().isClientSide && entity instanceof EntityHuman && !(this.getFirstPassenger() instanceof EntityHuman)) {
-                    list.add(0, entity);
+                if (!this.level().isClientSide && passenger instanceof Player && !(this.getFirstPassenger() instanceof Player)) {
+                    list.add(0, passenger);
                 } else {
-                    list.add(entity);
+                    list.add(passenger);
                 }
 
                 this.passengers = ImmutableList.copyOf(list);
             }
 
-            this.gameEvent(GameEvent.ENTITY_MOUNT, entity);
+            this.gameEvent(GameEvent.ENTITY_MOUNT, passenger);
         }
     }
 
@@ -2605,9 +2603,9 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             // CraftBukkit start
             CraftEntity craft = (CraftEntity) entity.getBukkitEntity().getVehicle();
             Entity orig = craft == null ? null : craft.getHandle();
-            if (getBukkitEntity() instanceof Vehicle && entity.getBukkitEntity() instanceof LivingEntity) {
+            if (this.getBukkitEntity() instanceof Vehicle && entity.getBukkitEntity() instanceof LivingEntity) {
                 VehicleExitEvent event = new VehicleExitEvent(
-                        (Vehicle) getBukkitEntity(),
+                        (Vehicle) this.getBukkitEntity(),
                         (LivingEntity) entity.getBukkitEntity()
                 );
                 // Suppress during worldgen
@@ -2644,7 +2642,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return true; // CraftBukkit
     }
 
-    protected boolean canAddPassenger(Entity entity) {
+    protected boolean canAddPassenger(Entity passenger) {
         return this.passengers.isEmpty();
     }
 
@@ -2652,9 +2650,9 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return true;
     }
 
-    public void lerpTo(double d0, double d1, double d2, float f, float f1, int i) {
-        this.setPos(d0, d1, d2);
-        this.setRot(f, f1);
+    public void lerpTo(double x, double y, double z, float yaw, float pitch, int interpolationSteps) {
+        this.setPos(x, y, z);
+        this.setRot(yaw, pitch);
     }
 
     public double lerpTargetX() {
@@ -2677,55 +2675,55 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.getYRot();
     }
 
-    public void lerpHeadTo(float f, int i) {
-        this.setYHeadRot(f);
+    public void lerpHeadTo(float yaw, int interpolationSteps) {
+        this.setYHeadRot(yaw);
     }
 
     public float getPickRadius() {
         return 0.0F;
     }
 
-    public Vec3D getLookAngle() {
+    public Vec3 getLookAngle() {
         return this.calculateViewVector(this.getXRot(), this.getYRot());
     }
 
-    public Vec3D getHandHoldingItemAngle(Item item) {
-        if (!(this instanceof EntityHuman entityhuman)) {
-            return Vec3D.ZERO;
+    public Vec3 getHandHoldingItemAngle(Item item) {
+        if (!(this instanceof Player entityhuman)) {
+            return Vec3.ZERO;
         } else {
             boolean flag = entityhuman.getOffhandItem().is(item) && !entityhuman.getMainHandItem().is(item);
-            EnumMainHand enummainhand = flag ? entityhuman.getMainArm().getOpposite() : entityhuman.getMainArm();
+            HumanoidArm enummainhand = flag ? entityhuman.getMainArm().getOpposite() : entityhuman.getMainArm();
 
-            return this.calculateViewVector(0.0F, this.getYRot() + (float) (enummainhand == EnumMainHand.RIGHT ? 80 : -80)).scale(0.5D);
+            return this.calculateViewVector(0.0F, this.getYRot() + (float) (enummainhand == HumanoidArm.RIGHT ? 80 : -80)).scale(0.5D);
         }
     }
 
-    public Vec2F getRotationVector() {
-        return new Vec2F(this.getXRot(), this.getYRot());
+    public Vec2 getRotationVector() {
+        return new Vec2(this.getXRot(), this.getYRot());
     }
 
-    public Vec3D getForward() {
-        return Vec3D.directionFromRotation(this.getRotationVector());
+    public Vec3 getForward() {
+        return Vec3.directionFromRotation(this.getRotationVector());
     }
 
-    public void setAsInsidePortal(Portal portal, BlockPosition blockposition) {
+    public void setAsInsidePortal(Portal portal, BlockPos pos) {
         if (this.isOnPortalCooldown()) {
             this.setPortalCooldown();
         } else {
             if (this.portalProcess != null && this.portalProcess.isSamePortal(portal)) {
-                this.portalProcess.updateEntryPosition(blockposition.immutable());
+                this.portalProcess.updateEntryPosition(pos.immutable());
                 this.portalProcess.setAsInsidePortalThisTick(true);
             } else {
-                this.portalProcess = new PortalProcessor(portal, blockposition.immutable());
+                this.portalProcess = new PortalProcessor(portal, pos.immutable());
             }
 
         }
     }
 
     protected void handlePortal() {
-        World world = this.level();
+        Level world = this.level();
 
-        if (world instanceof WorldServer worldserver) {
+        if (world instanceof ServerLevel worldserver) {
             this.processPortalCooldown();
             if (this.portalProcess != null) {
                 if (this.portalProcess.processPortalTeleportation(worldserver, this, this.canUsePortal(false))) {
@@ -2734,9 +2732,9 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                     DimensionTransition dimensiontransition = this.portalProcess.getPortalDestination(worldserver, this);
 
                     if (dimensiontransition != null) {
-                        WorldServer worldserver1 = dimensiontransition.newLevel();
+                        ServerLevel worldserver1 = dimensiontransition.newLevel();
 
-                        if (this instanceof EntityPlayer || (worldserver1 != null && (worldserver1.dimension() == worldserver.dimension() || this.canChangeDimensions(worldserver, worldserver1)))) { // CraftBukkit - always call event for players
+                        if (this instanceof ServerPlayer || (worldserver1 != null && (worldserver1.dimension() == worldserver.dimension() || this.canChangeDimensions(worldserver, worldserver1)))) { // CraftBukkit - always call event for players
                             this.changeDimension(dimensiontransition);
                         }
                     }
@@ -2753,24 +2751,24 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     public int getDimensionChangingDelay() {
         Entity entity = this.getFirstPassenger();
 
-        return entity instanceof EntityPlayer ? entity.getDimensionChangingDelay() : 300;
+        return entity instanceof ServerPlayer ? entity.getDimensionChangingDelay() : 300;
     }
 
-    public void lerpMotion(double d0, double d1, double d2) {
-        this.setDeltaMovement(d0, d1, d2);
+    public void lerpMotion(double x, double y, double z) {
+        this.setDeltaMovement(x, y, z);
     }
 
-    public void handleDamageEvent(DamageSource damagesource) {}
+    public void handleDamageEvent(DamageSource damageSource) {}
 
-    public void handleEntityEvent(byte b0) {
-        switch (b0) {
+    public void handleEntityEvent(byte status) {
+        switch (status) {
             case 53:
-                BlockHoney.showSlideParticles(this);
+                HoneyBlock.showSlideParticles(this);
             default:
         }
     }
 
-    public void animateHurt(float f) {}
+    public void animateHurt(float yaw) {}
 
     public boolean isOnFire() {
         boolean flag = this.level() != null && this.level().isClientSide;
@@ -2787,15 +2785,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     public boolean dismountsUnderwater() {
-        return this.getType().is(TagsEntity.DISMOUNTS_UNDERWATER);
+        return this.getType().is(EntityTypeTags.DISMOUNTS_UNDERWATER);
     }
 
     public boolean canControlVehicle() {
-        return !this.getType().is(TagsEntity.NON_CONTROLLING_RIDER);
+        return !this.getType().is(EntityTypeTags.NON_CONTROLLING_RIDER);
     }
 
-    public void setShiftKeyDown(boolean flag) {
-        this.setSharedFlag(1, flag);
+    public void setShiftKeyDown(boolean sneaking) {
+        this.setSharedFlag(1, sneaking);
     }
 
     public boolean isShiftKeyDown() {
@@ -2819,15 +2817,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     public boolean isCrouching() {
-        return this.hasPose(EntityPose.CROUCHING);
+        return this.hasPose(net.minecraft.world.entity.Pose.CROUCHING);
     }
 
     public boolean isSprinting() {
         return this.getSharedFlag(3);
     }
 
-    public void setSprinting(boolean flag) {
-        this.setSharedFlag(3, flag);
+    public void setSprinting(boolean sprinting) {
+        this.setSharedFlag(3, sprinting);
     }
 
     public boolean isSwimming() {
@@ -2835,30 +2833,30 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     public boolean isVisuallySwimming() {
-        return this.hasPose(EntityPose.SWIMMING);
+        return this.hasPose(net.minecraft.world.entity.Pose.SWIMMING);
     }
 
     public boolean isVisuallyCrawling() {
         return this.isVisuallySwimming() && !this.isInWater();
     }
 
-    public void setSwimming(boolean flag) {
+    public void setSwimming(boolean swimming) {
         // CraftBukkit start
-        if (valid && this.isSwimming() != flag && this instanceof EntityLiving) {
-            if (CraftEventFactory.callToggleSwimEvent((EntityLiving) this, flag).isCancelled()) {
+        if (this.valid && this.isSwimming() != swimming && this instanceof net.minecraft.world.entity.LivingEntity) {
+            if (CraftEventFactory.callToggleSwimEvent((net.minecraft.world.entity.LivingEntity) this, swimming).isCancelled()) {
                 return;
             }
         }
         // CraftBukkit end
-        this.setSharedFlag(4, flag);
+        this.setSharedFlag(4, swimming);
     }
 
     public final boolean hasGlowingTag() {
         return this.hasGlowingTag;
     }
 
-    public final void setGlowingTag(boolean flag) {
-        this.hasGlowingTag = flag;
+    public final void setGlowingTag(boolean glowing) {
+        this.hasGlowingTag = glowing;
         this.setSharedFlag(6, this.isCurrentlyGlowing());
     }
 
@@ -2870,13 +2868,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.getSharedFlag(5);
     }
 
-    public boolean isInvisibleTo(EntityHuman entityhuman) {
-        if (entityhuman.isSpectator()) {
+    public boolean isInvisibleTo(Player player) {
+        if (player.isSpectator()) {
             return false;
         } else {
-            ScoreboardTeam scoreboardteam = this.getTeam();
+            PlayerTeam scoreboardteam = this.getTeam();
 
-            return scoreboardteam != null && entityhuman != null && entityhuman.getTeam() == scoreboardteam && scoreboardteam.canSeeFriendlyInvisibles() ? false : this.isInvisible();
+            return scoreboardteam != null && player != null && player.getTeam() == scoreboardteam && scoreboardteam.canSeeFriendlyInvisibles() ? false : this.isInvisible();
         }
     }
 
@@ -2884,60 +2882,60 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return false;
     }
 
-    public void updateDynamicGameEventListener(BiConsumer<DynamicGameEventListener<?>, WorldServer> biconsumer) {}
+    public void updateDynamicGameEventListener(BiConsumer<DynamicGameEventListener<?>, ServerLevel> callback) {}
 
     @Nullable
-    public ScoreboardTeam getTeam() {
+    public PlayerTeam getTeam() {
         return this.level().getScoreboard().getPlayersTeam(this.getScoreboardName());
     }
 
-    public boolean isAlliedTo(Entity entity) {
-        return this.isAlliedTo((ScoreboardTeamBase) entity.getTeam());
+    public boolean isAlliedTo(Entity other) {
+        return this.isAlliedTo((Team) other.getTeam());
     }
 
-    public boolean isAlliedTo(ScoreboardTeamBase scoreboardteambase) {
-        return this.getTeam() != null ? this.getTeam().isAlliedTo(scoreboardteambase) : false;
+    public boolean isAlliedTo(Team team) {
+        return this.getTeam() != null ? this.getTeam().isAlliedTo(team) : false;
     }
 
     // CraftBukkit - start
-    public void setInvisible(boolean flag) {
+    public void setInvisible(boolean invisible) {
         if (!this.persistentInvisibility) { // Prevent Minecraft from removing our invisibility flag
-            this.setSharedFlag(5, flag);
+            this.setSharedFlag(5, invisible);
         }
         // CraftBukkit - end
     }
 
-    public boolean getSharedFlag(int i) {
-        return ((Byte) this.entityData.get(Entity.DATA_SHARED_FLAGS_ID) & 1 << i) != 0;
+    public boolean getSharedFlag(int index) {
+        return ((Byte) this.entityData.get(Entity.DATA_SHARED_FLAGS_ID) & 1 << index) != 0;
     }
 
-    public void setSharedFlag(int i, boolean flag) {
+    public void setSharedFlag(int index, boolean value) {
         byte b0 = (Byte) this.entityData.get(Entity.DATA_SHARED_FLAGS_ID);
 
-        if (flag) {
-            this.entityData.set(Entity.DATA_SHARED_FLAGS_ID, (byte) (b0 | 1 << i));
+        if (value) {
+            this.entityData.set(Entity.DATA_SHARED_FLAGS_ID, (byte) (b0 | 1 << index));
         } else {
-            this.entityData.set(Entity.DATA_SHARED_FLAGS_ID, (byte) (b0 & ~(1 << i)));
+            this.entityData.set(Entity.DATA_SHARED_FLAGS_ID, (byte) (b0 & ~(1 << index)));
         }
 
     }
 
     public int getMaxAirSupply() {
-        return maxAirTicks; // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
+        return this.maxAirTicks; // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
     }
 
     public int getAirSupply() {
         return (Integer) this.entityData.get(Entity.DATA_AIR_SUPPLY_ID);
     }
 
-    public void setAirSupply(int i) {
+    public void setAirSupply(int air) {
         // CraftBukkit start
-        EntityAirChangeEvent event = new EntityAirChangeEvent(this.getBukkitEntity(), i);
+        EntityAirChangeEvent event = new EntityAirChangeEvent(this.getBukkitEntity(), air);
         // Suppress during worldgen
         if (this.valid) {
             event.getEntity().getServer().getPluginManager().callEvent(event);
         }
-        if (event.isCancelled() && this.getAirSupply() != i) {
+        if (event.isCancelled() && this.getAirSupply() != air) {
             this.entityData.markDirty(Entity.DATA_AIR_SUPPLY_ID);
             return;
         }
@@ -2949,8 +2947,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return (Integer) this.entityData.get(Entity.DATA_TICKS_FROZEN);
     }
 
-    public void setTicksFrozen(int i) {
-        this.entityData.set(Entity.DATA_TICKS_FROZEN, i);
+    public void setTicksFrozen(int frozenTicks) {
+        this.entityData.set(Entity.DATA_TICKS_FROZEN, frozenTicks);
     }
 
     public float getPercentFrozen() {
@@ -2967,11 +2965,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return 140;
     }
 
-    public void thunderHit(WorldServer worldserver, EntityLightning entitylightning) {
+    public void thunderHit(ServerLevel world, LightningBolt lightning) {
         this.setRemainingFireTicks(this.remainingFireTicks + 1);
         // CraftBukkit start
         final org.bukkit.entity.Entity thisBukkitEntity = this.getBukkitEntity();
-        final org.bukkit.entity.Entity stormBukkitEntity = entitylightning.getBukkitEntity();
+        final org.bukkit.entity.Entity stormBukkitEntity = lightning.getBukkitEntity();
         final PluginManager pluginManager = Bukkit.getPluginManager();
         // CraftBukkit end
 
@@ -2999,17 +2997,17 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
             return;
         }
 
-        if (!this.hurt(this.damageSources().lightningBolt().customEntityDamager(entitylightning), 5.0F)) {
+        if (!this.hurt(this.damageSources().lightningBolt().customEntityDamager(lightning), 5.0F)) {
             return;
         }
         // CraftBukkit end
     }
 
-    public void onAboveBubbleCol(boolean flag) {
-        Vec3D vec3d = this.getDeltaMovement();
+    public void onAboveBubbleCol(boolean drag) {
+        Vec3 vec3d = this.getDeltaMovement();
         double d0;
 
-        if (flag) {
+        if (drag) {
             d0 = Math.max(-0.9D, vec3d.y - 0.03D);
         } else {
             d0 = Math.min(1.8D, vec3d.y + 0.1D);
@@ -3018,11 +3016,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.setDeltaMovement(vec3d.x, d0, vec3d.z);
     }
 
-    public void onInsideBubbleColumn(boolean flag) {
-        Vec3D vec3d = this.getDeltaMovement();
+    public void onInsideBubbleColumn(boolean drag) {
+        Vec3 vec3d = this.getDeltaMovement();
         double d0;
 
-        if (flag) {
+        if (drag) {
             d0 = Math.max(-0.3D, vec3d.y - 0.03D);
         } else {
             d0 = Math.min(0.7D, vec3d.y + 0.06D);
@@ -3032,7 +3030,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.resetFallDistance();
     }
 
-    public boolean killedEntity(WorldServer worldserver, EntityLiving entityliving) {
+    public boolean killedEntity(ServerLevel world, net.minecraft.world.entity.LivingEntity other) {
         return true;
     }
 
@@ -3047,22 +3045,22 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         this.fallDistance = 0.0F;
     }
 
-    protected void moveTowardsClosestSpace(double d0, double d1, double d2) {
-        BlockPosition blockposition = BlockPosition.containing(d0, d1, d2);
-        Vec3D vec3d = new Vec3D(d0 - (double) blockposition.getX(), d1 - (double) blockposition.getY(), d2 - (double) blockposition.getZ());
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = new BlockPosition.MutableBlockPosition();
-        EnumDirection enumdirection = EnumDirection.UP;
+    protected void moveTowardsClosestSpace(double x, double y, double z) {
+        BlockPos blockposition = BlockPos.containing(x, y, z);
+        Vec3 vec3d = new Vec3(x - (double) blockposition.getX(), y - (double) blockposition.getY(), z - (double) blockposition.getZ());
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
+        Direction enumdirection = Direction.UP;
         double d3 = Double.MAX_VALUE;
-        EnumDirection[] aenumdirection = new EnumDirection[]{EnumDirection.NORTH, EnumDirection.SOUTH, EnumDirection.WEST, EnumDirection.EAST, EnumDirection.UP};
+        Direction[] aenumdirection = new Direction[]{Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST, Direction.UP};
         int i = aenumdirection.length;
 
         for (int j = 0; j < i; ++j) {
-            EnumDirection enumdirection1 = aenumdirection[j];
+            Direction enumdirection1 = aenumdirection[j];
 
             blockposition_mutableblockposition.setWithOffset(blockposition, enumdirection1);
             if (!this.level().getBlockState(blockposition_mutableblockposition).isCollisionShapeFullBlock(this.level(), blockposition_mutableblockposition)) {
                 double d4 = vec3d.get(enumdirection1.getAxis());
-                double d5 = enumdirection1.getAxisDirection() == EnumDirection.EnumAxisDirection.POSITIVE ? 1.0D - d4 : d4;
+                double d5 = enumdirection1.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0D - d4 : d4;
 
                 if (d5 < d3) {
                     d3 = d5;
@@ -3073,44 +3071,44 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
         float f = this.random.nextFloat() * 0.2F + 0.1F;
         float f1 = (float) enumdirection.getAxisDirection().getStep();
-        Vec3D vec3d1 = this.getDeltaMovement().scale(0.75D);
+        Vec3 vec3d1 = this.getDeltaMovement().scale(0.75D);
 
-        if (enumdirection.getAxis() == EnumDirection.EnumAxis.X) {
+        if (enumdirection.getAxis() == Direction.Axis.X) {
             this.setDeltaMovement((double) (f1 * f), vec3d1.y, vec3d1.z);
-        } else if (enumdirection.getAxis() == EnumDirection.EnumAxis.Y) {
+        } else if (enumdirection.getAxis() == Direction.Axis.Y) {
             this.setDeltaMovement(vec3d1.x, (double) (f1 * f), vec3d1.z);
-        } else if (enumdirection.getAxis() == EnumDirection.EnumAxis.Z) {
+        } else if (enumdirection.getAxis() == Direction.Axis.Z) {
             this.setDeltaMovement(vec3d1.x, vec3d1.y, (double) (f1 * f));
         }
 
     }
 
-    public void makeStuckInBlock(IBlockData iblockdata, Vec3D vec3d) {
+    public void makeStuckInBlock(BlockState state, Vec3 multiplier) {
         this.resetFallDistance();
-        this.stuckSpeedMultiplier = vec3d;
+        this.stuckSpeedMultiplier = multiplier;
     }
 
-    private static IChatBaseComponent removeAction(IChatBaseComponent ichatbasecomponent) {
-        IChatMutableComponent ichatmutablecomponent = ichatbasecomponent.plainCopy().setStyle(ichatbasecomponent.getStyle().withClickEvent((ChatClickable) null));
-        Iterator iterator = ichatbasecomponent.getSiblings().iterator();
+    private static Component removeAction(Component textComponent) {
+        MutableComponent ichatmutablecomponent = textComponent.plainCopy().setStyle(textComponent.getStyle().withClickEvent((ClickEvent) null));
+        Iterator iterator = textComponent.getSiblings().iterator();
 
         while (iterator.hasNext()) {
-            IChatBaseComponent ichatbasecomponent1 = (IChatBaseComponent) iterator.next();
+            Component ichatbasecomponent1 = (Component) iterator.next();
 
-            ichatmutablecomponent.append(removeAction(ichatbasecomponent1));
+            ichatmutablecomponent.append(Entity.removeAction(ichatbasecomponent1));
         }
 
         return ichatmutablecomponent;
     }
 
     @Override
-    public IChatBaseComponent getName() {
-        IChatBaseComponent ichatbasecomponent = this.getCustomName();
+    public Component getName() {
+        Component ichatbasecomponent = this.getCustomName();
 
-        return ichatbasecomponent != null ? removeAction(ichatbasecomponent) : this.getTypeName();
+        return ichatbasecomponent != null ? Entity.removeAction(ichatbasecomponent) : this.getTypeName();
     }
 
-    protected IChatBaseComponent getTypeName() {
+    protected Component getTypeName() {
         return this.type.getDescription();
     }
 
@@ -3122,15 +3120,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return 0.0F;
     }
 
-    public void setYHeadRot(float f) {}
+    public void setYHeadRot(float headYaw) {}
 
-    public void setYBodyRot(float f) {}
+    public void setYBodyRot(float bodyYaw) {}
 
     public boolean isAttackable() {
         return true;
     }
 
-    public boolean skipAttackInteraction(Entity entity) {
+    public boolean skipAttackInteraction(Entity attacker) {
         return false;
     }
 
@@ -3140,47 +3138,47 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.removalReason != null ? String.format(Locale.ROOT, "%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f, removed=%s]", this.getClass().getSimpleName(), this.getName().getString(), this.id, s, this.getX(), this.getY(), this.getZ(), this.removalReason) : String.format(Locale.ROOT, "%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f]", this.getClass().getSimpleName(), this.getName().getString(), this.id, s, this.getX(), this.getY(), this.getZ());
     }
 
-    public boolean isInvulnerableTo(DamageSource damagesource) {
-        return this.isRemoved() || this.invulnerable && !damagesource.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !damagesource.isCreativePlayer() || damagesource.is(DamageTypeTags.IS_FIRE) && this.fireImmune() || damagesource.is(DamageTypeTags.IS_FALL) && this.getType().is(TagsEntity.FALL_DAMAGE_IMMUNE);
+    public boolean isInvulnerableTo(DamageSource damageSource) {
+        return this.isRemoved() || this.invulnerable && !damageSource.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !damageSource.isCreativePlayer() || damageSource.is(DamageTypeTags.IS_FIRE) && this.fireImmune() || damageSource.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE);
     }
 
     public boolean isInvulnerable() {
         return this.invulnerable;
     }
 
-    public void setInvulnerable(boolean flag) {
-        this.invulnerable = flag;
+    public void setInvulnerable(boolean invulnerable) {
+        this.invulnerable = invulnerable;
     }
 
     public void copyPosition(Entity entity) {
         this.moveTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
     }
 
-    public void restoreFrom(Entity entity) {
-        NBTTagCompound nbttagcompound = entity.saveWithoutId(new NBTTagCompound());
+    public void restoreFrom(Entity original) {
+        CompoundTag nbttagcompound = original.saveWithoutId(new CompoundTag());
 
         nbttagcompound.remove("Dimension");
         this.load(nbttagcompound);
-        this.portalCooldown = entity.portalCooldown;
-        this.portalProcess = entity.portalProcess;
+        this.portalCooldown = original.portalCooldown;
+        this.portalProcess = original.portalProcess;
     }
 
     @Nullable
-    public Entity changeDimension(DimensionTransition dimensiontransition) {
-        World world = this.level();
+    public Entity changeDimension(DimensionTransition teleportTarget) {
+        Level world = this.level();
 
-        if (world instanceof WorldServer worldserver) {
+        if (world instanceof ServerLevel worldserver) {
             if (!this.isRemoved()) {
                 // CraftBukkit start
-                Location to = new Location(dimensiontransition.newLevel().getWorld(), dimensiontransition.pos().x, dimensiontransition.pos().y, dimensiontransition.pos().z, dimensiontransition.yRot(), dimensiontransition.xRot());
+                Location to = new Location(teleportTarget.newLevel().getWorld(), teleportTarget.pos().x, teleportTarget.pos().y, teleportTarget.pos().z, teleportTarget.yRot(), teleportTarget.xRot());
                 EntityTeleportEvent teleEvent = CraftEventFactory.callEntityTeleportEvent(this, to);
                 if (teleEvent.isCancelled()) {
                     return null;
                 }
                 to = teleEvent.getTo();
-                dimensiontransition = new DimensionTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), dimensiontransition.speed(), to.getYaw(), to.getPitch(), dimensiontransition.missingRespawnBlock(), dimensiontransition.postDimensionTransition(), dimensiontransition.cause());
+                teleportTarget = new DimensionTransition(((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toVec3D(to), teleportTarget.speed(), to.getYaw(), to.getPitch(), teleportTarget.missingRespawnBlock(), teleportTarget.postDimensionTransition(), teleportTarget.cause());
                 // CraftBukkit end
-                WorldServer worldserver1 = dimensiontransition.newLevel();
+                ServerLevel worldserver1 = teleportTarget.newLevel();
                 List<Entity> list = this.getPassengers();
 
                 this.unRide();
@@ -3192,7 +3190,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 while (iterator.hasNext()) {
                     Entity entity1 = (Entity) iterator.next();
 
-                    entity = entity1.changeDimension(dimensiontransition);
+                    entity = entity1.changeDimension(teleportTarget);
                     if (entity != null) {
                         list1.add(entity);
                     }
@@ -3211,8 +3209,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                         // CraftBukkit end
                     }
 
-                    entity2.moveTo(dimensiontransition.pos().x, dimensiontransition.pos().y, dimensiontransition.pos().z, dimensiontransition.yRot(), entity2.getXRot());
-                    entity2.setDeltaMovement(dimensiontransition.speed());
+                    entity2.moveTo(teleportTarget.pos().x, teleportTarget.pos().y, teleportTarget.pos().z, teleportTarget.yRot(), entity2.getXRot());
+                    entity2.setDeltaMovement(teleportTarget.speed());
                     if (this != entity2 && this.inWorld) { // CraftBukkit - Don't spawn the new entity if the current entity isn't spawned
                         worldserver1.addDuringTeleport(entity2);
                     }
@@ -3226,7 +3224,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
                     worldserver.resetEmptyTime();
                     worldserver1.resetEmptyTime();
-                    dimensiontransition.postDimensionTransition().onTransition(entity2);
+                    teleportTarget.postDimensionTransition().onTransition(entity2);
                 }
 
                 worldserver.getProfiler().pop();
@@ -3237,11 +3235,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return null;
     }
 
-    public void placePortalTicket(BlockPosition blockposition) {
-        World world = this.level();
+    public void placePortalTicket(BlockPos pos) {
+        Level world = this.level();
 
-        if (world instanceof WorldServer worldserver) {
-            worldserver.getChunkSource().addRegionTicket(TicketType.PORTAL, new ChunkCoordIntPair(blockposition), 3, blockposition);
+        if (world instanceof ServerLevel worldserver) {
+            worldserver.getChunkSource().addRegionTicket(TicketType.PORTAL, new ChunkPos(pos), 3, pos);
         }
 
     }
@@ -3255,8 +3253,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     }
 
-    public Vec3D getRelativePortalPosition(EnumDirection.EnumAxis enumdirection_enumaxis, BlockUtil.Rectangle blockutil_rectangle) {
-        return BlockPortalShape.getRelativePosition(blockutil_rectangle, enumdirection_enumaxis, this.position(), this.getDimensions(this.getPose()));
+    public Vec3 getRelativePortalPosition(Direction.Axis portalAxis, BlockUtil.FoundRectangle portalRect) {
+        return PortalShape.getRelativePosition(portalRect, portalAxis, this.position(), this.getDimensions(this.getPose()));
     }
 
     // CraftBukkit start
@@ -3273,19 +3271,19 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
     // CraftBukkit end
 
-    public boolean canUsePortal(boolean flag) {
-        return (flag || !this.isPassenger()) && this.isAlive();
+    public boolean canUsePortal(boolean allowVehicles) {
+        return (allowVehicles || !this.isPassenger()) && this.isAlive();
     }
 
-    public boolean canChangeDimensions(World world, World world1) {
+    public boolean canChangeDimensions(Level from, Level to) {
         return true;
     }
 
-    public float getBlockExplosionResistance(Explosion explosion, IBlockAccess iblockaccess, BlockPosition blockposition, IBlockData iblockdata, Fluid fluid, float f) {
-        return f;
+    public float getBlockExplosionResistance(Explosion explosion, BlockGetter world, BlockPos pos, BlockState blockState, FluidState fluidState, float max) {
+        return max;
     }
 
-    public boolean shouldBlockExplode(Explosion explosion, IBlockAccess iblockaccess, BlockPosition blockposition, IBlockData iblockdata, float f) {
+    public boolean shouldBlockExplode(Explosion explosion, BlockGetter world, BlockPos pos, BlockState state, float explosionPower) {
         return true;
     }
 
@@ -3297,25 +3295,25 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return false;
     }
 
-    public void fillCrashReportCategory(CrashReportSystemDetails crashreportsystemdetails) {
-        crashreportsystemdetails.setDetail("Entity Type", () -> {
-            String s = String.valueOf(EntityTypes.getKey(this.getType()));
+    public void fillCrashReportCategory(CrashReportCategory section) {
+        section.setDetail("Entity Type", () -> {
+            String s = String.valueOf(EntityType.getKey(this.getType()));
 
             return s + " (" + this.getClass().getCanonicalName() + ")";
         });
-        crashreportsystemdetails.setDetail("Entity ID", (Object) this.id);
-        crashreportsystemdetails.setDetail("Entity Name", () -> {
+        section.setDetail("Entity ID", (Object) this.id);
+        section.setDetail("Entity Name", () -> {
             return this.getName().getString();
         });
-        crashreportsystemdetails.setDetail("Entity's Exact location", (Object) String.format(Locale.ROOT, "%.2f, %.2f, %.2f", this.getX(), this.getY(), this.getZ()));
-        crashreportsystemdetails.setDetail("Entity's Block location", (Object) CrashReportSystemDetails.formatLocation(this.level(), MathHelper.floor(this.getX()), MathHelper.floor(this.getY()), MathHelper.floor(this.getZ())));
-        Vec3D vec3d = this.getDeltaMovement();
+        section.setDetail("Entity's Exact location", (Object) String.format(Locale.ROOT, "%.2f, %.2f, %.2f", this.getX(), this.getY(), this.getZ()));
+        section.setDetail("Entity's Block location", (Object) CrashReportCategory.formatLocation(this.level(), Mth.floor(this.getX()), Mth.floor(this.getY()), Mth.floor(this.getZ())));
+        Vec3 vec3d = this.getDeltaMovement();
 
-        crashreportsystemdetails.setDetail("Entity's Momentum", (Object) String.format(Locale.ROOT, "%.2f, %.2f, %.2f", vec3d.x, vec3d.y, vec3d.z));
-        crashreportsystemdetails.setDetail("Entity's Passengers", () -> {
+        section.setDetail("Entity's Momentum", (Object) String.format(Locale.ROOT, "%.2f, %.2f, %.2f", vec3d.x, vec3d.y, vec3d.z));
+        section.setDetail("Entity's Passengers", () -> {
             return this.getPassengers().toString();
         });
-        crashreportsystemdetails.setDetail("Entity's Vehicle", () -> {
+        section.setDetail("Entity's Vehicle", () -> {
             return String.valueOf(this.getVehicle());
         });
     }
@@ -3351,25 +3349,25 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return Entity.viewScale;
     }
 
-    public static void setViewScale(double d0) {
-        Entity.viewScale = d0;
+    public static void setViewScale(double value) {
+        Entity.viewScale = value;
     }
 
     @Override
-    public IChatBaseComponent getDisplayName() {
-        return ScoreboardTeam.formatNameForTeam(this.getTeam(), this.getName()).withStyle((chatmodifier) -> {
+    public Component getDisplayName() {
+        return PlayerTeam.formatNameForTeam(this.getTeam(), this.getName()).withStyle((chatmodifier) -> {
             return chatmodifier.withHoverEvent(this.createHoverEvent()).withInsertion(this.getStringUUID());
         });
     }
 
-    public void setCustomName(@Nullable IChatBaseComponent ichatbasecomponent) {
-        this.entityData.set(Entity.DATA_CUSTOM_NAME, Optional.ofNullable(ichatbasecomponent));
+    public void setCustomName(@Nullable Component name) {
+        this.entityData.set(Entity.DATA_CUSTOM_NAME, Optional.ofNullable(name));
     }
 
     @Nullable
     @Override
-    public IChatBaseComponent getCustomName() {
-        return (IChatBaseComponent) ((Optional) this.entityData.get(Entity.DATA_CUSTOM_NAME)).orElse((Object) null);
+    public Component getCustomName() {
+        return (Component) ((Optional) this.entityData.get(Entity.DATA_CUSTOM_NAME)).orElse((Object) null);
     }
 
     @Override
@@ -3377,8 +3375,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return ((Optional) this.entityData.get(Entity.DATA_CUSTOM_NAME)).isPresent();
     }
 
-    public void setCustomNameVisible(boolean flag) {
-        this.entityData.set(Entity.DATA_CUSTOM_NAME_VISIBLE, flag);
+    public void setCustomNameVisible(boolean visible) {
+        this.entityData.set(Entity.DATA_CUSTOM_NAME_VISIBLE, visible);
     }
 
     public boolean isCustomNameVisible() {
@@ -3386,33 +3384,33 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     // CraftBukkit start
-    public boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
+    public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
         return this.teleportTo(worldserver, d0, d1, d2, set, f, f1);
     }
     // CraftBukkit end
 
-    public boolean teleportTo(WorldServer worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1) {
-        float f2 = MathHelper.clamp(f1, -90.0F, 90.0F);
+    public boolean teleportTo(ServerLevel world, double destX, double destY, double destZ, Set<RelativeMovement> flags, float yaw, float pitch) {
+        float f2 = Mth.clamp(pitch, -90.0F, 90.0F);
 
-        if (worldserver == this.level()) {
-            this.moveTo(d0, d1, d2, f, f2);
+        if (world == this.level()) {
+            this.moveTo(destX, destY, destZ, yaw, f2);
             this.teleportPassengers();
-            this.setYHeadRot(f);
+            this.setYHeadRot(yaw);
         } else {
             this.unRide();
-            Entity entity = this.getType().create(worldserver);
+            Entity entity = this.getType().create(world);
 
             if (entity == null) {
                 return false;
             }
 
             entity.restoreFrom(this);
-            entity.moveTo(d0, d1, d2, f, f2);
-            entity.setYHeadRot(f);
+            entity.moveTo(destX, destY, destZ, yaw, f2);
+            entity.setYHeadRot(yaw);
             this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION, null); // CraftBukkit - add Bukkit remove cause
             // CraftBukkit start - Don't spawn the new entity if the current entity isn't spawned
-            if (inWorld) {
-                worldserver.addDuringTeleport(entity);
+            if (this.inWorld) {
+                world.addDuringTeleport(entity);
             }
             // CraftBukkit end
         }
@@ -3420,13 +3418,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return true;
     }
 
-    public void dismountTo(double d0, double d1, double d2) {
-        this.teleportTo(d0, d1, d2);
+    public void dismountTo(double destX, double destY, double destZ) {
+        this.teleportTo(destX, destY, destZ);
     }
 
-    public void teleportTo(double d0, double d1, double d2) {
-        if (this.level() instanceof WorldServer) {
-            this.moveTo(d0, d1, d2, this.getYRot(), this.getXRot());
+    public void teleportTo(double destX, double destY, double destZ) {
+        if (this.level() instanceof ServerLevel) {
+            this.moveTo(destX, destY, destZ, this.getYRot(), this.getXRot());
             this.teleportPassengers();
         }
     }
@@ -3444,8 +3442,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         });
     }
 
-    public void teleportRelative(double d0, double d1, double d2) {
-        this.teleportTo(this.getX() + d0, this.getY() + d1, this.getZ() + d2);
+    public void teleportRelative(double offsetX, double offsetY, double offsetZ) {
+        this.teleportTo(this.getX() + offsetX, this.getY() + offsetY, this.getZ() + offsetZ);
     }
 
     public boolean shouldShowName() {
@@ -3453,11 +3451,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     @Override
-    public void onSyncedDataUpdated(List<DataWatcher.c<?>> list) {}
+    public void onSyncedDataUpdated(List<SynchedEntityData.DataValue<?>> entries) {}
 
     @Override
-    public void onSyncedDataUpdated(DataWatcherObject<?> datawatcherobject) {
-        if (Entity.DATA_POSE.equals(datawatcherobject)) {
+    public void onSyncedDataUpdated(EntityDataAccessor<?> data) {
+        if (Entity.DATA_POSE.equals(data)) {
             this.refreshDimensions();
         }
 
@@ -3466,47 +3464,47 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     /** @deprecated */
     @Deprecated
     protected void fixupDimensions() {
-        EntityPose entitypose = this.getPose();
-        EntitySize entitysize = this.getDimensions(entitypose);
+        net.minecraft.world.entity.Pose entitypose = this.getPose();
+        EntityDimensions entitysize = this.getDimensions(entitypose);
 
         this.dimensions = entitysize;
         this.eyeHeight = entitysize.eyeHeight();
     }
 
     public void refreshDimensions() {
-        EntitySize entitysize = this.dimensions;
-        EntityPose entitypose = this.getPose();
-        EntitySize entitysize1 = this.getDimensions(entitypose);
+        EntityDimensions entitysize = this.dimensions;
+        net.minecraft.world.entity.Pose entitypose = this.getPose();
+        EntityDimensions entitysize1 = this.getDimensions(entitypose);
 
         this.dimensions = entitysize1;
         this.eyeHeight = entitysize1.eyeHeight();
         this.reapplyPosition();
         boolean flag = (double) entitysize1.width() <= 4.0D && (double) entitysize1.height() <= 4.0D;
 
-        if (!this.level.isClientSide && !this.firstTick && !this.noPhysics && flag && (entitysize1.width() > entitysize.width() || entitysize1.height() > entitysize.height()) && !(this instanceof EntityHuman)) {
+        if (!this.level.isClientSide && !this.firstTick && !this.noPhysics && flag && (entitysize1.width() > entitysize.width() || entitysize1.height() > entitysize.height()) && !(this instanceof Player)) {
             this.fudgePositionAfterSizeChange(entitysize);
         }
 
     }
 
-    public boolean fudgePositionAfterSizeChange(EntitySize entitysize) {
-        EntitySize entitysize1 = this.getDimensions(this.getPose());
-        Vec3D vec3d = this.position().add(0.0D, (double) entitysize.height() / 2.0D, 0.0D);
-        double d0 = (double) Math.max(0.0F, entitysize1.width() - entitysize.width()) + 1.0E-6D;
-        double d1 = (double) Math.max(0.0F, entitysize1.height() - entitysize.height()) + 1.0E-6D;
-        VoxelShape voxelshape = VoxelShapes.create(AxisAlignedBB.ofSize(vec3d, d0, d1, d0));
-        Optional<Vec3D> optional = this.level.findFreePosition(this, voxelshape, vec3d, (double) entitysize1.width(), (double) entitysize1.height(), (double) entitysize1.width());
+    public boolean fudgePositionAfterSizeChange(EntityDimensions previous) {
+        EntityDimensions entitysize1 = this.getDimensions(this.getPose());
+        Vec3 vec3d = this.position().add(0.0D, (double) previous.height() / 2.0D, 0.0D);
+        double d0 = (double) Math.max(0.0F, entitysize1.width() - previous.width()) + 1.0E-6D;
+        double d1 = (double) Math.max(0.0F, entitysize1.height() - previous.height()) + 1.0E-6D;
+        VoxelShape voxelshape = Shapes.create(AABB.ofSize(vec3d, d0, d1, d0));
+        Optional<Vec3> optional = this.level.findFreePosition(this, voxelshape, vec3d, (double) entitysize1.width(), (double) entitysize1.height(), (double) entitysize1.width());
 
         if (optional.isPresent()) {
-            this.setPos(((Vec3D) optional.get()).add(0.0D, (double) (-entitysize1.height()) / 2.0D, 0.0D));
+            this.setPos(((Vec3) optional.get()).add(0.0D, (double) (-entitysize1.height()) / 2.0D, 0.0D));
             return true;
         } else {
-            if (entitysize1.width() > entitysize.width() && entitysize1.height() > entitysize.height()) {
-                VoxelShape voxelshape1 = VoxelShapes.create(AxisAlignedBB.ofSize(vec3d, d0, 1.0E-6D, d0));
-                Optional<Vec3D> optional1 = this.level.findFreePosition(this, voxelshape1, vec3d, (double) entitysize1.width(), (double) entitysize.height(), (double) entitysize1.width());
+            if (entitysize1.width() > previous.width() && entitysize1.height() > previous.height()) {
+                VoxelShape voxelshape1 = Shapes.create(AABB.ofSize(vec3d, d0, 1.0E-6D, d0));
+                Optional<Vec3> optional1 = this.level.findFreePosition(this, voxelshape1, vec3d, (double) entitysize1.width(), (double) previous.height(), (double) entitysize1.width());
 
                 if (optional1.isPresent()) {
-                    this.setPos(((Vec3D) optional1.get()).add(0.0D, (double) (-entitysize.height()) / 2.0D + 1.0E-6D, 0.0D));
+                    this.setPos(((Vec3) optional1.get()).add(0.0D, (double) (-previous.height()) / 2.0D + 1.0E-6D, 0.0D));
                     return true;
                 }
             }
@@ -3515,78 +3513,78 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
     }
 
-    public EnumDirection getDirection() {
-        return EnumDirection.fromYRot((double) this.getYRot());
+    public Direction getDirection() {
+        return Direction.fromYRot((double) this.getYRot());
     }
 
-    public EnumDirection getMotionDirection() {
+    public Direction getMotionDirection() {
         return this.getDirection();
     }
 
-    protected ChatHoverable createHoverEvent() {
-        return new ChatHoverable(ChatHoverable.EnumHoverAction.SHOW_ENTITY, new ChatHoverable.b(this.getType(), this.getUUID(), this.getName()));
+    protected HoverEvent createHoverEvent() {
+        return new HoverEvent(HoverEvent.Action.SHOW_ENTITY, new HoverEvent.EntityTooltipInfo(this.getType(), this.getUUID(), this.getName()));
     }
 
-    public boolean broadcastToPlayer(EntityPlayer entityplayer) {
+    public boolean broadcastToPlayer(ServerPlayer spectator) {
         return true;
     }
 
     @Override
-    public final AxisAlignedBB getBoundingBox() {
+    public final AABB getBoundingBox() {
         return this.bb;
     }
 
-    public AxisAlignedBB getBoundingBoxForCulling() {
+    public AABB getBoundingBoxForCulling() {
         return this.getBoundingBox();
     }
 
-    public final void setBoundingBox(AxisAlignedBB axisalignedbb) {
+    public final void setBoundingBox(AABB boundingBox) {
         // CraftBukkit start - block invalid bounding boxes
-        double minX = axisalignedbb.minX,
-                minY = axisalignedbb.minY,
-                minZ = axisalignedbb.minZ,
-                maxX = axisalignedbb.maxX,
-                maxY = axisalignedbb.maxY,
-                maxZ = axisalignedbb.maxZ;
-        double len = axisalignedbb.maxX - axisalignedbb.minX;
+        double minX = boundingBox.minX,
+                minY = boundingBox.minY,
+                minZ = boundingBox.minZ,
+                maxX = boundingBox.maxX,
+                maxY = boundingBox.maxY,
+                maxZ = boundingBox.maxZ;
+        double len = boundingBox.maxX - boundingBox.minX;
         if (len < 0) maxX = minX;
         if (len > 64) maxX = minX + 64.0;
 
-        len = axisalignedbb.maxY - axisalignedbb.minY;
+        len = boundingBox.maxY - boundingBox.minY;
         if (len < 0) maxY = minY;
         if (len > 64) maxY = minY + 64.0;
 
-        len = axisalignedbb.maxZ - axisalignedbb.minZ;
+        len = boundingBox.maxZ - boundingBox.minZ;
         if (len < 0) maxZ = minZ;
         if (len > 64) maxZ = minZ + 64.0;
-        this.bb = new AxisAlignedBB(minX, minY, minZ, maxX, maxY, maxZ);
+        this.bb = new AABB(minX, minY, minZ, maxX, maxY, maxZ);
         // CraftBukkit end
     }
 
-    public final float getEyeHeight(EntityPose entitypose) {
-        return this.getDimensions(entitypose).eyeHeight();
+    public final float getEyeHeight(net.minecraft.world.entity.Pose pose) {
+        return this.getDimensions(pose).eyeHeight();
     }
 
     public final float getEyeHeight() {
         return this.eyeHeight;
     }
 
-    public Vec3D getLeashOffset(float f) {
+    public Vec3 getLeashOffset(float tickDelta) {
         return this.getLeashOffset();
     }
 
-    protected Vec3D getLeashOffset() {
-        return new Vec3D(0.0D, (double) this.getEyeHeight(), (double) (this.getBbWidth() * 0.4F));
+    protected Vec3 getLeashOffset() {
+        return new Vec3(0.0D, (double) this.getEyeHeight(), (double) (this.getBbWidth() * 0.4F));
     }
 
-    public SlotAccess getSlot(int i) {
+    public SlotAccess getSlot(int mappedIndex) {
         return SlotAccess.NULL;
     }
 
     @Override
-    public void sendSystemMessage(IChatBaseComponent ichatbasecomponent) {}
+    public void sendSystemMessage(Component message) {}
 
-    public World getCommandSenderWorld() {
+    public Level getCommandSenderWorld() {
         return this.level();
     }
 
@@ -3595,22 +3593,22 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.level().getServer();
     }
 
-    public EnumInteractionResult interactAt(EntityHuman entityhuman, Vec3D vec3d, EnumHand enumhand) {
-        return EnumInteractionResult.PASS;
+    public InteractionResult interactAt(Player player, Vec3 hitPos, InteractionHand hand) {
+        return InteractionResult.PASS;
     }
 
     public boolean ignoreExplosion(Explosion explosion) {
         return false;
     }
 
-    public void startSeenByPlayer(EntityPlayer entityplayer) {}
+    public void startSeenByPlayer(ServerPlayer player) {}
 
-    public void stopSeenByPlayer(EntityPlayer entityplayer) {}
+    public void stopSeenByPlayer(ServerPlayer player) {}
 
-    public float rotate(EnumBlockRotation enumblockrotation) {
-        float f = MathHelper.wrapDegrees(this.getYRot());
+    public float rotate(Rotation rotation) {
+        float f = Mth.wrapDegrees(this.getYRot());
 
-        switch (enumblockrotation) {
+        switch (rotation) {
             case CLOCKWISE_180:
                 return f + 180.0F;
             case COUNTERCLOCKWISE_90:
@@ -3622,10 +3620,10 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         }
     }
 
-    public float mirror(EnumBlockMirror enumblockmirror) {
-        float f = MathHelper.wrapDegrees(this.getYRot());
+    public float mirror(Mirror mirror) {
+        float f = Mth.wrapDegrees(this.getYRot());
 
-        switch (enumblockmirror) {
+        switch (mirror) {
             case FRONT_BACK:
                 return -f;
             case LEFT_RIGHT:
@@ -3639,12 +3637,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return false;
     }
 
-    public ProjectileDeflection deflection(IProjectile iprojectile) {
-        return this.getType().is(TagsEntity.DEFLECTS_PROJECTILES) ? ProjectileDeflection.REVERSE : ProjectileDeflection.NONE;
+    public ProjectileDeflection deflection(Projectile projectile) {
+        return this.getType().is(EntityTypeTags.DEFLECTS_PROJECTILES) ? ProjectileDeflection.REVERSE : ProjectileDeflection.NONE;
     }
 
     @Nullable
-    public EntityLiving getControllingPassenger() {
+    public net.minecraft.world.entity.LivingEntity getControllingPassenger() {
         return null;
     }
 
@@ -3661,8 +3659,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.passengers.isEmpty() ? null : (Entity) this.passengers.get(0);
     }
 
-    public boolean hasPassenger(Entity entity) {
-        return this.passengers.contains(entity);
+    public boolean hasPassenger(Entity passenger) {
+        return this.passengers.contains(passenger);
     }
 
     public boolean hasPassenger(Predicate<Entity> predicate) {
@@ -3703,7 +3701,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     public int countPlayerPassengers() {
         return (int) this.getIndirectPassengersStream().filter((entity) -> {
-            return entity instanceof EntityHuman;
+            return entity instanceof Player;
         }).count();
     }
 
@@ -3725,20 +3723,20 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.getRootVehicle() == entity.getRootVehicle();
     }
 
-    public boolean hasIndirectPassenger(Entity entity) {
-        if (!entity.isPassenger()) {
+    public boolean hasIndirectPassenger(Entity passenger) {
+        if (!passenger.isPassenger()) {
             return false;
         } else {
-            Entity entity1 = entity.getVehicle();
+            Entity entity1 = passenger.getVehicle();
 
             return entity1 == this ? true : this.hasIndirectPassenger(entity1);
         }
     }
 
     public boolean isControlledByLocalInstance() {
-        EntityLiving entityliving = this.getControllingPassenger();
+        net.minecraft.world.entity.LivingEntity entityliving = this.getControllingPassenger();
 
-        if (entityliving instanceof EntityHuman entityhuman) {
+        if (entityliving instanceof Player entityhuman) {
             return entityhuman.isLocalPlayer();
         } else {
             return this.isEffectiveAi();
@@ -3749,17 +3747,17 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return !this.level().isClientSide;
     }
 
-    protected static Vec3D getCollisionHorizontalEscapeVector(double d0, double d1, float f) {
-        double d2 = (d0 + d1 + 9.999999747378752E-6D) / 2.0D;
-        float f1 = -MathHelper.sin(f * 0.017453292F);
-        float f2 = MathHelper.cos(f * 0.017453292F);
+    protected static Vec3 getCollisionHorizontalEscapeVector(double vehicleWidth, double passengerWidth, float passengerYaw) {
+        double d2 = (vehicleWidth + passengerWidth + 9.999999747378752E-6D) / 2.0D;
+        float f1 = -Mth.sin(passengerYaw * 0.017453292F);
+        float f2 = Mth.cos(passengerYaw * 0.017453292F);
         float f3 = Math.max(Math.abs(f1), Math.abs(f2));
 
-        return new Vec3D((double) f1 * d2 / (double) f3, 0.0D, (double) f2 * d2 / (double) f3);
+        return new Vec3((double) f1 * d2 / (double) f3, 0.0D, (double) f2 * d2 / (double) f3);
     }
 
-    public Vec3D getDismountLocationForPassenger(EntityLiving entityliving) {
-        return new Vec3D(this.getX(), this.getBoundingBox().maxY, this.getZ());
+    public Vec3 getDismountLocationForPassenger(net.minecraft.world.entity.LivingEntity passenger) {
+        return new Vec3(this.getX(), this.getBoundingBox().maxY, this.getZ());
     }
 
     @Nullable
@@ -3772,28 +3770,28 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.vehicle != null && this.vehicle.getControllingPassenger() == this ? this.vehicle : null;
     }
 
-    public EnumPistonReaction getPistonPushReaction() {
-        return EnumPistonReaction.NORMAL;
+    public PushReaction getPistonPushReaction() {
+        return PushReaction.NORMAL;
     }
 
-    public SoundCategory getSoundSource() {
-        return SoundCategory.NEUTRAL;
+    public SoundSource getSoundSource() {
+        return SoundSource.NEUTRAL;
     }
 
     public int getFireImmuneTicks() {
         return 1;
     }
 
-    public CommandListenerWrapper createCommandSourceStack() {
-        return new CommandListenerWrapper(this, this.position(), this.getRotationVector(), this.level() instanceof WorldServer ? (WorldServer) this.level() : null, this.getPermissionLevel(), this.getName().getString(), this.getDisplayName(), this.level().getServer(), this);
+    public CommandSourceStack createCommandSourceStack() {
+        return new CommandSourceStack(this, this.position(), this.getRotationVector(), this.level() instanceof ServerLevel ? (ServerLevel) this.level() : null, this.getPermissionLevel(), this.getName().getString(), this.getDisplayName(), this.level().getServer(), this);
     }
 
     protected int getPermissionLevel() {
         return 0;
     }
 
-    public boolean hasPermissions(int i) {
-        return this.getPermissionLevel() >= i;
+    public boolean hasPermissions(int permissionLevel) {
+        return this.getPermissionLevel() >= permissionLevel;
     }
 
     @Override
@@ -3811,56 +3809,56 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return true;
     }
 
-    public void lookAt(ArgumentAnchor.Anchor argumentanchor_anchor, Vec3D vec3d) {
-        Vec3D vec3d1 = argumentanchor_anchor.apply(this);
-        double d0 = vec3d.x - vec3d1.x;
-        double d1 = vec3d.y - vec3d1.y;
-        double d2 = vec3d.z - vec3d1.z;
+    public void lookAt(EntityAnchorArgument.Anchor anchorPoint, Vec3 target) {
+        Vec3 vec3d1 = anchorPoint.apply(this);
+        double d0 = target.x - vec3d1.x;
+        double d1 = target.y - vec3d1.y;
+        double d2 = target.z - vec3d1.z;
         double d3 = Math.sqrt(d0 * d0 + d2 * d2);
 
-        this.setXRot(MathHelper.wrapDegrees((float) (-(MathHelper.atan2(d1, d3) * 57.2957763671875D))));
-        this.setYRot(MathHelper.wrapDegrees((float) (MathHelper.atan2(d2, d0) * 57.2957763671875D) - 90.0F));
+        this.setXRot(Mth.wrapDegrees((float) (-(Mth.atan2(d1, d3) * 57.2957763671875D))));
+        this.setYRot(Mth.wrapDegrees((float) (Mth.atan2(d2, d0) * 57.2957763671875D) - 90.0F));
         this.setYHeadRot(this.getYRot());
         this.xRotO = this.getXRot();
         this.yRotO = this.getYRot();
     }
 
-    public float getPreciseBodyRotation(float f) {
-        return MathHelper.lerp(f, this.yRotO, this.yRot);
+    public float getPreciseBodyRotation(float delta) {
+        return Mth.lerp(delta, this.yRotO, this.yRot);
     }
 
-    public boolean updateFluidHeightAndDoFluidPushing(TagKey<FluidType> tagkey, double d0) {
+    public boolean updateFluidHeightAndDoFluidPushing(TagKey<Fluid> tag, double speed) {
         if (this.touchingUnloadedChunk()) {
             return false;
         } else {
-            AxisAlignedBB axisalignedbb = this.getBoundingBox().deflate(0.001D);
-            int i = MathHelper.floor(axisalignedbb.minX);
-            int j = MathHelper.ceil(axisalignedbb.maxX);
-            int k = MathHelper.floor(axisalignedbb.minY);
-            int l = MathHelper.ceil(axisalignedbb.maxY);
-            int i1 = MathHelper.floor(axisalignedbb.minZ);
-            int j1 = MathHelper.ceil(axisalignedbb.maxZ);
+            AABB axisalignedbb = this.getBoundingBox().deflate(0.001D);
+            int i = Mth.floor(axisalignedbb.minX);
+            int j = Mth.ceil(axisalignedbb.maxX);
+            int k = Mth.floor(axisalignedbb.minY);
+            int l = Mth.ceil(axisalignedbb.maxY);
+            int i1 = Mth.floor(axisalignedbb.minZ);
+            int j1 = Mth.ceil(axisalignedbb.maxZ);
             double d1 = 0.0D;
             boolean flag = this.isPushedByFluid();
             boolean flag1 = false;
-            Vec3D vec3d = Vec3D.ZERO;
+            Vec3 vec3d = Vec3.ZERO;
             int k1 = 0;
-            BlockPosition.MutableBlockPosition blockposition_mutableblockposition = new BlockPosition.MutableBlockPosition();
+            BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
 
             for (int l1 = i; l1 < j; ++l1) {
                 for (int i2 = k; i2 < l; ++i2) {
                     for (int j2 = i1; j2 < j1; ++j2) {
                         blockposition_mutableblockposition.set(l1, i2, j2);
-                        Fluid fluid = this.level().getFluidState(blockposition_mutableblockposition);
+                        FluidState fluid = this.level().getFluidState(blockposition_mutableblockposition);
 
-                        if (fluid.is(tagkey)) {
+                        if (fluid.is(tag)) {
                             double d2 = (double) ((float) i2 + fluid.getHeight(this.level(), blockposition_mutableblockposition));
 
                             if (d2 >= axisalignedbb.minY) {
                                 flag1 = true;
                                 d1 = Math.max(d2 - axisalignedbb.minY, d1);
                                 if (flag) {
-                                    Vec3D vec3d1 = fluid.getFlow(this.level(), blockposition_mutableblockposition);
+                                    Vec3 vec3d1 = fluid.getFlow(this.level(), blockposition_mutableblockposition);
 
                                     if (d1 < 0.4D) {
                                         vec3d1 = vec3d1.scale(d1);
@@ -3870,7 +3868,7 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                                     ++k1;
                                 }
                                 // CraftBukkit start - store last lava contact location
-                                if (tagkey == TagsFluid.LAVA) {
+                                if (tag == FluidTags.LAVA) {
                                     this.lastLavaContact = blockposition_mutableblockposition.immutable();
                                 }
                                 // CraftBukkit end
@@ -3885,13 +3883,13 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                     vec3d = vec3d.scale(1.0D / (double) k1);
                 }
 
-                if (!(this instanceof EntityHuman)) {
+                if (!(this instanceof Player)) {
                     vec3d = vec3d.normalize();
                 }
 
-                Vec3D vec3d2 = this.getDeltaMovement();
+                Vec3 vec3d2 = this.getDeltaMovement();
 
-                vec3d = vec3d.scale(d0);
+                vec3d = vec3d.scale(speed);
                 double d3 = 0.003D;
 
                 if (Math.abs(vec3d2.x) < 0.003D && Math.abs(vec3d2.z) < 0.003D && vec3d.length() < 0.0045000000000000005D) {
@@ -3901,23 +3899,23 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
                 this.setDeltaMovement(this.getDeltaMovement().add(vec3d));
             }
 
-            this.fluidHeight.put(tagkey, d1);
+            this.fluidHeight.put(tag, d1);
             return flag1;
         }
     }
 
     public boolean touchingUnloadedChunk() {
-        AxisAlignedBB axisalignedbb = this.getBoundingBox().inflate(1.0D);
-        int i = MathHelper.floor(axisalignedbb.minX);
-        int j = MathHelper.ceil(axisalignedbb.maxX);
-        int k = MathHelper.floor(axisalignedbb.minZ);
-        int l = MathHelper.ceil(axisalignedbb.maxZ);
+        AABB axisalignedbb = this.getBoundingBox().inflate(1.0D);
+        int i = Mth.floor(axisalignedbb.minX);
+        int j = Mth.ceil(axisalignedbb.maxX);
+        int k = Mth.floor(axisalignedbb.minZ);
+        int l = Mth.ceil(axisalignedbb.maxZ);
 
         return !this.level().hasChunksAt(i, k, j, l);
     }
 
-    public double getFluidHeight(TagKey<FluidType> tagkey) {
-        return this.fluidHeight.getDouble(tagkey);
+    public double getFluidHeight(TagKey<Fluid> fluid) {
+        return this.fluidHeight.getDouble(fluid);
     }
 
     public double getFluidJumpThreshold() {
@@ -3932,11 +3930,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.dimensions.height();
     }
 
-    public Packet<PacketListenerPlayOut> getAddEntityPacket(EntityTrackerEntry entitytrackerentry) {
-        return new PacketPlayOutSpawnEntity(this, entitytrackerentry);
+    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity entityTrackerEntry) {
+        return new ClientboundAddEntityPacket(this, entityTrackerEntry);
     }
 
-    public EntitySize getDimensions(EntityPose entitypose) {
+    public EntityDimensions getDimensions(net.minecraft.world.entity.Pose pose) {
         return this.type.getDimensions();
     }
 
@@ -3944,20 +3942,20 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.dimensions.attachments();
     }
 
-    public Vec3D position() {
+    public Vec3 position() {
         return this.position;
     }
 
-    public Vec3D trackingPosition() {
+    public Vec3 trackingPosition() {
         return this.position();
     }
 
     @Override
-    public BlockPosition blockPosition() {
+    public BlockPos blockPosition() {
         return this.blockPosition;
     }
 
-    public IBlockData getInBlockState() {
+    public BlockState getInBlockState() {
         if (this.inBlockState == null) {
             this.inBlockState = this.level().getBlockState(this.blockPosition());
         }
@@ -3965,24 +3963,24 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.inBlockState;
     }
 
-    public ChunkCoordIntPair chunkPosition() {
+    public ChunkPos chunkPosition() {
         return this.chunkPosition;
     }
 
-    public Vec3D getDeltaMovement() {
+    public Vec3 getDeltaMovement() {
         return this.deltaMovement;
     }
 
-    public void setDeltaMovement(Vec3D vec3d) {
-        this.deltaMovement = vec3d;
+    public void setDeltaMovement(Vec3 velocity) {
+        this.deltaMovement = velocity;
     }
 
-    public void addDeltaMovement(Vec3D vec3d) {
-        this.setDeltaMovement(this.getDeltaMovement().add(vec3d));
+    public void addDeltaMovement(Vec3 velocity) {
+        this.setDeltaMovement(this.getDeltaMovement().add(velocity));
     }
 
-    public void setDeltaMovement(double d0, double d1, double d2) {
-        this.setDeltaMovement(new Vec3D(d0, d1, d2));
+    public void setDeltaMovement(double x, double y, double z) {
+        this.setDeltaMovement(new Vec3(x, y, z));
     }
 
     public final int getBlockX() {
@@ -3993,12 +3991,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.position.x;
     }
 
-    public double getX(double d0) {
-        return this.position.x + (double) this.getBbWidth() * d0;
+    public double getX(double widthScale) {
+        return this.position.x + (double) this.getBbWidth() * widthScale;
     }
 
-    public double getRandomX(double d0) {
-        return this.getX((2.0D * this.random.nextDouble() - 1.0D) * d0);
+    public double getRandomX(double widthScale) {
+        return this.getX((2.0D * this.random.nextDouble() - 1.0D) * widthScale);
     }
 
     public final int getBlockY() {
@@ -4009,8 +4007,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.position.y;
     }
 
-    public double getY(double d0) {
-        return this.position.y + (double) this.getBbHeight() * d0;
+    public double getY(double heightScale) {
+        return this.position.y + (double) this.getBbHeight() * heightScale;
     }
 
     public double getRandomY() {
@@ -4029,26 +4027,26 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.position.z;
     }
 
-    public double getZ(double d0) {
-        return this.position.z + (double) this.getBbWidth() * d0;
+    public double getZ(double widthScale) {
+        return this.position.z + (double) this.getBbWidth() * widthScale;
     }
 
-    public double getRandomZ(double d0) {
-        return this.getZ((2.0D * this.random.nextDouble() - 1.0D) * d0);
+    public double getRandomZ(double widthScale) {
+        return this.getZ((2.0D * this.random.nextDouble() - 1.0D) * widthScale);
     }
 
-    public final void setPosRaw(double d0, double d1, double d2) {
-        if (this.position.x != d0 || this.position.y != d1 || this.position.z != d2) {
-            this.position = new Vec3D(d0, d1, d2);
-            int i = MathHelper.floor(d0);
-            int j = MathHelper.floor(d1);
-            int k = MathHelper.floor(d2);
+    public final void setPosRaw(double x, double y, double z) {
+        if (this.position.x != x || this.position.y != y || this.position.z != z) {
+            this.position = new Vec3(x, y, z);
+            int i = Mth.floor(x);
+            int j = Mth.floor(y);
+            int k = Mth.floor(z);
 
             if (i != this.blockPosition.getX() || j != this.blockPosition.getY() || k != this.blockPosition.getZ()) {
-                this.blockPosition = new BlockPosition(i, j, k);
+                this.blockPosition = new BlockPos(i, j, k);
                 this.inBlockState = null;
-                if (SectionPosition.blockToSectionCoord(i) != this.chunkPosition.x || SectionPosition.blockToSectionCoord(k) != this.chunkPosition.z) {
-                    this.chunkPosition = new ChunkCoordIntPair(this.blockPosition);
+                if (SectionPos.blockToSectionCoord(i) != this.chunkPosition.x || SectionPos.blockToSectionCoord(k) != this.chunkPosition.z) {
+                    this.chunkPosition = new ChunkPos(this.blockPosition);
                 }
             }
 
@@ -4059,22 +4057,22 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
 
     public void checkDespawn() {}
 
-    public Vec3D getRopeHoldPosition(float f) {
-        return this.getPosition(f).add(0.0D, (double) this.eyeHeight * 0.7D, 0.0D);
+    public Vec3 getRopeHoldPosition(float delta) {
+        return this.getPosition(delta).add(0.0D, (double) this.eyeHeight * 0.7D, 0.0D);
     }
 
-    public void recreateFromPacket(PacketPlayOutSpawnEntity packetplayoutspawnentity) {
-        int i = packetplayoutspawnentity.getId();
-        double d0 = packetplayoutspawnentity.getX();
-        double d1 = packetplayoutspawnentity.getY();
-        double d2 = packetplayoutspawnentity.getZ();
+    public void recreateFromPacket(ClientboundAddEntityPacket packet) {
+        int i = packet.getId();
+        double d0 = packet.getX();
+        double d1 = packet.getY();
+        double d2 = packet.getZ();
 
         this.syncPacketPositionCodec(d0, d1, d2);
         this.moveTo(d0, d1, d2);
-        this.setXRot(packetplayoutspawnentity.getXRot());
-        this.setYRot(packetplayoutspawnentity.getYRot());
+        this.setXRot(packet.getXRot());
+        this.setYRot(packet.getYRot());
         this.setId(i);
-        this.setUUID(packetplayoutspawnentity.getUUID());
+        this.setUUID(packet.getUUID());
     }
 
     @Nullable
@@ -4082,12 +4080,12 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return null;
     }
 
-    public void setIsInPowderSnow(boolean flag) {
-        this.isInPowderSnow = flag;
+    public void setIsInPowderSnow(boolean inPowderSnow) {
+        this.isInPowderSnow = inPowderSnow;
     }
 
     public boolean canFreeze() {
-        return !this.getType().is(TagsEntity.FREEZE_IMMUNE_ENTITY_TYPES);
+        return !this.getType().is(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES);
     }
 
     public boolean isFreezing() {
@@ -4102,11 +4100,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.getYRot();
     }
 
-    public void setYRot(float f) {
-        if (!Float.isFinite(f)) {
-            SystemUtils.logAndPauseIfInIde("Invalid entity rotation: " + f + ", discarding.");
+    public void setYRot(float yaw) {
+        if (!Float.isFinite(yaw)) {
+            Util.logAndPauseIfInIde("Invalid entity rotation: " + yaw + ", discarding.");
         } else {
-            this.yRot = f;
+            this.yRot = yaw;
         }
     }
 
@@ -4114,11 +4112,11 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.xRot;
     }
 
-    public void setXRot(float f) {
-        if (!Float.isFinite(f)) {
-            SystemUtils.logAndPauseIfInIde("Invalid entity rotation: " + f + ", discarding.");
+    public void setXRot(float pitch) {
+        if (!Float.isFinite(pitch)) {
+            Util.logAndPauseIfInIde("Invalid entity rotation: " + pitch + ", discarding.");
         } else {
-            this.xRot = f;
+            this.xRot = pitch;
         }
     }
 
@@ -4142,9 +4140,9 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     @Override
-    public final void setRemoved(Entity.RemovalReason entity_removalreason) {
+    public final void setRemoved(Entity.RemovalReason reason) {
         // CraftBukkit start - add Bukkit remove cause
-        setRemoved(entity_removalreason, null);
+        this.setRemoved(reason, null);
     }
 
     @Override
@@ -4168,8 +4166,8 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     }
 
     @Override
-    public void setLevelCallback(EntityInLevelCallback entityinlevelcallback) {
-        this.levelCallback = entityinlevelcallback;
+    public void setLevelCallback(EntityInLevelCallback changeListener) {
+        this.levelCallback = changeListener;
     }
 
     @Override
@@ -4182,15 +4180,15 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return false;
     }
 
-    public boolean mayInteract(World world, BlockPosition blockposition) {
+    public boolean mayInteract(Level world, BlockPos pos) {
         return true;
     }
 
-    public World level() {
+    public Level level() {
         return this.level;
     }
 
-    protected void setLevel(World world) {
+    public void setLevel(Level world) {
         this.level = world;
     }
 
@@ -4198,17 +4196,17 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.level().damageSources();
     }
 
-    public IRegistryCustom registryAccess() {
+    public RegistryAccess registryAccess() {
         return this.level().registryAccess();
     }
 
-    protected void lerpPositionAndRotationStep(int i, double d0, double d1, double d2, double d3, double d4) {
-        double d5 = 1.0D / (double) i;
-        double d6 = MathHelper.lerp(d5, this.getX(), d0);
-        double d7 = MathHelper.lerp(d5, this.getY(), d1);
-        double d8 = MathHelper.lerp(d5, this.getZ(), d2);
-        float f = (float) MathHelper.rotLerp(d5, (double) this.getYRot(), d3);
-        float f1 = (float) MathHelper.lerp(d5, (double) this.getXRot(), d4);
+    protected void lerpPositionAndRotationStep(int step, double x, double y, double z, double yaw, double pitch) {
+        double d5 = 1.0D / (double) step;
+        double d6 = Mth.lerp(d5, this.getX(), x);
+        double d7 = Mth.lerp(d5, this.getY(), y);
+        double d8 = Mth.lerp(d5, this.getZ(), z);
+        float f = (float) Mth.rotLerp(d5, (double) this.getYRot(), yaw);
+        float f1 = (float) Mth.lerp(d5, (double) this.getXRot(), pitch);
 
         this.setPos(d6, d7, d8);
         this.setRot(f, f1);
@@ -4218,10 +4216,10 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
         return this.random;
     }
 
-    public Vec3D getKnownMovement() {
-        EntityLiving entityliving = this.getControllingPassenger();
+    public Vec3 getKnownMovement() {
+        net.minecraft.world.entity.LivingEntity entityliving = this.getControllingPassenger();
 
-        if (entityliving instanceof EntityHuman entityhuman) {
+        if (entityliving instanceof Player entityhuman) {
             if (this.isAlive()) {
                 return entityhuman.getKnownMovement();
             }
@@ -4284,6 +4282,6 @@ public abstract class Entity implements SyncedDataHolder, INamableTileEntity, En
     @FunctionalInterface
     public interface MoveFunction {
 
-        void accept(Entity entity, double d0, double d1, double d2);
+        void accept(Entity entity, double x, double y, double z);
     }
 }

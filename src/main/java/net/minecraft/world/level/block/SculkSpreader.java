@@ -24,26 +24,24 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import net.minecraft.SystemUtils;
-import net.minecraft.core.BaseBlockPosition;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
-import net.minecraft.nbt.DynamicOpsNBT;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.sounds.SoundCategory;
-import net.minecraft.sounds.SoundEffects;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.tags.TagsBlock;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.level.GeneratorAccess;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
-
-// CraftBukkit start
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.world.level.World;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.event.block.SculkBloomEvent;
@@ -62,25 +60,25 @@ public class SculkSpreader {
     private final int noGrowthRadius;
     private final int chargeDecayRate;
     private final int additionalDecayRate;
-    private List<SculkSpreader.a> cursors = new ArrayList();
+    private List<SculkSpreader.ChargeCursor> cursors = new ArrayList();
     private static final Logger LOGGER = LogUtils.getLogger();
-    public World level; // CraftBukkit
+    public Level level; // CraftBukkit
 
-    public SculkSpreader(boolean flag, TagKey<Block> tagkey, int i, int j, int k, int l) {
-        this.isWorldGeneration = flag;
-        this.replaceableBlocks = tagkey;
-        this.growthSpawnCost = i;
-        this.noGrowthRadius = j;
-        this.chargeDecayRate = k;
-        this.additionalDecayRate = l;
+    public SculkSpreader(boolean worldGen, TagKey<Block> replaceableTag, int extraBlockChance, int maxDistance, int spreadChance, int decayChance) {
+        this.isWorldGeneration = worldGen;
+        this.replaceableBlocks = replaceableTag;
+        this.growthSpawnCost = extraBlockChance;
+        this.noGrowthRadius = maxDistance;
+        this.chargeDecayRate = spreadChance;
+        this.additionalDecayRate = decayChance;
     }
 
     public static SculkSpreader createLevelSpreader() {
-        return new SculkSpreader(false, TagsBlock.SCULK_REPLACEABLE, 10, 4, 10, 5);
+        return new SculkSpreader(false, BlockTags.SCULK_REPLACEABLE, 10, 4, 10, 5);
     }
 
     public static SculkSpreader createWorldGenSpreader() {
-        return new SculkSpreader(true, TagsBlock.SCULK_REPLACEABLE_WORLD_GEN, 50, 1, 5, 10);
+        return new SculkSpreader(true, BlockTags.SCULK_REPLACEABLE_WORLD_GEN, 50, 1, 5, 10);
     }
 
     public TagKey<Block> replaceableBlocks() {
@@ -108,7 +106,7 @@ public class SculkSpreader {
     }
 
     @VisibleForTesting
-    public List<SculkSpreader.a> getCursors() {
+    public List<SculkSpreader.ChargeCursor> getCursors() {
         return this.cursors;
     }
 
@@ -116,83 +114,83 @@ public class SculkSpreader {
         this.cursors.clear();
     }
 
-    public void load(NBTTagCompound nbttagcompound) {
-        if (nbttagcompound.contains("cursors", 9)) {
+    public void load(CompoundTag nbt) {
+        if (nbt.contains("cursors", 9)) {
             this.cursors.clear();
-            DataResult<List<SculkSpreader.a>> dataresult = SculkSpreader.a.CODEC.listOf().parse(new Dynamic<>(DynamicOpsNBT.INSTANCE, nbttagcompound.getList("cursors", 10))); // CraftBukkit - decompile error
+            DataResult<List<SculkSpreader.ChargeCursor>> dataresult = SculkSpreader.ChargeCursor.CODEC.listOf().parse(new Dynamic<>(NbtOps.INSTANCE, nbt.getList("cursors", 10))); // CraftBukkit - decompile error
             Logger logger = SculkSpreader.LOGGER;
 
             Objects.requireNonNull(logger);
-            List<SculkSpreader.a> list = (List) dataresult.resultOrPartial(logger::error).orElseGet(ArrayList::new);
+            List<SculkSpreader.ChargeCursor> list = (List) dataresult.resultOrPartial(logger::error).orElseGet(ArrayList::new);
             int i = Math.min(list.size(), 32);
 
             for (int j = 0; j < i; ++j) {
-                this.addCursor((SculkSpreader.a) list.get(j));
+                this.addCursor((SculkSpreader.ChargeCursor) list.get(j));
             }
         }
 
     }
 
-    public void save(NBTTagCompound nbttagcompound) {
-        DataResult<NBTBase> dataresult = SculkSpreader.a.CODEC.listOf().encodeStart(DynamicOpsNBT.INSTANCE, this.cursors); // CraftBukkit - decompile error
+    public void save(CompoundTag nbt) {
+        DataResult<Tag> dataresult = SculkSpreader.ChargeCursor.CODEC.listOf().encodeStart(NbtOps.INSTANCE, this.cursors); // CraftBukkit - decompile error
         Logger logger = SculkSpreader.LOGGER;
 
         Objects.requireNonNull(logger);
         dataresult.resultOrPartial(logger::error).ifPresent((nbtbase) -> {
-            nbttagcompound.put("cursors", nbtbase);
+            nbt.put("cursors", nbtbase);
         });
     }
 
-    public void addCursors(BlockPosition blockposition, int i) {
-        while (i > 0) {
-            int j = Math.min(i, 1000);
+    public void addCursors(BlockPos pos, int charge) {
+        while (charge > 0) {
+            int j = Math.min(charge, 1000);
 
-            this.addCursor(new SculkSpreader.a(blockposition, j));
-            i -= j;
+            this.addCursor(new SculkSpreader.ChargeCursor(pos, j));
+            charge -= j;
         }
 
     }
 
-    private void addCursor(SculkSpreader.a sculkspreader_a) {
+    private void addCursor(SculkSpreader.ChargeCursor cursor) {
         if (this.cursors.size() < 32) {
             // CraftBukkit start
-            if (!isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
-                CraftBlock bukkitBlock = CraftBlock.at(level, sculkspreader_a.pos);
-                SculkBloomEvent event = new SculkBloomEvent(bukkitBlock, sculkspreader_a.getCharge());
+            if (!this.isWorldGeneration()) { // CraftBukkit - SPIGOT-7475: Don't call event during world generation
+                CraftBlock bukkitBlock = CraftBlock.at(this.level, cursor.pos);
+                SculkBloomEvent event = new SculkBloomEvent(bukkitBlock, cursor.getCharge());
                 Bukkit.getPluginManager().callEvent(event);
                 if (event.isCancelled()) {
                     return;
                 }
 
-                sculkspreader_a.charge = event.getCharge();
+                cursor.charge = event.getCharge();
             }
             // CraftBukkit end
 
-            this.cursors.add(sculkspreader_a);
+            this.cursors.add(cursor);
         }
     }
 
-    public void updateCursors(GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource, boolean flag) {
+    public void updateCursors(LevelAccessor world, BlockPos pos, RandomSource random, boolean shouldConvertToBlock) {
         if (!this.cursors.isEmpty()) {
-            List<SculkSpreader.a> list = new ArrayList();
-            Map<BlockPosition, SculkSpreader.a> map = new HashMap();
-            Object2IntMap<BlockPosition> object2intmap = new Object2IntOpenHashMap();
+            List<SculkSpreader.ChargeCursor> list = new ArrayList();
+            Map<BlockPos, SculkSpreader.ChargeCursor> map = new HashMap();
+            Object2IntMap<BlockPos> object2intmap = new Object2IntOpenHashMap();
             Iterator iterator = this.cursors.iterator();
 
-            BlockPosition blockposition1;
+            BlockPos blockposition1;
 
             while (iterator.hasNext()) {
-                SculkSpreader.a sculkspreader_a = (SculkSpreader.a) iterator.next();
+                SculkSpreader.ChargeCursor sculkspreader_a = (SculkSpreader.ChargeCursor) iterator.next();
 
-                sculkspreader_a.update(generatoraccess, blockposition, randomsource, this, flag);
+                sculkspreader_a.update(world, pos, random, this, shouldConvertToBlock);
                 if (sculkspreader_a.charge <= 0) {
-                    generatoraccess.levelEvent(3006, sculkspreader_a.getPos(), 0);
+                    world.levelEvent(3006, sculkspreader_a.getPos(), 0);
                 } else {
                     blockposition1 = sculkspreader_a.getPos();
                     object2intmap.computeInt(blockposition1, (blockposition2, integer) -> {
                         return (integer == null ? 0 : integer) + sculkspreader_a.charge;
                     });
-                    SculkSpreader.a sculkspreader_a1 = (SculkSpreader.a) map.get(blockposition1);
+                    SculkSpreader.ChargeCursor sculkspreader_a1 = (SculkSpreader.ChargeCursor) map.get(blockposition1);
 
                     if (sculkspreader_a1 == null) {
                         map.put(blockposition1, sculkspreader_a);
@@ -211,18 +209,18 @@ public class SculkSpreader {
             ObjectIterator objectiterator = object2intmap.object2IntEntrySet().iterator();
 
             while (objectiterator.hasNext()) {
-                Entry<BlockPosition> entry = (Entry) objectiterator.next();
+                Entry<BlockPos> entry = (Entry) objectiterator.next();
 
-                blockposition1 = (BlockPosition) entry.getKey();
+                blockposition1 = (BlockPos) entry.getKey();
                 int i = entry.getIntValue();
-                SculkSpreader.a sculkspreader_a2 = (SculkSpreader.a) map.get(blockposition1);
-                Collection<EnumDirection> collection = sculkspreader_a2 == null ? null : sculkspreader_a2.getFacingData();
+                SculkSpreader.ChargeCursor sculkspreader_a2 = (SculkSpreader.ChargeCursor) map.get(blockposition1);
+                Collection<Direction> collection = sculkspreader_a2 == null ? null : sculkspreader_a2.getFacingData();
 
                 if (i > 0 && collection != null) {
                     int j = (int) (Math.log1p((double) i) / 2.299999952316284D) + 1;
                     int k = (j << 6) + MultifaceBlock.pack(collection);
 
-                    generatoraccess.levelEvent(3006, blockposition1, k);
+                    world.levelEvent(3006, blockposition1, k);
                 }
             }
 
@@ -230,47 +228,47 @@ public class SculkSpreader {
         }
     }
 
-    public static class a {
+    public static class ChargeCursor {
 
-        private static final ObjectArrayList<BaseBlockPosition> NON_CORNER_NEIGHBOURS = (ObjectArrayList) SystemUtils.make(new ObjectArrayList(18), (objectarraylist) -> {
-            Stream stream = BlockPosition.betweenClosedStream(new BlockPosition(-1, -1, -1), new BlockPosition(1, 1, 1)).filter((blockposition) -> {
-                return (blockposition.getX() == 0 || blockposition.getY() == 0 || blockposition.getZ() == 0) && !blockposition.equals(BlockPosition.ZERO);
-            }).map(BlockPosition::immutable);
+        private static final ObjectArrayList<Vec3i> NON_CORNER_NEIGHBOURS = (ObjectArrayList) Util.make(new ObjectArrayList(18), (objectarraylist) -> {
+            Stream stream = BlockPos.betweenClosedStream(new BlockPos(-1, -1, -1), new BlockPos(1, 1, 1)).filter((blockposition) -> {
+                return (blockposition.getX() == 0 || blockposition.getY() == 0 || blockposition.getZ() == 0) && !blockposition.equals(BlockPos.ZERO);
+            }).map(BlockPos::immutable);
 
             Objects.requireNonNull(objectarraylist);
             stream.forEach(objectarraylist::add);
         });
         public static final int MAX_CURSOR_DECAY_DELAY = 1;
-        private BlockPosition pos;
+        private BlockPos pos;
         int charge;
         private int updateDelay;
         private int decayDelay;
         @Nullable
-        private Set<EnumDirection> facings;
-        private static final Codec<Set<EnumDirection>> DIRECTION_SET = EnumDirection.CODEC.listOf().xmap((list) -> {
-            return Sets.newEnumSet(list, EnumDirection.class);
+        private Set<Direction> facings;
+        private static final Codec<Set<Direction>> DIRECTION_SET = Direction.CODEC.listOf().xmap((list) -> {
+            return Sets.newEnumSet(list, Direction.class);
         }, Lists::newArrayList);
-        public static final Codec<SculkSpreader.a> CODEC = RecordCodecBuilder.create((instance) -> {
-            return instance.group(BlockPosition.CODEC.fieldOf("pos").forGetter(SculkSpreader.a::getPos), Codec.intRange(0, 1000).fieldOf("charge").orElse(0).forGetter(SculkSpreader.a::getCharge), Codec.intRange(0, 1).fieldOf("decay_delay").orElse(1).forGetter(SculkSpreader.a::getDecayDelay), Codec.intRange(0, Integer.MAX_VALUE).fieldOf("update_delay").orElse(0).forGetter((sculkspreader_a) -> {
+        public static final Codec<SculkSpreader.ChargeCursor> CODEC = RecordCodecBuilder.create((instance) -> {
+            return instance.group(BlockPos.CODEC.fieldOf("pos").forGetter(SculkSpreader.ChargeCursor::getPos), Codec.intRange(0, 1000).fieldOf("charge").orElse(0).forGetter(SculkSpreader.ChargeCursor::getCharge), Codec.intRange(0, 1).fieldOf("decay_delay").orElse(1).forGetter(SculkSpreader.ChargeCursor::getDecayDelay), Codec.intRange(0, Integer.MAX_VALUE).fieldOf("update_delay").orElse(0).forGetter((sculkspreader_a) -> {
                 return sculkspreader_a.updateDelay;
-            }), SculkSpreader.a.DIRECTION_SET.lenientOptionalFieldOf("facings").forGetter((sculkspreader_a) -> {
+            }), SculkSpreader.ChargeCursor.DIRECTION_SET.lenientOptionalFieldOf("facings").forGetter((sculkspreader_a) -> {
                 return Optional.ofNullable(sculkspreader_a.getFacingData());
-            })).apply(instance, SculkSpreader.a::new);
+            })).apply(instance, SculkSpreader.ChargeCursor::new);
         });
 
-        private a(BlockPosition blockposition, int i, int j, int k, Optional<Set<EnumDirection>> optional) {
-            this.pos = blockposition;
-            this.charge = i;
-            this.decayDelay = j;
-            this.updateDelay = k;
-            this.facings = (Set) optional.orElse(null); // CraftBukkit - decompile error
+        private ChargeCursor(BlockPos pos, int charge, int decay, int update, Optional<Set<Direction>> faces) {
+            this.pos = pos;
+            this.charge = charge;
+            this.decayDelay = decay;
+            this.updateDelay = update;
+            this.facings = (Set) faces.orElse(null); // CraftBukkit - decompile error
         }
 
-        public a(BlockPosition blockposition, int i) {
-            this(blockposition, i, 1, 0, Optional.empty());
+        public ChargeCursor(BlockPos pos, int charge) {
+            this(pos, charge, 1, 0, Optional.empty());
         }
 
-        public BlockPosition getPos() {
+        public BlockPos getPos() {
             return this.pos;
         }
 
@@ -283,56 +281,56 @@ public class SculkSpreader {
         }
 
         @Nullable
-        public Set<EnumDirection> getFacingData() {
+        public Set<Direction> getFacingData() {
             return this.facings;
         }
 
-        private boolean shouldUpdate(GeneratorAccess generatoraccess, BlockPosition blockposition, boolean flag) {
+        private boolean shouldUpdate(LevelAccessor world, BlockPos pos, boolean worldGen) {
             if (this.charge <= 0) {
                 return false;
-            } else if (flag) {
+            } else if (worldGen) {
                 return true;
-            } else if (generatoraccess instanceof WorldServer) {
-                WorldServer worldserver = (WorldServer) generatoraccess;
+            } else if (world instanceof ServerLevel) {
+                ServerLevel worldserver = (ServerLevel) world;
 
-                return worldserver.shouldTickBlocksAt(blockposition);
+                return worldserver.shouldTickBlocksAt(pos);
             } else {
                 return false;
             }
         }
 
-        public void update(GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource, SculkSpreader sculkspreader, boolean flag) {
-            if (this.shouldUpdate(generatoraccess, blockposition, sculkspreader.isWorldGeneration)) {
+        public void update(LevelAccessor world, BlockPos pos, RandomSource random, SculkSpreader spreadManager, boolean shouldConvertToBlock) {
+            if (this.shouldUpdate(world, pos, spreadManager.isWorldGeneration)) {
                 if (this.updateDelay > 0) {
                     --this.updateDelay;
                 } else {
-                    IBlockData iblockdata = generatoraccess.getBlockState(this.pos);
-                    SculkBehaviour sculkbehaviour = getBlockBehaviour(iblockdata);
+                    BlockState iblockdata = world.getBlockState(this.pos);
+                    SculkBehaviour sculkbehaviour = ChargeCursor.getBlockBehaviour(iblockdata);
 
-                    if (flag && sculkbehaviour.attemptSpreadVein(generatoraccess, this.pos, iblockdata, this.facings, sculkspreader.isWorldGeneration())) {
+                    if (shouldConvertToBlock && sculkbehaviour.attemptSpreadVein(world, this.pos, iblockdata, this.facings, spreadManager.isWorldGeneration())) {
                         if (sculkbehaviour.canChangeBlockStateOnSpread()) {
-                            iblockdata = generatoraccess.getBlockState(this.pos);
-                            sculkbehaviour = getBlockBehaviour(iblockdata);
+                            iblockdata = world.getBlockState(this.pos);
+                            sculkbehaviour = ChargeCursor.getBlockBehaviour(iblockdata);
                         }
 
-                        generatoraccess.playSound((EntityHuman) null, this.pos, SoundEffects.SCULK_BLOCK_SPREAD, SoundCategory.BLOCKS, 1.0F, 1.0F);
+                        world.playSound((Player) null, this.pos, SoundEvents.SCULK_BLOCK_SPREAD, SoundSource.BLOCKS, 1.0F, 1.0F);
                     }
 
-                    this.charge = sculkbehaviour.attemptUseCharge(this, generatoraccess, blockposition, randomsource, sculkspreader, flag);
+                    this.charge = sculkbehaviour.attemptUseCharge(this, world, pos, random, spreadManager, shouldConvertToBlock);
                     if (this.charge <= 0) {
-                        sculkbehaviour.onDischarged(generatoraccess, iblockdata, this.pos, randomsource);
+                        sculkbehaviour.onDischarged(world, iblockdata, this.pos, random);
                     } else {
-                        BlockPosition blockposition1 = getValidMovementPos(generatoraccess, this.pos, randomsource);
+                        BlockPos blockposition1 = ChargeCursor.getValidMovementPos(world, this.pos, random);
 
                         if (blockposition1 != null) {
-                            sculkbehaviour.onDischarged(generatoraccess, iblockdata, this.pos, randomsource);
+                            sculkbehaviour.onDischarged(world, iblockdata, this.pos, random);
                             this.pos = blockposition1.immutable();
-                            if (sculkspreader.isWorldGeneration() && !this.pos.closerThan(new BaseBlockPosition(blockposition.getX(), this.pos.getY(), blockposition.getZ()), 15.0D)) {
+                            if (spreadManager.isWorldGeneration() && !this.pos.closerThan(new Vec3i(pos.getX(), this.pos.getY(), pos.getZ()), 15.0D)) {
                                 this.charge = 0;
                                 return;
                             }
 
-                            iblockdata = generatoraccess.getBlockState(blockposition1);
+                            iblockdata = world.getBlockState(blockposition1);
                         }
 
                         if (iblockdata.getBlock() instanceof SculkBehaviour) {
@@ -346,14 +344,14 @@ public class SculkSpreader {
             }
         }
 
-        void mergeWith(SculkSpreader.a sculkspreader_a) {
-            this.charge += sculkspreader_a.charge;
-            sculkspreader_a.charge = 0;
-            this.updateDelay = Math.min(this.updateDelay, sculkspreader_a.updateDelay);
+        void mergeWith(SculkSpreader.ChargeCursor cursor) {
+            this.charge += cursor.charge;
+            cursor.charge = 0;
+            this.updateDelay = Math.min(this.updateDelay, cursor.updateDelay);
         }
 
-        private static SculkBehaviour getBlockBehaviour(IBlockData iblockdata) {
-            Block block = iblockdata.getBlock();
+        private static SculkBehaviour getBlockBehaviour(BlockState state) {
+            Block block = state.getBlock();
             SculkBehaviour sculkbehaviour;
 
             if (block instanceof SculkBehaviour sculkbehaviour1) {
@@ -365,50 +363,50 @@ public class SculkSpreader {
             return sculkbehaviour;
         }
 
-        private static List<BaseBlockPosition> getRandomizedNonCornerNeighbourOffsets(RandomSource randomsource) {
-            return SystemUtils.shuffledCopy(SculkSpreader.a.NON_CORNER_NEIGHBOURS, randomsource);
+        private static List<Vec3i> getRandomizedNonCornerNeighbourOffsets(RandomSource random) {
+            return Util.shuffledCopy(SculkSpreader.ChargeCursor.NON_CORNER_NEIGHBOURS, random);
         }
 
         @Nullable
-        private static BlockPosition getValidMovementPos(GeneratorAccess generatoraccess, BlockPosition blockposition, RandomSource randomsource) {
-            BlockPosition.MutableBlockPosition blockposition_mutableblockposition = blockposition.mutable();
-            BlockPosition.MutableBlockPosition blockposition_mutableblockposition1 = blockposition.mutable();
-            Iterator iterator = getRandomizedNonCornerNeighbourOffsets(randomsource).iterator();
+        private static BlockPos getValidMovementPos(LevelAccessor world, BlockPos pos, RandomSource random) {
+            BlockPos.MutableBlockPos blockposition_mutableblockposition = pos.mutable();
+            BlockPos.MutableBlockPos blockposition_mutableblockposition1 = pos.mutable();
+            Iterator iterator = ChargeCursor.getRandomizedNonCornerNeighbourOffsets(random).iterator();
 
             while (iterator.hasNext()) {
-                BaseBlockPosition baseblockposition = (BaseBlockPosition) iterator.next();
+                Vec3i baseblockposition = (Vec3i) iterator.next();
 
-                blockposition_mutableblockposition1.setWithOffset(blockposition, baseblockposition);
-                IBlockData iblockdata = generatoraccess.getBlockState(blockposition_mutableblockposition1);
+                blockposition_mutableblockposition1.setWithOffset(pos, baseblockposition);
+                BlockState iblockdata = world.getBlockState(blockposition_mutableblockposition1);
 
-                if (iblockdata.getBlock() instanceof SculkBehaviour && isMovementUnobstructed(generatoraccess, blockposition, blockposition_mutableblockposition1)) {
+                if (iblockdata.getBlock() instanceof SculkBehaviour && ChargeCursor.isMovementUnobstructed(world, pos, blockposition_mutableblockposition1)) {
                     blockposition_mutableblockposition.set(blockposition_mutableblockposition1);
-                    if (SculkVeinBlock.hasSubstrateAccess(generatoraccess, iblockdata, blockposition_mutableblockposition1)) {
+                    if (SculkVeinBlock.hasSubstrateAccess(world, iblockdata, blockposition_mutableblockposition1)) {
                         break;
                     }
                 }
             }
 
-            return blockposition_mutableblockposition.equals(blockposition) ? null : blockposition_mutableblockposition;
+            return blockposition_mutableblockposition.equals(pos) ? null : blockposition_mutableblockposition;
         }
 
-        private static boolean isMovementUnobstructed(GeneratorAccess generatoraccess, BlockPosition blockposition, BlockPosition blockposition1) {
-            if (blockposition.distManhattan(blockposition1) == 1) {
+        private static boolean isMovementUnobstructed(LevelAccessor world, BlockPos sourcePos, BlockPos targetPos) {
+            if (sourcePos.distManhattan(targetPos) == 1) {
                 return true;
             } else {
-                BlockPosition blockposition2 = blockposition1.subtract(blockposition);
-                EnumDirection enumdirection = EnumDirection.fromAxisAndDirection(EnumDirection.EnumAxis.X, blockposition2.getX() < 0 ? EnumDirection.EnumAxisDirection.NEGATIVE : EnumDirection.EnumAxisDirection.POSITIVE);
-                EnumDirection enumdirection1 = EnumDirection.fromAxisAndDirection(EnumDirection.EnumAxis.Y, blockposition2.getY() < 0 ? EnumDirection.EnumAxisDirection.NEGATIVE : EnumDirection.EnumAxisDirection.POSITIVE);
-                EnumDirection enumdirection2 = EnumDirection.fromAxisAndDirection(EnumDirection.EnumAxis.Z, blockposition2.getZ() < 0 ? EnumDirection.EnumAxisDirection.NEGATIVE : EnumDirection.EnumAxisDirection.POSITIVE);
+                BlockPos blockposition2 = targetPos.subtract(sourcePos);
+                Direction enumdirection = Direction.fromAxisAndDirection(Direction.Axis.X, blockposition2.getX() < 0 ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
+                Direction enumdirection1 = Direction.fromAxisAndDirection(Direction.Axis.Y, blockposition2.getY() < 0 ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
+                Direction enumdirection2 = Direction.fromAxisAndDirection(Direction.Axis.Z, blockposition2.getZ() < 0 ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
 
-                return blockposition2.getX() == 0 ? isUnobstructed(generatoraccess, blockposition, enumdirection1) || isUnobstructed(generatoraccess, blockposition, enumdirection2) : (blockposition2.getY() == 0 ? isUnobstructed(generatoraccess, blockposition, enumdirection) || isUnobstructed(generatoraccess, blockposition, enumdirection2) : isUnobstructed(generatoraccess, blockposition, enumdirection) || isUnobstructed(generatoraccess, blockposition, enumdirection1));
+                return blockposition2.getX() == 0 ? ChargeCursor.isUnobstructed(world, sourcePos, enumdirection1) || ChargeCursor.isUnobstructed(world, sourcePos, enumdirection2) : (blockposition2.getY() == 0 ? ChargeCursor.isUnobstructed(world, sourcePos, enumdirection) || ChargeCursor.isUnobstructed(world, sourcePos, enumdirection2) : ChargeCursor.isUnobstructed(world, sourcePos, enumdirection) || ChargeCursor.isUnobstructed(world, sourcePos, enumdirection1));
             }
         }
 
-        private static boolean isUnobstructed(GeneratorAccess generatoraccess, BlockPosition blockposition, EnumDirection enumdirection) {
-            BlockPosition blockposition1 = blockposition.relative(enumdirection);
+        private static boolean isUnobstructed(LevelAccessor world, BlockPos pos, Direction direction) {
+            BlockPos blockposition1 = pos.relative(direction);
 
-            return !generatoraccess.getBlockState(blockposition1).isFaceSturdy(generatoraccess, blockposition1, enumdirection.getOpposite());
+            return !world.getBlockState(blockposition1).isFaceSturdy(world, blockposition1, direction.getOpposite());
         }
     }
 }

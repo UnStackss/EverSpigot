@@ -14,21 +14,21 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import net.minecraft.SystemUtils;
+import net.minecraft.Util;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.MinecraftKey;
 import net.minecraft.resources.RegistryFileCodec;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.util.MathHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.IInventory;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.functions.FunctionUserBuilder;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctionUser;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameterSet;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParameterSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import org.slf4j.Logger;
 
 // CraftBukkit start
@@ -41,39 +41,39 @@ import org.bukkit.event.world.LootGenerateEvent;
 public class LootTable {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    public static final LootTable EMPTY = new LootTable(LootContextParameterSets.EMPTY, Optional.empty(), List.of(), List.of());
-    public static final LootContextParameterSet DEFAULT_PARAM_SET = LootContextParameterSets.ALL_PARAMS;
+    public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), List.of());
+    public static final LootContextParamSet DEFAULT_PARAM_SET = LootContextParamSets.ALL_PARAMS;
     public static final long RANDOMIZE_SEED = 0L;
     public static final Codec<LootTable> DIRECT_CODEC = RecordCodecBuilder.create((instance) -> {
-        return instance.group(LootContextParameterSets.CODEC.lenientOptionalFieldOf("type", LootTable.DEFAULT_PARAM_SET).forGetter((loottable) -> {
+        return instance.group(LootContextParamSets.CODEC.lenientOptionalFieldOf("type", LootTable.DEFAULT_PARAM_SET).forGetter((loottable) -> {
             return loottable.paramSet;
-        }), MinecraftKey.CODEC.optionalFieldOf("random_sequence").forGetter((loottable) -> {
+        }), ResourceLocation.CODEC.optionalFieldOf("random_sequence").forGetter((loottable) -> {
             return loottable.randomSequence;
-        }), LootSelector.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter((loottable) -> {
+        }), LootPool.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter((loottable) -> {
             return loottable.pools;
         }), LootItemFunctions.ROOT_CODEC.listOf().optionalFieldOf("functions", List.of()).forGetter((loottable) -> {
             return loottable.functions;
         })).apply(instance, LootTable::new);
     });
     public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC);
-    private final LootContextParameterSet paramSet;
-    private final Optional<MinecraftKey> randomSequence;
-    private final List<LootSelector> pools;
+    private final LootContextParamSet paramSet;
+    private final Optional<ResourceLocation> randomSequence;
+    private final List<LootPool> pools;
     private final List<LootItemFunction> functions;
-    private final BiFunction<ItemStack, LootTableInfo, ItemStack> compositeFunction;
+    private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
     public CraftLootTable craftLootTable; // CraftBukkit
 
-    LootTable(LootContextParameterSet lootcontextparameterset, Optional<MinecraftKey> optional, List<LootSelector> list, List<LootItemFunction> list1) {
-        this.paramSet = lootcontextparameterset;
-        this.randomSequence = optional;
-        this.pools = list;
-        this.functions = list1;
-        this.compositeFunction = LootItemFunctions.compose(list1);
+    LootTable(LootContextParamSet type, Optional<ResourceLocation> randomSequenceId, List<LootPool> pools, List<LootItemFunction> functions) {
+        this.paramSet = type;
+        this.randomSequence = randomSequenceId;
+        this.pools = pools;
+        this.functions = functions;
+        this.compositeFunction = LootItemFunctions.compose(functions);
     }
 
-    public static Consumer<ItemStack> createStackSplitter(WorldServer worldserver, Consumer<ItemStack> consumer) {
+    public static Consumer<ItemStack> createStackSplitter(ServerLevel world, Consumer<ItemStack> consumer) {
         return (itemstack) -> {
-            if (itemstack.isItemEnabled(worldserver.enabledFeatures())) {
+            if (itemstack.isItemEnabled(world.enabledFeatures())) {
                 if (itemstack.getCount() < itemstack.getMaxStackSize()) {
                     consumer.accept(itemstack);
                 } else {
@@ -91,87 +91,87 @@ public class LootTable {
         };
     }
 
-    public void getRandomItemsRaw(LootParams lootparams, Consumer<ItemStack> consumer) {
-        this.getRandomItemsRaw((new LootTableInfo.Builder(lootparams)).create(this.randomSequence), consumer);
+    public void getRandomItemsRaw(LootParams parameters, Consumer<ItemStack> lootConsumer) {
+        this.getRandomItemsRaw((new LootContext.Builder(parameters)).create(this.randomSequence), lootConsumer);
     }
 
-    public void getRandomItemsRaw(LootTableInfo loottableinfo, Consumer<ItemStack> consumer) {
-        LootTableInfo.c<?> loottableinfo_c = LootTableInfo.createVisitedEntry(this);
+    public void getRandomItemsRaw(LootContext context, Consumer<ItemStack> lootConsumer) {
+        LootContext.VisitedEntry<?> loottableinfo_c = LootContext.createVisitedEntry(this);
 
-        if (loottableinfo.pushVisitedElement(loottableinfo_c)) {
-            Consumer<ItemStack> consumer1 = LootItemFunction.decorate(this.compositeFunction, consumer, loottableinfo);
+        if (context.pushVisitedElement(loottableinfo_c)) {
+            Consumer<ItemStack> consumer1 = LootItemFunction.decorate(this.compositeFunction, lootConsumer, context);
             Iterator iterator = this.pools.iterator();
 
             while (iterator.hasNext()) {
-                LootSelector lootselector = (LootSelector) iterator.next();
+                LootPool lootselector = (LootPool) iterator.next();
 
-                lootselector.addRandomItems(consumer1, loottableinfo);
+                lootselector.addRandomItems(consumer1, context);
             }
 
-            loottableinfo.popVisitedElement(loottableinfo_c);
+            context.popVisitedElement(loottableinfo_c);
         } else {
             LootTable.LOGGER.warn("Detected infinite loop in loot tables");
         }
 
     }
 
-    public void getRandomItems(LootParams lootparams, long i, Consumer<ItemStack> consumer) {
-        this.getRandomItemsRaw((new LootTableInfo.Builder(lootparams)).withOptionalRandomSeed(i).create(this.randomSequence), createStackSplitter(lootparams.getLevel(), consumer));
+    public void getRandomItems(LootParams parameters, long seed, Consumer<ItemStack> lootConsumer) {
+        this.getRandomItemsRaw((new LootContext.Builder(parameters)).withOptionalRandomSeed(seed).create(this.randomSequence), LootTable.createStackSplitter(parameters.getLevel(), lootConsumer));
     }
 
-    public void getRandomItems(LootParams lootparams, Consumer<ItemStack> consumer) {
-        this.getRandomItemsRaw(lootparams, createStackSplitter(lootparams.getLevel(), consumer));
+    public void getRandomItems(LootParams parameters, Consumer<ItemStack> lootConsumer) {
+        this.getRandomItemsRaw(parameters, LootTable.createStackSplitter(parameters.getLevel(), lootConsumer));
     }
 
-    public void getRandomItems(LootTableInfo loottableinfo, Consumer<ItemStack> consumer) {
-        this.getRandomItemsRaw(loottableinfo, createStackSplitter(loottableinfo.getLevel(), consumer));
+    public void getRandomItems(LootContext context, Consumer<ItemStack> lootConsumer) {
+        this.getRandomItemsRaw(context, LootTable.createStackSplitter(context.getLevel(), lootConsumer));
     }
 
-    public ObjectArrayList<ItemStack> getRandomItems(LootParams lootparams, RandomSource randomsource) {
-        return this.getRandomItems((new LootTableInfo.Builder(lootparams)).withOptionalRandomSource(randomsource).create(this.randomSequence));
+    public ObjectArrayList<ItemStack> getRandomItems(LootParams parameters, RandomSource random) {
+        return this.getRandomItems((new LootContext.Builder(parameters)).withOptionalRandomSource(random).create(this.randomSequence));
     }
 
-    public ObjectArrayList<ItemStack> getRandomItems(LootParams lootparams, long i) {
-        return this.getRandomItems((new LootTableInfo.Builder(lootparams)).withOptionalRandomSeed(i).create(this.randomSequence));
+    public ObjectArrayList<ItemStack> getRandomItems(LootParams parameters, long seed) {
+        return this.getRandomItems((new LootContext.Builder(parameters)).withOptionalRandomSeed(seed).create(this.randomSequence));
     }
 
-    public ObjectArrayList<ItemStack> getRandomItems(LootParams lootparams) {
-        return this.getRandomItems((new LootTableInfo.Builder(lootparams)).create(this.randomSequence));
+    public ObjectArrayList<ItemStack> getRandomItems(LootParams parameters) {
+        return this.getRandomItems((new LootContext.Builder(parameters)).create(this.randomSequence));
     }
 
-    private ObjectArrayList<ItemStack> getRandomItems(LootTableInfo loottableinfo) {
+    private ObjectArrayList<ItemStack> getRandomItems(LootContext context) {
         ObjectArrayList<ItemStack> objectarraylist = new ObjectArrayList();
 
         Objects.requireNonNull(objectarraylist);
-        this.getRandomItems(loottableinfo, objectarraylist::add);
+        this.getRandomItems(context, objectarraylist::add);
         return objectarraylist;
     }
 
-    public LootContextParameterSet getParamSet() {
+    public LootContextParamSet getParamSet() {
         return this.paramSet;
     }
 
-    public void validate(LootCollector lootcollector) {
+    public void validate(ValidationContext reporter) {
         int i;
 
         for (i = 0; i < this.pools.size(); ++i) {
-            ((LootSelector) this.pools.get(i)).validate(lootcollector.forChild(".pools[" + i + "]"));
+            ((LootPool) this.pools.get(i)).validate(reporter.forChild(".pools[" + i + "]"));
         }
 
         for (i = 0; i < this.functions.size(); ++i) {
-            ((LootItemFunction) this.functions.get(i)).validate(lootcollector.forChild(".functions[" + i + "]"));
+            ((LootItemFunction) this.functions.get(i)).validate(reporter.forChild(".functions[" + i + "]"));
         }
 
     }
 
-    public void fill(IInventory iinventory, LootParams lootparams, long i) {
+    public void fill(Container inventory, LootParams parameters, long seed) {
         // CraftBukkit start
-        this.fillInventory(iinventory, lootparams, i, false);
+        this.fillInventory(inventory, parameters, seed, false);
     }
 
-    public void fillInventory(IInventory iinventory, LootParams lootparams, long i, boolean plugin) {
+    public void fillInventory(Container iinventory, LootParams lootparams, long i, boolean plugin) {
         // CraftBukkit end
-        LootTableInfo loottableinfo = (new LootTableInfo.Builder(lootparams)).withOptionalRandomSeed(i).create(this.randomSequence);
+        LootContext loottableinfo = (new LootContext.Builder(lootparams)).withOptionalRandomSeed(i).create(this.randomSequence);
         ObjectArrayList<ItemStack> objectarraylist = this.getRandomItems(loottableinfo);
         RandomSource randomsource = loottableinfo.getRandom();
         // CraftBukkit start
@@ -203,9 +203,9 @@ public class LootTable {
 
     }
 
-    private void shuffleAndSplitItems(ObjectArrayList<ItemStack> objectarraylist, int i, RandomSource randomsource) {
+    private void shuffleAndSplitItems(ObjectArrayList<ItemStack> drops, int freeSlots, RandomSource random) {
         List<ItemStack> list = Lists.newArrayList();
-        Iterator<ItemStack> iterator = objectarraylist.iterator();
+        Iterator<ItemStack> iterator = drops.iterator();
 
         while (iterator.hasNext()) {
             ItemStack itemstack = (ItemStack) iterator.next();
@@ -218,80 +218,80 @@ public class LootTable {
             }
         }
 
-        while (i - objectarraylist.size() - list.size() > 0 && !list.isEmpty()) {
-            ItemStack itemstack1 = (ItemStack) list.remove(MathHelper.nextInt(randomsource, 0, list.size() - 1));
-            int j = MathHelper.nextInt(randomsource, 1, itemstack1.getCount() / 2);
+        while (freeSlots - drops.size() - list.size() > 0 && !list.isEmpty()) {
+            ItemStack itemstack1 = (ItemStack) list.remove(Mth.nextInt(random, 0, list.size() - 1));
+            int j = Mth.nextInt(random, 1, itemstack1.getCount() / 2);
             ItemStack itemstack2 = itemstack1.split(j);
 
-            if (itemstack1.getCount() > 1 && randomsource.nextBoolean()) {
+            if (itemstack1.getCount() > 1 && random.nextBoolean()) {
                 list.add(itemstack1);
             } else {
-                objectarraylist.add(itemstack1);
+                drops.add(itemstack1);
             }
 
-            if (itemstack2.getCount() > 1 && randomsource.nextBoolean()) {
+            if (itemstack2.getCount() > 1 && random.nextBoolean()) {
                 list.add(itemstack2);
             } else {
-                objectarraylist.add(itemstack2);
+                drops.add(itemstack2);
             }
         }
 
-        objectarraylist.addAll(list);
-        SystemUtils.shuffle(objectarraylist, randomsource);
+        drops.addAll(list);
+        Util.shuffle(drops, random);
     }
 
-    private List<Integer> getAvailableSlots(IInventory iinventory, RandomSource randomsource) {
+    private List<Integer> getAvailableSlots(Container inventory, RandomSource random) {
         ObjectArrayList<Integer> objectarraylist = new ObjectArrayList();
 
-        for (int i = 0; i < iinventory.getContainerSize(); ++i) {
-            if (iinventory.getItem(i).isEmpty()) {
+        for (int i = 0; i < inventory.getContainerSize(); ++i) {
+            if (inventory.getItem(i).isEmpty()) {
                 objectarraylist.add(i);
             }
         }
 
-        SystemUtils.shuffle(objectarraylist, randomsource);
+        Util.shuffle(objectarraylist, random);
         return objectarraylist;
     }
 
-    public static LootTable.a lootTable() {
-        return new LootTable.a();
+    public static LootTable.Builder lootTable() {
+        return new LootTable.Builder();
     }
 
-    public static class a implements LootItemFunctionUser<LootTable.a> {
+    public static class Builder implements FunctionUserBuilder<LootTable.Builder> {
 
-        private final Builder<LootSelector> pools = ImmutableList.builder();
+        private final Builder<LootPool> pools = ImmutableList.builder();
         private final Builder<LootItemFunction> functions = ImmutableList.builder();
-        private LootContextParameterSet paramSet;
-        private Optional<MinecraftKey> randomSequence;
+        private LootContextParamSet paramSet;
+        private Optional<ResourceLocation> randomSequence;
 
-        public a() {
+        public Builder() {
             this.paramSet = LootTable.DEFAULT_PARAM_SET;
             this.randomSequence = Optional.empty();
         }
 
-        public LootTable.a withPool(LootSelector.a lootselector_a) {
-            this.pools.add(lootselector_a.build());
+        public LootTable.Builder withPool(LootPool.Builder poolBuilder) {
+            this.pools.add(poolBuilder.build());
             return this;
         }
 
-        public LootTable.a setParamSet(LootContextParameterSet lootcontextparameterset) {
-            this.paramSet = lootcontextparameterset;
+        public LootTable.Builder setParamSet(LootContextParamSet type) {
+            this.paramSet = type;
             return this;
         }
 
-        public LootTable.a setRandomSequence(MinecraftKey minecraftkey) {
-            this.randomSequence = Optional.of(minecraftkey);
-            return this;
-        }
-
-        @Override
-        public LootTable.a apply(LootItemFunction.a lootitemfunction_a) {
-            this.functions.add(lootitemfunction_a.build());
+        public LootTable.Builder setRandomSequence(ResourceLocation randomSequenceId) {
+            this.randomSequence = Optional.of(randomSequenceId);
             return this;
         }
 
         @Override
-        public LootTable.a unwrap() {
+        public LootTable.Builder apply(LootItemFunction.Builder function) {
+            this.functions.add(function.build());
+            return this;
+        }
+
+        @Override
+        public LootTable.Builder unwrap() {
             return this;
         }
 

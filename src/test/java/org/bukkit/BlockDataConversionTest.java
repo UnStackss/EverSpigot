@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.stream.Stream;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
 import org.bukkit.support.AbstractTestingBase;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,7 +23,7 @@ public class BlockDataConversionTest extends AbstractTestingBase {
 
     @ParameterizedTest
     @MethodSource("data")
-    public void testNotNull(IBlockData data) {
+    public void testNotNull(BlockState data) {
         assertNotNull(data);
         assertNotNull(CraftBlockData.fromData(data));
     }

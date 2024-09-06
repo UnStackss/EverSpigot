@@ -54,7 +54,7 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
     private static Stream<Path> files = null;
 
     public static Stream<Arguments> craftBukkitData() {
-        return files
+        return EntityRemoveEventTest.files
                 .map(Path::toFile)
                 .filter(File::isFile)
                 .filter(file -> file.getName().endsWith(".class"))
@@ -69,14 +69,14 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
     }
 
     public static Stream<Arguments> minecraftData() {
-        return jarFile
+        return EntityRemoveEventTest.jarFile
                 .stream()
                 .filter(entry -> entry.getName().endsWith(".class"))
-                .filter(entry -> !new File(CRAFT_BUKKIT_CLASSES.resolve(entry.getName())).exists())
+                .filter(entry -> !new File(EntityRemoveEventTest.CRAFT_BUKKIT_CLASSES.resolve(entry.getName())).exists())
                 .filter(entry -> !entry.getName().startsWith("net/minecraft/gametest/framework"))
                 .map(entry -> {
                     try {
-                        return jarFile.getInputStream(entry);
+                        return EntityRemoveEventTest.jarFile.getInputStream(entry);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -85,25 +85,25 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
 
     @BeforeAll
     public static void beforeAll() throws IOException {
-        assertNotEquals(CRAFT_BUKKIT_CLASSES, MINECRAFT_CLASSES, """
+        assertNotEquals(EntityRemoveEventTest.CRAFT_BUKKIT_CLASSES, EntityRemoveEventTest.MINECRAFT_CLASSES, """
                 The minecraft and craft bukkit uri point to the same directory / file.
                 Please make sure the CRAFT_BUKKIT_CLASSES points to the test class directory and MINECRAFT_CLASSES to the minecraft server jar.
                 """);
 
-        jarFile = new JarFile(new File(MINECRAFT_CLASSES));
-        files = Files.walk(Path.of(CRAFT_BUKKIT_CLASSES));
+        EntityRemoveEventTest.jarFile = new JarFile(new File(EntityRemoveEventTest.MINECRAFT_CLASSES));
+        EntityRemoveEventTest.files = Files.walk(Path.of(EntityRemoveEventTest.CRAFT_BUKKIT_CLASSES));
     }
 
     @ParameterizedTest
     @MethodSource("minecraftData")
     public void testMinecraftClasses(InputStream inputStream) throws IOException, ClassNotFoundException {
-        test(inputStream);
+        this.test(inputStream);
     }
 
     @ParameterizedTest
     @MethodSource("craftBukkitData")
     public void testCraftBukkitModifiedClasses(InputStream inputStream) throws IOException, ClassNotFoundException {
-        test(inputStream);
+        this.test(inputStream);
     }
 
     private void test(InputStream inputStream) throws IOException, ClassNotFoundException {
@@ -135,7 +135,7 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
 
                     if (instruction instanceof MethodInsnNode methodInsnNode) {
                         // Check for discard and remove method call
-                        if (check(methodInsnNode.owner, methodInsnNode.name, methodInsnNode.desc)) {
+                        if (this.check(methodInsnNode.owner, methodInsnNode.name, methodInsnNode.desc)) {
                             // Add to list
                             missingReason.add(String.format("Method name: %s, name: %s, line number: %s", methodNode.name, methodInsnNode.name, lastLineNumber.line));
                         }
@@ -148,7 +148,7 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
 
                         Handle handle = (Handle) dynamicInsnNode.bsmArgs[1];
 
-                        if (check(handle.getOwner(), handle.getName(), handle.getDesc())) {
+                        if (this.check(handle.getOwner(), handle.getName(), handle.getDesc())) {
                             // Add to list
                             missingReason.add(String.format("[D] Method name: %s, name: %s, line number: %s", methodNode.name, handle.getName(), lastLineNumber.line));
                         }
@@ -184,7 +184,7 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
 
     private boolean check(String owner, String name, String desc) throws ClassNotFoundException {
         if (!name.equals("discard") && !name.equals("remove") && !name.equals("setRemoved")) {
-            if (!checkExtraMethod(owner, name, desc)) {
+            if (!this.checkExtraMethod(owner, name, desc)) {
                 return false;
             }
         }
@@ -193,7 +193,7 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
             return false;
         }
 
-        Class<?> ownerClass = Class.forName(owner.replace('/', '.'), false, getClass().getClassLoader());
+        Class<?> ownerClass = Class.forName(owner.replace('/', '.'), false, this.getClass().getClassLoader());
 
         // Found missing discard, remove or setRemoved method call
         return EntityAccess.class.isAssignableFrom(ownerClass);
@@ -209,12 +209,12 @@ public class EntityRemoveEventTest extends AbstractTestingBase {
 
     @AfterAll
     public static void clear() throws IOException {
-        if (jarFile != null) {
-            jarFile.close();
+        if (EntityRemoveEventTest.jarFile != null) {
+            EntityRemoveEventTest.jarFile.close();
         }
 
-        if (files != null) {
-            files.close();
+        if (EntityRemoveEventTest.files != null) {
+            EntityRemoveEventTest.files.close();
         }
     }
 }

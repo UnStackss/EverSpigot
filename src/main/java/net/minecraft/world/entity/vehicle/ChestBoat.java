@@ -3,26 +3,26 @@ package net.minecraft.world.entity.vehicle;
 import javax.annotation.Nullable;
 import net.minecraft.core.Holder;
 import net.minecraft.core.NonNullList;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.EnumHand;
-import net.minecraft.world.EnumInteractionResult;
-import net.minecraft.world.IInventory;
-import net.minecraft.world.InventoryUtils;
+import net.minecraft.world.Container;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.HasCustomInventoryScreen;
 import net.minecraft.world.entity.SlotAccess;
-import net.minecraft.world.entity.monster.piglin.PiglinAI;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.entity.player.PlayerInventory;
-import net.minecraft.world.inventory.Container;
-import net.minecraft.world.inventory.ContainerChest;
+import net.minecraft.world.entity.monster.piglin.PiglinAi;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.World;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.storage.loot.LootTable;
 
@@ -35,7 +35,7 @@ import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.inventory.InventoryHolder;
 // CraftBukkit end
 
-public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, ContainerEntity {
+public class ChestBoat extends Boat implements HasCustomInventoryScreen, ContainerEntity {
 
     private static final int CONTAINER_SIZE = 27;
     private NonNullList<ItemStack> itemStacks;
@@ -43,13 +43,13 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     private ResourceKey<LootTable> lootTable;
     private long lootTableSeed;
 
-    public ChestBoat(EntityTypes<? extends EntityBoat> entitytypes, World world) {
-        super(entitytypes, world);
+    public ChestBoat(EntityType<? extends Boat> type, Level world) {
+        super(type, world);
         this.itemStacks = NonNullList.withSize(27, ItemStack.EMPTY);
     }
 
-    public ChestBoat(World world, double d0, double d1, double d2) {
-        super(EntityTypes.CHEST_BOAT, world);
+    public ChestBoat(Level world, double d0, double d1, double d2) {
+        super(EntityType.CHEST_BOAT, world);
         this.itemStacks = NonNullList.withSize(27, ItemStack.EMPTY);
         this.setPos(d0, d1, d2);
         this.xo = d0;
@@ -68,57 +68,57 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     }
 
     @Override
-    protected void addAdditionalSaveData(NBTTagCompound nbttagcompound) {
-        super.addAdditionalSaveData(nbttagcompound);
-        this.addChestVehicleSaveData(nbttagcompound, this.registryAccess());
+    protected void addAdditionalSaveData(CompoundTag nbt) {
+        super.addAdditionalSaveData(nbt);
+        this.addChestVehicleSaveData(nbt, this.registryAccess());
     }
 
     @Override
-    protected void readAdditionalSaveData(NBTTagCompound nbttagcompound) {
-        super.readAdditionalSaveData(nbttagcompound);
-        this.readChestVehicleSaveData(nbttagcompound, this.registryAccess());
+    protected void readAdditionalSaveData(CompoundTag nbt) {
+        super.readAdditionalSaveData(nbt);
+        this.readChestVehicleSaveData(nbt, this.registryAccess());
     }
 
     @Override
-    public void destroy(DamageSource damagesource) {
+    public void destroy(DamageSource source) {
         this.destroy(this.getDropItem());
-        this.chestVehicleDestroyed(damagesource, this.level(), this);
+        this.chestVehicleDestroyed(source, this.level(), this);
     }
 
     @Override
-    public void remove(Entity.RemovalReason entity_removalreason) {
+    public void remove(Entity.RemovalReason reason) {
         // CraftBukkit start - add Bukkit remove cause
-        this.remove(entity_removalreason, null);
+        this.remove(reason, null);
     }
 
     @Override
     public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
         // CraftBukkit end
         if (!this.level().isClientSide && entity_removalreason.shouldDestroy()) {
-            InventoryUtils.dropContents(this.level(), (Entity) this, (IInventory) this);
+            Containers.dropContents(this.level(), (Entity) this, (Container) this);
         }
 
         super.remove(entity_removalreason, cause); // CraftBukkit - add Bukkit remove cause
     }
 
     @Override
-    public EnumInteractionResult interact(EntityHuman entityhuman, EnumHand enumhand) {
-        EnumInteractionResult enuminteractionresult;
+    public InteractionResult interact(Player player, InteractionHand hand) {
+        InteractionResult enuminteractionresult;
 
-        if (!entityhuman.isSecondaryUseActive()) {
-            enuminteractionresult = super.interact(entityhuman, enumhand);
-            if (enuminteractionresult != EnumInteractionResult.PASS) {
+        if (!player.isSecondaryUseActive()) {
+            enuminteractionresult = super.interact(player, hand);
+            if (enuminteractionresult != InteractionResult.PASS) {
                 return enuminteractionresult;
             }
         }
 
-        if (this.canAddPassenger(entityhuman) && !entityhuman.isSecondaryUseActive()) {
-            return EnumInteractionResult.PASS;
+        if (this.canAddPassenger(player) && !player.isSecondaryUseActive()) {
+            return InteractionResult.PASS;
         } else {
-            enuminteractionresult = this.interactWithContainerVehicle(entityhuman);
+            enuminteractionresult = this.interactWithContainerVehicle(player);
             if (enuminteractionresult.consumesAction()) {
-                this.gameEvent(GameEvent.CONTAINER_OPEN, entityhuman);
-                PiglinAI.angerNearbyPiglins(entityhuman, true);
+                this.gameEvent(GameEvent.CONTAINER_OPEN, player);
+                PiglinAi.angerNearbyPiglins(player, true);
             }
 
             return enuminteractionresult;
@@ -126,11 +126,11 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     }
 
     @Override
-    public void openCustomInventoryScreen(EntityHuman entityhuman) {
-        entityhuman.openMenu(this);
-        if (!entityhuman.level().isClientSide) {
-            this.gameEvent(GameEvent.CONTAINER_OPEN, entityhuman);
-            PiglinAI.angerNearbyPiglins(entityhuman, true);
+    public void openCustomInventoryScreen(Player player) {
+        player.openMenu(this);
+        if (!player.level().isClientSide) {
+            this.gameEvent(GameEvent.CONTAINER_OPEN, player);
+            PiglinAi.angerNearbyPiglins(player, true);
         }
 
     }
@@ -182,51 +182,51 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     }
 
     @Override
-    public ItemStack getItem(int i) {
-        return this.getChestVehicleItem(i);
+    public ItemStack getItem(int slot) {
+        return this.getChestVehicleItem(slot);
     }
 
     @Override
-    public ItemStack removeItem(int i, int j) {
-        return this.removeChestVehicleItem(i, j);
+    public ItemStack removeItem(int slot, int amount) {
+        return this.removeChestVehicleItem(slot, amount);
     }
 
     @Override
-    public ItemStack removeItemNoUpdate(int i) {
-        return this.removeChestVehicleItemNoUpdate(i);
+    public ItemStack removeItemNoUpdate(int slot) {
+        return this.removeChestVehicleItemNoUpdate(slot);
     }
 
     @Override
-    public void setItem(int i, ItemStack itemstack) {
-        this.setChestVehicleItem(i, itemstack);
+    public void setItem(int slot, ItemStack stack) {
+        this.setChestVehicleItem(slot, stack);
     }
 
     @Override
-    public SlotAccess getSlot(int i) {
-        return this.getChestVehicleSlot(i);
+    public SlotAccess getSlot(int mappedIndex) {
+        return this.getChestVehicleSlot(mappedIndex);
     }
 
     @Override
     public void setChanged() {}
 
     @Override
-    public boolean stillValid(EntityHuman entityhuman) {
-        return this.isChestVehicleStillValid(entityhuman);
+    public boolean stillValid(Player player) {
+        return this.isChestVehicleStillValid(player);
     }
 
     @Nullable
     @Override
-    public Container createMenu(int i, PlayerInventory playerinventory, EntityHuman entityhuman) {
-        if (this.lootTable != null && entityhuman.isSpectator()) {
+    public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
+        if (this.lootTable != null && player.isSpectator()) {
             return null;
         } else {
-            this.unpackLootTable(playerinventory.player);
-            return ContainerChest.threeRows(i, playerinventory, this);
+            this.unpackLootTable(playerInventory.player);
+            return ChestMenu.threeRows(syncId, playerInventory, this);
         }
     }
 
-    public void unpackLootTable(@Nullable EntityHuman entityhuman) {
-        this.unpackChestVehicleLootTable(entityhuman);
+    public void unpackLootTable(@Nullable Player player) {
+        this.unpackChestVehicleLootTable(player);
     }
 
     @Nullable
@@ -236,8 +236,8 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     }
 
     @Override
-    public void setLootTable(@Nullable ResourceKey<LootTable> resourcekey) {
-        this.lootTable = resourcekey;
+    public void setLootTable(@Nullable ResourceKey<LootTable> lootTable) {
+        this.lootTable = lootTable;
     }
 
     @Override
@@ -246,8 +246,8 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     }
 
     @Override
-    public void setLootTableSeed(long i) {
-        this.lootTableSeed = i;
+    public void setLootTableSeed(long lootTableSeed) {
+        this.lootTableSeed = lootTableSeed;
     }
 
     @Override
@@ -261,8 +261,8 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
     }
 
     @Override
-    public void stopOpen(EntityHuman entityhuman) {
-        this.level().gameEvent((Holder) GameEvent.CONTAINER_CLOSE, this.position(), GameEvent.a.of((Entity) entityhuman));
+    public void stopOpen(Player player) {
+        this.level().gameEvent((Holder) GameEvent.CONTAINER_CLOSE, this.position(), GameEvent.Context.of((Entity) player));
     }
 
     // CraftBukkit start
@@ -276,39 +276,39 @@ public class ChestBoat extends EntityBoat implements HasCustomInventoryScreen, C
 
     @Override
     public void onOpen(CraftHumanEntity who) {
-        transaction.add(who);
+        this.transaction.add(who);
     }
 
     @Override
     public void onClose(CraftHumanEntity who) {
-        transaction.remove(who);
+        this.transaction.remove(who);
     }
 
     @Override
     public List<HumanEntity> getViewers() {
-        return transaction;
+        return this.transaction;
     }
 
     @Override
     public InventoryHolder getOwner() {
-        org.bukkit.entity.Entity entity = getBukkitEntity();
+        org.bukkit.entity.Entity entity = this.getBukkitEntity();
         if (entity instanceof InventoryHolder) return (InventoryHolder) entity;
         return null;
     }
 
     @Override
     public int getMaxStackSize() {
-        return maxStack;
+        return this.maxStack;
     }
 
     @Override
     public void setMaxStackSize(int size) {
-        maxStack = size;
+        this.maxStack = size;
     }
 
     @Override
     public Location getLocation() {
-        return getBukkitEntity().getLocation();
+        return this.getBukkitEntity().getLocation();
     }
     // CraftBukkit end
 }

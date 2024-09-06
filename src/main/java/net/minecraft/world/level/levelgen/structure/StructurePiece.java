@@ -9,97 +9,95 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.DynamicOpsNBT;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.ChunkCoordIntPair;
-import net.minecraft.world.level.GeneratorAccessSeed;
-import net.minecraft.world.level.IBlockAccess;
-import net.minecraft.world.level.IWorldReader;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.WorldAccess;
+import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.BlockDispenser;
-import net.minecraft.world.level.block.BlockFacingHorizontal;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EnumBlockMirror;
-import net.minecraft.world.level.block.EnumBlockRotation;
-import net.minecraft.world.level.block.entity.TileEntity;
-import net.minecraft.world.level.block.entity.TileEntityChest;
-import net.minecraft.world.level.block.entity.TileEntityDispenser;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.DispenserBlock;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.HeightMap;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-import net.minecraft.world.level.levelgen.structure.pieces.WorldGenFeatureStructurePieceType;
-import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.storage.loot.LootTable;
 import org.slf4j.Logger;
 
 public abstract class StructurePiece {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    protected static final IBlockData CAVE_AIR = Blocks.CAVE_AIR.defaultBlockState();
-    protected StructureBoundingBox boundingBox;
+    protected static final BlockState CAVE_AIR = Blocks.CAVE_AIR.defaultBlockState();
+    protected BoundingBox boundingBox;
     @Nullable
-    private EnumDirection orientation;
-    private EnumBlockMirror mirror;
-    private EnumBlockRotation rotation;
+    private Direction orientation;
+    private Mirror mirror;
+    private Rotation rotation;
     protected int genDepth;
-    private final WorldGenFeatureStructurePieceType type;
+    private final StructurePieceType type;
     public static final Set<Block> SHAPE_CHECK_BLOCKS = ImmutableSet.<Block>builder().add(Blocks.NETHER_BRICK_FENCE).add(Blocks.TORCH).add(Blocks.WALL_TORCH).add(Blocks.OAK_FENCE).add(Blocks.SPRUCE_FENCE).add(Blocks.DARK_OAK_FENCE).add(Blocks.ACACIA_FENCE).add(Blocks.BIRCH_FENCE).add(Blocks.JUNGLE_FENCE).add(Blocks.LADDER).add(Blocks.IRON_BARS).build();  // CraftBukkit - decompile error / PAIL private -> public
 
-    protected StructurePiece(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, int i, StructureBoundingBox structureboundingbox) {
-        this.type = worldgenfeaturestructurepiecetype;
-        this.genDepth = i;
-        this.boundingBox = structureboundingbox;
+    protected StructurePiece(StructurePieceType type, int length, BoundingBox boundingBox) {
+        this.type = type;
+        this.genDepth = length;
+        this.boundingBox = boundingBox;
     }
 
-    public StructurePiece(WorldGenFeatureStructurePieceType worldgenfeaturestructurepiecetype, NBTTagCompound nbttagcompound) {
-        this(worldgenfeaturestructurepiecetype, nbttagcompound.getInt("GD"), (StructureBoundingBox) StructureBoundingBox.CODEC.parse(DynamicOpsNBT.INSTANCE, nbttagcompound.get("BB")).getOrThrow((s) -> {
+    public StructurePiece(StructurePieceType type, CompoundTag nbt) {
+        this(type, nbt.getInt("GD"), (BoundingBox) BoundingBox.CODEC.parse(NbtOps.INSTANCE, nbt.get("BB")).getOrThrow((s) -> {
             return new IllegalArgumentException("Invalid boundingbox: " + s);
         }));
-        int i = nbttagcompound.getInt("O");
+        int i = nbt.getInt("O");
 
-        this.setOrientation(i == -1 ? null : EnumDirection.from2DDataValue(i));
+        this.setOrientation(i == -1 ? null : Direction.from2DDataValue(i));
     }
 
-    protected static StructureBoundingBox makeBoundingBox(int i, int j, int k, EnumDirection enumdirection, int l, int i1, int j1) {
-        return enumdirection.getAxis() == EnumDirection.EnumAxis.Z ? new StructureBoundingBox(i, j, k, i + l - 1, j + i1 - 1, k + j1 - 1) : new StructureBoundingBox(i, j, k, i + j1 - 1, j + i1 - 1, k + l - 1);
+    protected static BoundingBox makeBoundingBox(int x, int y, int z, Direction orientation, int width, int height, int depth) {
+        return orientation.getAxis() == Direction.Axis.Z ? new BoundingBox(x, y, z, x + width - 1, y + height - 1, z + depth - 1) : new BoundingBox(x, y, z, x + depth - 1, y + height - 1, z + width - 1);
     }
 
-    protected static EnumDirection getRandomHorizontalDirection(RandomSource randomsource) {
-        return EnumDirection.EnumDirectionLimit.HORIZONTAL.getRandomDirection(randomsource);
+    protected static Direction getRandomHorizontalDirection(RandomSource random) {
+        return Direction.Plane.HORIZONTAL.getRandomDirection(random);
     }
 
-    public final NBTTagCompound createTag(StructurePieceSerializationContext structurepieceserializationcontext) {
-        NBTTagCompound nbttagcompound = new NBTTagCompound();
+    public final CompoundTag createTag(StructurePieceSerializationContext context) {
+        CompoundTag nbttagcompound = new CompoundTag();
 
         nbttagcompound.putString("id", BuiltInRegistries.STRUCTURE_PIECE.getKey(this.getType()).toString());
         // CraftBukkit start - decompile error
-        StructureBoundingBox.CODEC.encodeStart(DynamicOpsNBT.INSTANCE, this.boundingBox).resultOrPartial(Objects.requireNonNull(StructurePiece.LOGGER)::error).ifPresent((nbtbase) -> {
+        BoundingBox.CODEC.encodeStart(NbtOps.INSTANCE, this.boundingBox).resultOrPartial(Objects.requireNonNull(StructurePiece.LOGGER)::error).ifPresent((nbtbase) -> {
              nbttagcompound.put("BB", nbtbase);
         });
         // CraftBukkit end
-        EnumDirection enumdirection = this.getOrientation();
+        Direction enumdirection = this.getOrientation();
 
         nbttagcompound.putInt("O", enumdirection == null ? -1 : enumdirection.get2DDataValue());
         nbttagcompound.putInt("GD", this.genDepth);
-        this.addAdditionalSaveData(structurepieceserializationcontext, nbttagcompound);
+        this.addAdditionalSaveData(context, nbttagcompound);
         return nbttagcompound;
     }
 
-    protected abstract void addAdditionalSaveData(StructurePieceSerializationContext structurepieceserializationcontext, NBTTagCompound nbttagcompound);
+    protected abstract void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag nbt);
 
-    public void addChildren(StructurePiece structurepiece, StructurePieceAccessor structurepieceaccessor, RandomSource randomsource) {}
+    public void addChildren(StructurePiece start, StructurePieceAccessor holder, RandomSource random) {}
 
-    public abstract void postProcess(GeneratorAccessSeed generatoraccessseed, StructureManager structuremanager, ChunkGenerator chunkgenerator, RandomSource randomsource, StructureBoundingBox structureboundingbox, ChunkCoordIntPair chunkcoordintpair, BlockPosition blockposition);
+    public abstract void postProcess(WorldGenLevel world, StructureManager structureAccessor, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox chunkBox, ChunkPos chunkPos, BlockPos pivot);
 
-    public StructureBoundingBox getBoundingBox() {
+    public BoundingBox getBoundingBox() {
         return this.boundingBox;
     }
 
@@ -107,96 +105,96 @@ public abstract class StructurePiece {
         return this.genDepth;
     }
 
-    public void setGenDepth(int i) {
-        this.genDepth = i;
+    public void setGenDepth(int chainLength) {
+        this.genDepth = chainLength;
     }
 
-    public boolean isCloseToChunk(ChunkCoordIntPair chunkcoordintpair, int i) {
-        int j = chunkcoordintpair.getMinBlockX();
-        int k = chunkcoordintpair.getMinBlockZ();
+    public boolean isCloseToChunk(ChunkPos pos, int offset) {
+        int j = pos.getMinBlockX();
+        int k = pos.getMinBlockZ();
 
-        return this.boundingBox.intersects(j - i, k - i, j + 15 + i, k + 15 + i);
+        return this.boundingBox.intersects(j - offset, k - offset, j + 15 + offset, k + 15 + offset);
     }
 
-    public BlockPosition getLocatorPosition() {
-        return new BlockPosition(this.boundingBox.getCenter());
+    public BlockPos getLocatorPosition() {
+        return new BlockPos(this.boundingBox.getCenter());
     }
 
-    protected BlockPosition.MutableBlockPosition getWorldPos(int i, int j, int k) {
-        return new BlockPosition.MutableBlockPosition(this.getWorldX(i, k), this.getWorldY(j), this.getWorldZ(i, k));
+    protected BlockPos.MutableBlockPos getWorldPos(int x, int y, int z) {
+        return new BlockPos.MutableBlockPos(this.getWorldX(x, z), this.getWorldY(y), this.getWorldZ(x, z));
     }
 
-    protected int getWorldX(int i, int j) {
-        EnumDirection enumdirection = this.getOrientation();
+    protected int getWorldX(int x, int z) {
+        Direction enumdirection = this.getOrientation();
 
         if (enumdirection == null) {
-            return i;
+            return x;
         } else {
             switch (enumdirection) {
                 case NORTH:
                 case SOUTH:
-                    return this.boundingBox.minX() + i;
+                    return this.boundingBox.minX() + x;
                 case WEST:
-                    return this.boundingBox.maxX() - j;
+                    return this.boundingBox.maxX() - z;
                 case EAST:
-                    return this.boundingBox.minX() + j;
+                    return this.boundingBox.minX() + z;
                 default:
-                    return i;
+                    return x;
             }
         }
     }
 
-    protected int getWorldY(int i) {
-        return this.getOrientation() == null ? i : i + this.boundingBox.minY();
+    protected int getWorldY(int y) {
+        return this.getOrientation() == null ? y : y + this.boundingBox.minY();
     }
 
-    protected int getWorldZ(int i, int j) {
-        EnumDirection enumdirection = this.getOrientation();
+    protected int getWorldZ(int x, int z) {
+        Direction enumdirection = this.getOrientation();
 
         if (enumdirection == null) {
-            return j;
+            return z;
         } else {
             switch (enumdirection) {
                 case NORTH:
-                    return this.boundingBox.maxZ() - j;
+                    return this.boundingBox.maxZ() - z;
                 case SOUTH:
-                    return this.boundingBox.minZ() + j;
+                    return this.boundingBox.minZ() + z;
                 case WEST:
                 case EAST:
-                    return this.boundingBox.minZ() + i;
+                    return this.boundingBox.minZ() + x;
                 default:
-                    return j;
+                    return z;
             }
         }
     }
 
-    protected void placeBlock(GeneratorAccessSeed generatoraccessseed, IBlockData iblockdata, int i, int j, int k, StructureBoundingBox structureboundingbox) {
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = this.getWorldPos(i, j, k);
+    protected void placeBlock(WorldGenLevel world, BlockState block, int x, int y, int z, BoundingBox box) {
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = this.getWorldPos(x, y, z);
 
-        if (structureboundingbox.isInside(blockposition_mutableblockposition)) {
-            if (this.canBeReplaced(generatoraccessseed, i, j, k, structureboundingbox)) {
-                if (this.mirror != EnumBlockMirror.NONE) {
-                    iblockdata = iblockdata.mirror(this.mirror);
+        if (box.isInside(blockposition_mutableblockposition)) {
+            if (this.canBeReplaced(world, x, y, z, box)) {
+                if (this.mirror != Mirror.NONE) {
+                    block = block.mirror(this.mirror);
                 }
 
-                if (this.rotation != EnumBlockRotation.NONE) {
-                    iblockdata = iblockdata.rotate(this.rotation);
+                if (this.rotation != Rotation.NONE) {
+                    block = block.rotate(this.rotation);
                 }
 
-                generatoraccessseed.setBlock(blockposition_mutableblockposition, iblockdata, 2);
+                world.setBlock(blockposition_mutableblockposition, block, 2);
                 // CraftBukkit start - fluid handling is already done if we have a transformer generator access
-                if (generatoraccessseed instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess) {
+                if (world instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess) {
                     return;
                 }
                 // CraftBukkit end
-                Fluid fluid = generatoraccessseed.getFluidState(blockposition_mutableblockposition);
+                FluidState fluid = world.getFluidState(blockposition_mutableblockposition);
 
                 if (!fluid.isEmpty()) {
-                    generatoraccessseed.scheduleTick(blockposition_mutableblockposition, fluid.getType(), 0);
+                    world.scheduleTick(blockposition_mutableblockposition, fluid.getType(), 0);
                 }
 
-                if (StructurePiece.SHAPE_CHECK_BLOCKS.contains(iblockdata.getBlock())) {
-                    generatoraccessseed.getChunk(blockposition_mutableblockposition).markPosForPostprocessing(blockposition_mutableblockposition);
+                if (StructurePiece.SHAPE_CHECK_BLOCKS.contains(block.getBlock())) {
+                    world.getChunk(blockposition_mutableblockposition).markPosForPostprocessing(blockposition_mutableblockposition);
                 }
 
             }
@@ -204,29 +202,29 @@ public abstract class StructurePiece {
     }
 
     // CraftBukkit start
-    protected boolean placeCraftBlockEntity(WorldAccess worldAccess, BlockPosition position, org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState, int i) {
+    protected boolean placeCraftBlockEntity(ServerLevelAccessor worldAccess, BlockPos position, org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState, int i) {
         if (worldAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
             return transformerAccess.setCraftBlock(position, craftBlockEntityState, i);
         }
         boolean result = worldAccess.setBlock(position, craftBlockEntityState.getHandle(), i);
-        TileEntity tileEntity = worldAccess.getBlockEntity(position);
+        BlockEntity tileEntity = worldAccess.getBlockEntity(position);
         if (tileEntity != null) {
             tileEntity.loadWithComponents(craftBlockEntityState.getSnapshotNBT(), worldAccess.registryAccess());
         }
         return result;
     }
 
-    protected void placeCraftSpawner(WorldAccess worldAccess, BlockPosition position, org.bukkit.entity.EntityType entityType, int i) {
+    protected void placeCraftSpawner(ServerLevelAccessor worldAccess, BlockPos position, org.bukkit.entity.EntityType entityType, int i) {
         // This method is used in structures that are generated by code and place spawners as they set the entity after the block was placed making it impossible for plugins to access that information
         org.bukkit.craftbukkit.block.CraftCreatureSpawner spawner = (org.bukkit.craftbukkit.block.CraftCreatureSpawner) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(worldAccess, position, Blocks.SPAWNER.defaultBlockState(), null);
         spawner.setSpawnedType(entityType);
-        placeCraftBlockEntity(worldAccess, position, spawner, i);
+        this.placeCraftBlockEntity(worldAccess, position, spawner, i);
     }
 
-    protected void setCraftLootTable(WorldAccess worldAccess, BlockPosition position, RandomSource randomSource, ResourceKey<LootTable> loottableKey) {
+    protected void setCraftLootTable(ServerLevelAccessor worldAccess, BlockPos position, RandomSource randomSource, ResourceKey<LootTable> loottableKey) {
         // This method is used in structures that use data markers to a loot table to loot containers as otherwise plugins won't have access to that information.
-        net.minecraft.world.level.block.entity.TileEntity tileEntity = worldAccess.getBlockEntity(position);
-        if (tileEntity instanceof net.minecraft.world.level.block.entity.TileEntityLootable tileEntityLootable) {
+        net.minecraft.world.level.block.entity.BlockEntity tileEntity = worldAccess.getBlockEntity(position);
+        if (tileEntity instanceof net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity tileEntityLootable) {
             tileEntityLootable.setLootTable(loottableKey, randomSource.nextLong());
             if (worldAccess instanceof org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess) {
                 transformerAccess.setCraftBlock(position, (org.bukkit.craftbukkit.block.CraftBlockState) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(worldAccess, position, tileEntity.getBlockState(), tileEntityLootable.saveWithFullMetadata(worldAccess.registryAccess())), 3);
@@ -235,42 +233,42 @@ public abstract class StructurePiece {
     }
     // CraftBukkit end
 
-    protected boolean canBeReplaced(IWorldReader iworldreader, int i, int j, int k, StructureBoundingBox structureboundingbox) {
+    protected boolean canBeReplaced(LevelReader world, int x, int y, int z, BoundingBox box) {
         return true;
     }
 
-    protected IBlockData getBlock(IBlockAccess iblockaccess, int i, int j, int k, StructureBoundingBox structureboundingbox) {
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = this.getWorldPos(i, j, k);
+    protected BlockState getBlock(BlockGetter world, int x, int y, int z, BoundingBox box) {
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = this.getWorldPos(x, y, z);
 
-        return !structureboundingbox.isInside(blockposition_mutableblockposition) ? Blocks.AIR.defaultBlockState() : iblockaccess.getBlockState(blockposition_mutableblockposition);
+        return !box.isInside(blockposition_mutableblockposition) ? Blocks.AIR.defaultBlockState() : world.getBlockState(blockposition_mutableblockposition);
     }
 
-    protected boolean isInterior(IWorldReader iworldreader, int i, int j, int k, StructureBoundingBox structureboundingbox) {
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = this.getWorldPos(i, j + 1, k);
+    protected boolean isInterior(LevelReader world, int x, int z, int y, BoundingBox box) {
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = this.getWorldPos(x, z + 1, y);
 
-        return !structureboundingbox.isInside(blockposition_mutableblockposition) ? false : blockposition_mutableblockposition.getY() < iworldreader.getHeight(HeightMap.Type.OCEAN_FLOOR_WG, blockposition_mutableblockposition.getX(), blockposition_mutableblockposition.getZ());
+        return !box.isInside(blockposition_mutableblockposition) ? false : blockposition_mutableblockposition.getY() < world.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, blockposition_mutableblockposition.getX(), blockposition_mutableblockposition.getZ());
     }
 
-    protected void generateAirBox(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, int i, int j, int k, int l, int i1, int j1) {
-        for (int k1 = j; k1 <= i1; ++k1) {
-            for (int l1 = i; l1 <= l; ++l1) {
-                for (int i2 = k; i2 <= j1; ++i2) {
-                    this.placeBlock(generatoraccessseed, Blocks.AIR.defaultBlockState(), l1, k1, i2, structureboundingbox);
+    protected void generateAirBox(WorldGenLevel world, BoundingBox bounds, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+        for (int k1 = minY; k1 <= maxY; ++k1) {
+            for (int l1 = minX; l1 <= maxX; ++l1) {
+                for (int i2 = minZ; i2 <= maxZ; ++i2) {
+                    this.placeBlock(world, Blocks.AIR.defaultBlockState(), l1, k1, i2, bounds);
                 }
             }
         }
 
     }
 
-    protected void generateBox(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, int i, int j, int k, int l, int i1, int j1, IBlockData iblockdata, IBlockData iblockdata1, boolean flag) {
-        for (int k1 = j; k1 <= i1; ++k1) {
-            for (int l1 = i; l1 <= l; ++l1) {
-                for (int i2 = k; i2 <= j1; ++i2) {
-                    if (!flag || !this.getBlock(generatoraccessseed, l1, k1, i2, structureboundingbox).isAir()) {
-                        if (k1 != j && k1 != i1 && l1 != i && l1 != l && i2 != k && i2 != j1) {
-                            this.placeBlock(generatoraccessseed, iblockdata1, l1, k1, i2, structureboundingbox);
+    protected void generateBox(WorldGenLevel world, BoundingBox box, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, BlockState outline, BlockState inside, boolean cantReplaceAir) {
+        for (int k1 = minY; k1 <= maxY; ++k1) {
+            for (int l1 = minX; l1 <= maxX; ++l1) {
+                for (int i2 = minZ; i2 <= maxZ; ++i2) {
+                    if (!cantReplaceAir || !this.getBlock(world, l1, k1, i2, box).isAir()) {
+                        if (k1 != minY && k1 != maxY && l1 != minX && l1 != maxX && i2 != minZ && i2 != maxZ) {
+                            this.placeBlock(world, inside, l1, k1, i2, box);
                         } else {
-                            this.placeBlock(generatoraccessseed, iblockdata, l1, k1, i2, structureboundingbox);
+                            this.placeBlock(world, outline, l1, k1, i2, box);
                         }
                     }
                 }
@@ -279,17 +277,17 @@ public abstract class StructurePiece {
 
     }
 
-    protected void generateBox(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, StructureBoundingBox structureboundingbox1, IBlockData iblockdata, IBlockData iblockdata1, boolean flag) {
-        this.generateBox(generatoraccessseed, structureboundingbox, structureboundingbox1.minX(), structureboundingbox1.minY(), structureboundingbox1.minZ(), structureboundingbox1.maxX(), structureboundingbox1.maxY(), structureboundingbox1.maxZ(), iblockdata, iblockdata1, flag);
+    protected void generateBox(WorldGenLevel world, BoundingBox box, BoundingBox fillBox, BlockState outline, BlockState inside, boolean cantReplaceAir) {
+        this.generateBox(world, box, fillBox.minX(), fillBox.minY(), fillBox.minZ(), fillBox.maxX(), fillBox.maxY(), fillBox.maxZ(), outline, inside, cantReplaceAir);
     }
 
-    protected void generateBox(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, int i, int j, int k, int l, int i1, int j1, boolean flag, RandomSource randomsource, StructurePiece.StructurePieceBlockSelector structurepiece_structurepieceblockselector) {
-        for (int k1 = j; k1 <= i1; ++k1) {
-            for (int l1 = i; l1 <= l; ++l1) {
-                for (int i2 = k; i2 <= j1; ++i2) {
-                    if (!flag || !this.getBlock(generatoraccessseed, l1, k1, i2, structureboundingbox).isAir()) {
-                        structurepiece_structurepieceblockselector.next(randomsource, l1, k1, i2, k1 == j || k1 == i1 || l1 == i || l1 == l || i2 == k || i2 == j1);
-                        this.placeBlock(generatoraccessseed, structurepiece_structurepieceblockselector.getNext(), l1, k1, i2, structureboundingbox);
+    protected void generateBox(WorldGenLevel world, BoundingBox box, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, boolean cantReplaceAir, RandomSource random, StructurePiece.BlockSelector randomizer) {
+        for (int k1 = minY; k1 <= maxY; ++k1) {
+            for (int l1 = minX; l1 <= maxX; ++l1) {
+                for (int i2 = minZ; i2 <= maxZ; ++i2) {
+                    if (!cantReplaceAir || !this.getBlock(world, l1, k1, i2, box).isAir()) {
+                        randomizer.next(random, l1, k1, i2, k1 == minY || k1 == maxY || l1 == minX || l1 == maxX || i2 == minZ || i2 == maxZ);
+                        this.placeBlock(world, randomizer.getNext(), l1, k1, i2, box);
                     }
                 }
             }
@@ -297,19 +295,19 @@ public abstract class StructurePiece {
 
     }
 
-    protected void generateBox(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, StructureBoundingBox structureboundingbox1, boolean flag, RandomSource randomsource, StructurePiece.StructurePieceBlockSelector structurepiece_structurepieceblockselector) {
-        this.generateBox(generatoraccessseed, structureboundingbox, structureboundingbox1.minX(), structureboundingbox1.minY(), structureboundingbox1.minZ(), structureboundingbox1.maxX(), structureboundingbox1.maxY(), structureboundingbox1.maxZ(), flag, randomsource, structurepiece_structurepieceblockselector);
+    protected void generateBox(WorldGenLevel world, BoundingBox box, BoundingBox fillBox, boolean cantReplaceAir, RandomSource random, StructurePiece.BlockSelector randomizer) {
+        this.generateBox(world, box, fillBox.minX(), fillBox.minY(), fillBox.minZ(), fillBox.maxX(), fillBox.maxY(), fillBox.maxZ(), cantReplaceAir, random, randomizer);
     }
 
-    protected void generateMaybeBox(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, RandomSource randomsource, float f, int i, int j, int k, int l, int i1, int j1, IBlockData iblockdata, IBlockData iblockdata1, boolean flag, boolean flag1) {
-        for (int k1 = j; k1 <= i1; ++k1) {
-            for (int l1 = i; l1 <= l; ++l1) {
-                for (int i2 = k; i2 <= j1; ++i2) {
-                    if (randomsource.nextFloat() <= f && (!flag || !this.getBlock(generatoraccessseed, l1, k1, i2, structureboundingbox).isAir()) && (!flag1 || this.isInterior(generatoraccessseed, l1, k1, i2, structureboundingbox))) {
-                        if (k1 != j && k1 != i1 && l1 != i && l1 != l && i2 != k && i2 != j1) {
-                            this.placeBlock(generatoraccessseed, iblockdata1, l1, k1, i2, structureboundingbox);
+    protected void generateMaybeBox(WorldGenLevel world, BoundingBox box, RandomSource random, float blockChance, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, BlockState outline, BlockState inside, boolean cantReplaceAir, boolean stayBelowSeaLevel) {
+        for (int k1 = minY; k1 <= maxY; ++k1) {
+            for (int l1 = minX; l1 <= maxX; ++l1) {
+                for (int i2 = minZ; i2 <= maxZ; ++i2) {
+                    if (random.nextFloat() <= blockChance && (!cantReplaceAir || !this.getBlock(world, l1, k1, i2, box).isAir()) && (!stayBelowSeaLevel || this.isInterior(world, l1, k1, i2, box))) {
+                        if (k1 != minY && k1 != maxY && l1 != minX && l1 != maxX && i2 != minZ && i2 != maxZ) {
+                            this.placeBlock(world, inside, l1, k1, i2, box);
                         } else {
-                            this.placeBlock(generatoraccessseed, iblockdata, l1, k1, i2, structureboundingbox);
+                            this.placeBlock(world, outline, l1, k1, i2, box);
                         }
                     }
                 }
@@ -318,34 +316,34 @@ public abstract class StructurePiece {
 
     }
 
-    protected void maybeGenerateBlock(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, RandomSource randomsource, float f, int i, int j, int k, IBlockData iblockdata) {
-        if (randomsource.nextFloat() < f) {
-            this.placeBlock(generatoraccessseed, iblockdata, i, j, k, structureboundingbox);
+    protected void maybeGenerateBlock(WorldGenLevel world, BoundingBox bounds, RandomSource random, float threshold, int x, int y, int z, BlockState state) {
+        if (random.nextFloat() < threshold) {
+            this.placeBlock(world, state, x, y, z, bounds);
         }
 
     }
 
-    protected void generateUpperHalfSphere(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, int i, int j, int k, int l, int i1, int j1, IBlockData iblockdata, boolean flag) {
-        float f = (float) (l - i + 1);
-        float f1 = (float) (i1 - j + 1);
-        float f2 = (float) (j1 - k + 1);
-        float f3 = (float) i + f / 2.0F;
-        float f4 = (float) k + f2 / 2.0F;
+    protected void generateUpperHalfSphere(WorldGenLevel world, BoundingBox bounds, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, BlockState block, boolean cantReplaceAir) {
+        float f = (float) (maxX - minX + 1);
+        float f1 = (float) (maxY - minY + 1);
+        float f2 = (float) (maxZ - minZ + 1);
+        float f3 = (float) minX + f / 2.0F;
+        float f4 = (float) minZ + f2 / 2.0F;
 
-        for (int k1 = j; k1 <= i1; ++k1) {
-            float f5 = (float) (k1 - j) / f1;
+        for (int k1 = minY; k1 <= maxY; ++k1) {
+            float f5 = (float) (k1 - minY) / f1;
 
-            for (int l1 = i; l1 <= l; ++l1) {
+            for (int l1 = minX; l1 <= maxX; ++l1) {
                 float f6 = ((float) l1 - f3) / (f * 0.5F);
 
-                for (int i2 = k; i2 <= j1; ++i2) {
+                for (int i2 = minZ; i2 <= maxZ; ++i2) {
                     float f7 = ((float) i2 - f4) / (f2 * 0.5F);
 
-                    if (!flag || !this.getBlock(generatoraccessseed, l1, k1, i2, structureboundingbox).isAir()) {
+                    if (!cantReplaceAir || !this.getBlock(world, l1, k1, i2, bounds).isAir()) {
                         float f8 = f6 * f6 + f5 * f5 + f7 * f7;
 
                         if (f8 <= 1.05F) {
-                            this.placeBlock(generatoraccessseed, iblockdata, l1, k1, i2, structureboundingbox);
+                            this.placeBlock(world, block, l1, k1, i2, bounds);
                         }
                     }
                 }
@@ -354,40 +352,40 @@ public abstract class StructurePiece {
 
     }
 
-    protected void fillColumnDown(GeneratorAccessSeed generatoraccessseed, IBlockData iblockdata, int i, int j, int k, StructureBoundingBox structureboundingbox) {
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = this.getWorldPos(i, j, k);
+    protected void fillColumnDown(WorldGenLevel world, BlockState state, int x, int y, int z, BoundingBox box) {
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = this.getWorldPos(x, y, z);
 
-        if (structureboundingbox.isInside(blockposition_mutableblockposition)) {
-            while (this.isReplaceableByStructures(generatoraccessseed.getBlockState(blockposition_mutableblockposition)) && blockposition_mutableblockposition.getY() > generatoraccessseed.getMinBuildHeight() + 1) {
-                generatoraccessseed.setBlock(blockposition_mutableblockposition, iblockdata, 2);
-                blockposition_mutableblockposition.move(EnumDirection.DOWN);
+        if (box.isInside(blockposition_mutableblockposition)) {
+            while (this.isReplaceableByStructures(world.getBlockState(blockposition_mutableblockposition)) && blockposition_mutableblockposition.getY() > world.getMinBuildHeight() + 1) {
+                world.setBlock(blockposition_mutableblockposition, state, 2);
+                blockposition_mutableblockposition.move(Direction.DOWN);
             }
 
         }
     }
 
-    protected boolean isReplaceableByStructures(IBlockData iblockdata) {
-        return iblockdata.isAir() || iblockdata.liquid() || iblockdata.is(Blocks.GLOW_LICHEN) || iblockdata.is(Blocks.SEAGRASS) || iblockdata.is(Blocks.TALL_SEAGRASS);
+    protected boolean isReplaceableByStructures(BlockState state) {
+        return state.isAir() || state.liquid() || state.is(Blocks.GLOW_LICHEN) || state.is(Blocks.SEAGRASS) || state.is(Blocks.TALL_SEAGRASS);
     }
 
-    protected boolean createChest(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, RandomSource randomsource, int i, int j, int k, ResourceKey<LootTable> resourcekey) {
-        return this.createChest(generatoraccessseed, structureboundingbox, randomsource, this.getWorldPos(i, j, k), resourcekey, (IBlockData) null);
+    protected boolean createChest(WorldGenLevel world, BoundingBox boundingBox, RandomSource random, int x, int y, int z, ResourceKey<LootTable> lootTable) {
+        return this.createChest(world, boundingBox, random, this.getWorldPos(x, y, z), lootTable, (BlockState) null);
     }
 
-    public static IBlockData reorient(IBlockAccess iblockaccess, BlockPosition blockposition, IBlockData iblockdata) {
-        EnumDirection enumdirection = null;
-        Iterator iterator = EnumDirection.EnumDirectionLimit.HORIZONTAL.iterator();
+    public static BlockState reorient(BlockGetter world, BlockPos pos, BlockState state) {
+        Direction enumdirection = null;
+        Iterator iterator = Direction.Plane.HORIZONTAL.iterator();
 
         while (iterator.hasNext()) {
-            EnumDirection enumdirection1 = (EnumDirection) iterator.next();
-            BlockPosition blockposition1 = blockposition.relative(enumdirection1);
-            IBlockData iblockdata1 = iblockaccess.getBlockState(blockposition1);
+            Direction enumdirection1 = (Direction) iterator.next();
+            BlockPos blockposition1 = pos.relative(enumdirection1);
+            BlockState iblockdata1 = world.getBlockState(blockposition1);
 
             if (iblockdata1.is(Blocks.CHEST)) {
-                return iblockdata;
+                return state;
             }
 
-            if (iblockdata1.isSolidRender(iblockaccess, blockposition1)) {
+            if (iblockdata1.isSolidRender(world, blockposition1)) {
                 if (enumdirection != null) {
                     enumdirection = null;
                     break;
@@ -398,34 +396,34 @@ public abstract class StructurePiece {
         }
 
         if (enumdirection != null) {
-            return (IBlockData) iblockdata.setValue(BlockFacingHorizontal.FACING, enumdirection.getOpposite());
+            return (BlockState) state.setValue(HorizontalDirectionalBlock.FACING, enumdirection.getOpposite());
         } else {
-            EnumDirection enumdirection2 = (EnumDirection) iblockdata.getValue(BlockFacingHorizontal.FACING);
-            BlockPosition blockposition2 = blockposition.relative(enumdirection2);
+            Direction enumdirection2 = (Direction) state.getValue(HorizontalDirectionalBlock.FACING);
+            BlockPos blockposition2 = pos.relative(enumdirection2);
 
-            if (iblockaccess.getBlockState(blockposition2).isSolidRender(iblockaccess, blockposition2)) {
+            if (world.getBlockState(blockposition2).isSolidRender(world, blockposition2)) {
                 enumdirection2 = enumdirection2.getOpposite();
-                blockposition2 = blockposition.relative(enumdirection2);
+                blockposition2 = pos.relative(enumdirection2);
             }
 
-            if (iblockaccess.getBlockState(blockposition2).isSolidRender(iblockaccess, blockposition2)) {
+            if (world.getBlockState(blockposition2).isSolidRender(world, blockposition2)) {
                 enumdirection2 = enumdirection2.getClockWise();
-                blockposition2 = blockposition.relative(enumdirection2);
+                blockposition2 = pos.relative(enumdirection2);
             }
 
-            if (iblockaccess.getBlockState(blockposition2).isSolidRender(iblockaccess, blockposition2)) {
+            if (world.getBlockState(blockposition2).isSolidRender(world, blockposition2)) {
                 enumdirection2 = enumdirection2.getOpposite();
-                blockposition.relative(enumdirection2);
+                pos.relative(enumdirection2);
             }
 
-            return (IBlockData) iblockdata.setValue(BlockFacingHorizontal.FACING, enumdirection2);
+            return (BlockState) state.setValue(HorizontalDirectionalBlock.FACING, enumdirection2);
         }
     }
 
-    protected boolean createChest(WorldAccess worldaccess, StructureBoundingBox structureboundingbox, RandomSource randomsource, BlockPosition blockposition, ResourceKey<LootTable> resourcekey, @Nullable IBlockData iblockdata) {
-        if (structureboundingbox.isInside(blockposition) && !worldaccess.getBlockState(blockposition).is(Blocks.CHEST)) {
-            if (iblockdata == null) {
-                iblockdata = reorient(worldaccess, blockposition, Blocks.CHEST.defaultBlockState());
+    protected boolean createChest(ServerLevelAccessor world, BoundingBox boundingBox, RandomSource random, BlockPos pos, ResourceKey<LootTable> lootTable, @Nullable BlockState block) {
+        if (boundingBox.isInside(pos) && !world.getBlockState(pos).is(Blocks.CHEST)) {
+            if (block == null) {
+                block = StructurePiece.reorient(world, pos, Blocks.CHEST.defaultBlockState());
             }
 
             // CraftBukkit start
@@ -437,10 +435,10 @@ public abstract class StructurePiece {
                 ((TileEntityChest) tileentity).setLootTable(resourcekey, randomsource.nextLong());
             }
             */
-            org.bukkit.craftbukkit.block.CraftChest chestState = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(worldaccess, blockposition, iblockdata, null);
-            chestState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(resourcekey));
-            chestState.setSeed(randomsource.nextLong());
-            placeCraftBlockEntity(worldaccess, blockposition, chestState, 2);
+            org.bukkit.craftbukkit.block.CraftChest chestState = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(world, pos, block, null);
+            chestState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(lootTable));
+            chestState.setSeed(random.nextLong());
+            this.placeCraftBlockEntity(world, pos, chestState, 2);
             // CraftBukkit end
 
             return true;
@@ -449,10 +447,10 @@ public abstract class StructurePiece {
         }
     }
 
-    protected boolean createDispenser(GeneratorAccessSeed generatoraccessseed, StructureBoundingBox structureboundingbox, RandomSource randomsource, int i, int j, int k, EnumDirection enumdirection, ResourceKey<LootTable> resourcekey) {
-        BlockPosition.MutableBlockPosition blockposition_mutableblockposition = this.getWorldPos(i, j, k);
+    protected boolean createDispenser(WorldGenLevel world, BoundingBox boundingBox, RandomSource random, int x, int y, int z, Direction facing, ResourceKey<LootTable> lootTable) {
+        BlockPos.MutableBlockPos blockposition_mutableblockposition = this.getWorldPos(x, y, z);
 
-        if (structureboundingbox.isInside(blockposition_mutableblockposition) && !generatoraccessseed.getBlockState(blockposition_mutableblockposition).is(Blocks.DISPENSER)) {
+        if (boundingBox.isInside(blockposition_mutableblockposition) && !world.getBlockState(blockposition_mutableblockposition).is(Blocks.DISPENSER)) {
             // CraftBukkit start
             /*
             this.placeBlock(generatoraccessseed, (IBlockData) Blocks.DISPENSER.defaultBlockState().setValue(BlockDispenser.FACING, enumdirection), i, j, k, structureboundingbox);
@@ -462,21 +460,21 @@ public abstract class StructurePiece {
                 ((TileEntityDispenser) tileentity).setLootTable(resourcekey, randomsource.nextLong());
             }
             */
-            if (!this.canBeReplaced(generatoraccessseed, i, j, k, structureboundingbox)) {
+            if (!this.canBeReplaced(world, x, y, z, boundingBox)) {
                 return true;
             }
-            IBlockData iblockdata = Blocks.DISPENSER.defaultBlockState().setValue(BlockDispenser.FACING, enumdirection);
-            if (this.mirror != EnumBlockMirror.NONE) {
+            BlockState iblockdata = Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, facing);
+            if (this.mirror != Mirror.NONE) {
                 iblockdata = iblockdata.mirror(this.mirror);
             }
-            if (this.rotation != EnumBlockRotation.NONE) {
+            if (this.rotation != Rotation.NONE) {
                 iblockdata = iblockdata.rotate(this.rotation);
             }
 
-            org.bukkit.craftbukkit.block.CraftDispenser dispenserState = (org.bukkit.craftbukkit.block.CraftDispenser) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(generatoraccessseed, blockposition_mutableblockposition, iblockdata, null);
-            dispenserState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(resourcekey));
-            dispenserState.setSeed(randomsource.nextLong());
-            placeCraftBlockEntity(generatoraccessseed, blockposition_mutableblockposition, dispenserState, 2);
+            org.bukkit.craftbukkit.block.CraftDispenser dispenserState = (org.bukkit.craftbukkit.block.CraftDispenser) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(world, blockposition_mutableblockposition, iblockdata, null);
+            dispenserState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(lootTable));
+            dispenserState.setSeed(random.nextLong());
+            this.placeCraftBlockEntity(world, blockposition_mutableblockposition, dispenserState, 2);
             // CraftBukkit end
 
             return true;
@@ -485,22 +483,22 @@ public abstract class StructurePiece {
         }
     }
 
-    public void move(int i, int j, int k) {
-        this.boundingBox.move(i, j, k);
+    public void move(int x, int y, int z) {
+        this.boundingBox.move(x, y, z);
     }
 
-    public static StructureBoundingBox createBoundingBox(Stream<StructurePiece> stream) {
-        Stream<StructureBoundingBox> stream1 = stream.map(StructurePiece::getBoundingBox); // CraftBukkit - decompile error
+    public static BoundingBox createBoundingBox(Stream<StructurePiece> pieces) {
+        Stream<BoundingBox> stream1 = pieces.map(StructurePiece::getBoundingBox); // CraftBukkit - decompile error
 
         Objects.requireNonNull(stream1);
-        return (StructureBoundingBox) StructureBoundingBox.encapsulatingBoxes(stream1::iterator).orElseThrow(() -> {
+        return (BoundingBox) BoundingBox.encapsulatingBoxes(stream1::iterator).orElseThrow(() -> {
             return new IllegalStateException("Unable to calculate boundingbox without pieces");
         });
     }
 
     @Nullable
-    public static StructurePiece findCollisionPiece(List<StructurePiece> list, StructureBoundingBox structureboundingbox) {
-        Iterator iterator = list.iterator();
+    public static StructurePiece findCollisionPiece(List<StructurePiece> pieces, BoundingBox box) {
+        Iterator iterator = pieces.iterator();
 
         StructurePiece structurepiece;
 
@@ -510,66 +508,66 @@ public abstract class StructurePiece {
             }
 
             structurepiece = (StructurePiece) iterator.next();
-        } while (!structurepiece.getBoundingBox().intersects(structureboundingbox));
+        } while (!structurepiece.getBoundingBox().intersects(box));
 
         return structurepiece;
     }
 
     @Nullable
-    public EnumDirection getOrientation() {
+    public Direction getOrientation() {
         return this.orientation;
     }
 
-    public void setOrientation(@Nullable EnumDirection enumdirection) {
-        this.orientation = enumdirection;
-        if (enumdirection == null) {
-            this.rotation = EnumBlockRotation.NONE;
-            this.mirror = EnumBlockMirror.NONE;
+    public void setOrientation(@Nullable Direction orientation) {
+        this.orientation = orientation;
+        if (orientation == null) {
+            this.rotation = Rotation.NONE;
+            this.mirror = Mirror.NONE;
         } else {
-            switch (enumdirection) {
+            switch (orientation) {
                 case SOUTH:
-                    this.mirror = EnumBlockMirror.LEFT_RIGHT;
-                    this.rotation = EnumBlockRotation.NONE;
+                    this.mirror = Mirror.LEFT_RIGHT;
+                    this.rotation = Rotation.NONE;
                     break;
                 case WEST:
-                    this.mirror = EnumBlockMirror.LEFT_RIGHT;
-                    this.rotation = EnumBlockRotation.CLOCKWISE_90;
+                    this.mirror = Mirror.LEFT_RIGHT;
+                    this.rotation = Rotation.CLOCKWISE_90;
                     break;
                 case EAST:
-                    this.mirror = EnumBlockMirror.NONE;
-                    this.rotation = EnumBlockRotation.CLOCKWISE_90;
+                    this.mirror = Mirror.NONE;
+                    this.rotation = Rotation.CLOCKWISE_90;
                     break;
                 default:
-                    this.mirror = EnumBlockMirror.NONE;
-                    this.rotation = EnumBlockRotation.NONE;
+                    this.mirror = Mirror.NONE;
+                    this.rotation = Rotation.NONE;
             }
         }
 
     }
 
-    public EnumBlockRotation getRotation() {
+    public Rotation getRotation() {
         return this.rotation;
     }
 
-    public EnumBlockMirror getMirror() {
+    public Mirror getMirror() {
         return this.mirror;
     }
 
-    public WorldGenFeatureStructurePieceType getType() {
+    public StructurePieceType getType() {
         return this.type;
     }
 
-    public abstract static class StructurePieceBlockSelector {
+    public abstract static class BlockSelector {
 
-        protected IBlockData next;
+        protected BlockState next;
 
-        public StructurePieceBlockSelector() {
+        public BlockSelector() {
             this.next = Blocks.AIR.defaultBlockState();
         }
 
-        public abstract void next(RandomSource randomsource, int i, int j, int k, boolean flag);
+        public abstract void next(RandomSource random, int x, int y, int z, boolean placeBlock);
 
-        public IBlockData getNext() {
+        public BlockState getNext() {
             return this.next;
         }
     }

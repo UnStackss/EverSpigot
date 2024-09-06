@@ -1,6 +1,6 @@
 package org.bukkit.entity;
 
-import net.minecraft.world.entity.EnumCreatureType;
+import net.minecraft.world.entity.MobCategory;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.junit.jupiter.api.Test;
 
@@ -8,7 +8,7 @@ public class SpawnCategoryTest {
 
     @Test
     public void testMatch() {
-        for (EnumCreatureType enumCreatureType : EnumCreatureType.values()) {
+        for (MobCategory enumCreatureType : MobCategory.values()) {
             // If it is missing a convert to Bukkit then throw a UnsupportedOperationException
             SpawnCategory spawnCategory = CraftSpawnCategory.toBukkit(enumCreatureType);
 
@@ -21,7 +21,7 @@ public class SpawnCategoryTest {
 
         for (SpawnCategory spawnCategory : SpawnCategory.values()) {
             // If it is missing a convert to NMS then throw a UnsupportedOperationException
-            EnumCreatureType enumCreatureType = CraftSpawnCategory.toNMS(spawnCategory);
+            MobCategory enumCreatureType = CraftSpawnCategory.toNMS(spawnCategory);
         }
     }
 }

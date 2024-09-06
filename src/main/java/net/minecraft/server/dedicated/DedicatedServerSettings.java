@@ -16,7 +16,7 @@ public class DedicatedServerSettings {
     // CraftBukkit start
     public DedicatedServerSettings(OptionSet optionset) {
         this.source = ((File) optionset.valueOf("config")).toPath();
-        this.properties = DedicatedServerProperties.fromFile(source, optionset);
+        this.properties = DedicatedServerProperties.fromFile(this.source, optionset);
         // CraftBukkit end
     }
 
@@ -28,8 +28,8 @@ public class DedicatedServerSettings {
         this.properties.store(this.source);
     }
 
-    public DedicatedServerSettings update(UnaryOperator<DedicatedServerProperties> unaryoperator) {
-        (this.properties = (DedicatedServerProperties) unaryoperator.apply(this.properties)).store(this.source);
+    public DedicatedServerSettings update(UnaryOperator<DedicatedServerProperties> applier) {
+        (this.properties = (DedicatedServerProperties) applier.apply(this.properties)).store(this.source);
         return this;
     }
 }

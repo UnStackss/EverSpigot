@@ -2,14 +2,13 @@ package net.minecraft.world.item.crafting;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.MinecraftKey;
-
+import net.minecraft.resources.ResourceLocation;
 // CraftBukkit start
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.Recipe;
 // CraftBukkit end
 
-public record RecipeHolder<T extends IRecipe<?>>(MinecraftKey id, T value) {
+public record RecipeHolder<T extends net.minecraft.world.item.crafting.Recipe<?>>(ResourceLocation id, T value) {
 
     // CraftBukkit start
     public final Recipe toBukkitRecipe() {
@@ -17,7 +16,7 @@ public record RecipeHolder<T extends IRecipe<?>>(MinecraftKey id, T value) {
     }
     // CraftBukkit end
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, RecipeHolder<?>> STREAM_CODEC = StreamCodec.composite(MinecraftKey.STREAM_CODEC, RecipeHolder::id, IRecipe.STREAM_CODEC, RecipeHolder::value, RecipeHolder::new);
+    public static final StreamCodec<RegistryFriendlyByteBuf, RecipeHolder<?>> STREAM_CODEC = StreamCodec.composite(ResourceLocation.STREAM_CODEC, RecipeHolder::id, net.minecraft.world.item.crafting.Recipe.STREAM_CODEC, RecipeHolder::value, RecipeHolder::new);
 
     public boolean equals(Object object) {
         if (this == object) {

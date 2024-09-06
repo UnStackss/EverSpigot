@@ -26,16 +26,16 @@ public class CrashReport {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
     private final String title;
     private final Throwable exception;
-    private final List<CrashReportSystemDetails> details = Lists.newArrayList();
+    private final List<CrashReportCategory> details = Lists.newArrayList();
     @Nullable
     private Path saveFile;
     private boolean trackingStackTrace = true;
     private StackTraceElement[] uncategorizedStackTrace = new StackTraceElement[0];
     private final SystemReport systemReport = new SystemReport();
 
-    public CrashReport(String s, Throwable throwable) {
-        this.title = s;
-        this.exception = throwable;
+    public CrashReport(String message, Throwable cause) {
+        this.title = message;
+        this.exception = cause;
         this.systemReport.setDetail("CraftBukkit Information", new org.bukkit.craftbukkit.CraftCrashReport()); // CraftBukkit
     }
 
@@ -54,38 +54,38 @@ public class CrashReport {
         return stringbuilder.toString();
     }
 
-    public void getDetails(StringBuilder stringbuilder) {
+    public void getDetails(StringBuilder crashReportBuilder) {
         if ((this.uncategorizedStackTrace == null || this.uncategorizedStackTrace.length <= 0) && !this.details.isEmpty()) {
-            this.uncategorizedStackTrace = (StackTraceElement[]) ArrayUtils.subarray(((CrashReportSystemDetails) this.details.get(0)).getStacktrace(), 0, 1);
+            this.uncategorizedStackTrace = (StackTraceElement[]) ArrayUtils.subarray(((CrashReportCategory) this.details.get(0)).getStacktrace(), 0, 1);
         }
 
         if (this.uncategorizedStackTrace != null && this.uncategorizedStackTrace.length > 0) {
-            stringbuilder.append("-- Head --\n");
-            stringbuilder.append("Thread: ").append(Thread.currentThread().getName()).append("\n");
-            stringbuilder.append("Stacktrace:\n");
+            crashReportBuilder.append("-- Head --\n");
+            crashReportBuilder.append("Thread: ").append(Thread.currentThread().getName()).append("\n");
+            crashReportBuilder.append("Stacktrace:\n");
             StackTraceElement[] astacktraceelement = this.uncategorizedStackTrace;
             int i = astacktraceelement.length;
 
             for (int j = 0; j < i; ++j) {
                 StackTraceElement stacktraceelement = astacktraceelement[j];
 
-                stringbuilder.append("\t").append("at ").append(stacktraceelement);
-                stringbuilder.append("\n");
+                crashReportBuilder.append("\t").append("at ").append(stacktraceelement);
+                crashReportBuilder.append("\n");
             }
 
-            stringbuilder.append("\n");
+            crashReportBuilder.append("\n");
         }
 
         Iterator iterator = this.details.iterator();
 
         while (iterator.hasNext()) {
-            CrashReportSystemDetails crashreportsystemdetails = (CrashReportSystemDetails) iterator.next();
+            CrashReportCategory crashreportsystemdetails = (CrashReportCategory) iterator.next();
 
-            crashreportsystemdetails.getDetails(stringbuilder);
-            stringbuilder.append("\n\n");
+            crashreportsystemdetails.getDetails(crashReportBuilder);
+            crashReportBuilder.append("\n\n");
         }
 
-        this.systemReport.appendToCrashReportString(stringbuilder);
+        this.systemReport.appendToCrashReportString(crashReportBuilder);
     }
 
     public String getExceptionMessage() {
@@ -120,10 +120,10 @@ public class CrashReport {
         return s;
     }
 
-    public String getFriendlyReport(ReportType reporttype, List<String> list) {
+    public String getFriendlyReport(ReportType type, List<String> extraInfo) {
         StringBuilder stringbuilder = new StringBuilder();
 
-        reporttype.appendHeader(stringbuilder, list);
+        type.appendHeader(stringbuilder, extraInfo);
         stringbuilder.append("Time: ");
         stringbuilder.append(CrashReport.DATE_TIME_FORMATTER.format(ZonedDateTime.now()));
         stringbuilder.append("\n");
@@ -142,8 +142,8 @@ public class CrashReport {
         return stringbuilder.toString();
     }
 
-    public String getFriendlyReport(ReportType reporttype) {
-        return this.getFriendlyReport(reporttype, List.of());
+    public String getFriendlyReport(ReportType type) {
+        return this.getFriendlyReport(type, List.of());
     }
 
     @Nullable
@@ -151,19 +151,19 @@ public class CrashReport {
         return this.saveFile;
     }
 
-    public boolean saveToFile(Path path, ReportType reporttype, List<String> list) {
+    public boolean saveToFile(Path path, ReportType type, List<String> extraInfo) {
         if (this.saveFile != null) {
             return false;
         } else {
             try {
                 if (path.getParent() != null) {
-                    FileUtils.createDirectoriesSafe(path.getParent());
+                    FileUtil.createDirectoriesSafe(path.getParent());
                 }
 
                 BufferedWriter bufferedwriter = Files.newBufferedWriter(path, StandardCharsets.UTF_8);
 
                 try {
-                    bufferedwriter.write(this.getFriendlyReport(reporttype, list));
+                    bufferedwriter.write(this.getFriendlyReport(type, extraInfo));
                 } catch (Throwable throwable) {
                     if (bufferedwriter != null) {
                         try {
@@ -189,23 +189,23 @@ public class CrashReport {
         }
     }
 
-    public boolean saveToFile(Path path, ReportType reporttype) {
-        return this.saveToFile(path, reporttype, List.of());
+    public boolean saveToFile(Path path, ReportType type) {
+        return this.saveToFile(path, type, List.of());
     }
 
     public SystemReport getSystemReport() {
         return this.systemReport;
     }
 
-    public CrashReportSystemDetails addCategory(String s) {
-        return this.addCategory(s, 1);
+    public CrashReportCategory addCategory(String name) {
+        return this.addCategory(name, 1);
     }
 
-    public CrashReportSystemDetails addCategory(String s, int i) {
-        CrashReportSystemDetails crashreportsystemdetails = new CrashReportSystemDetails(s);
+    public CrashReportCategory addCategory(String name, int ignoredStackTraceCallCount) {
+        CrashReportCategory crashreportsystemdetails = new CrashReportCategory(name);
 
         if (this.trackingStackTrace) {
-            int j = crashreportsystemdetails.fillInStackTrace(i);
+            int j = crashreportsystemdetails.fillInStackTrace(ignoredStackTraceCallCount);
             StackTraceElement[] astacktraceelement = this.exception.getStackTrace();
             StackTraceElement stacktraceelement = null;
             StackTraceElement stacktraceelement1 = null;
@@ -235,17 +235,17 @@ public class CrashReport {
         return crashreportsystemdetails;
     }
 
-    public static CrashReport forThrowable(Throwable throwable, String s) {
-        while (throwable instanceof CompletionException && throwable.getCause() != null) {
-            throwable = throwable.getCause();
+    public static CrashReport forThrowable(Throwable cause, String title) {
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
         }
 
         CrashReport crashreport;
 
-        if (throwable instanceof ReportedException reportedexception) {
+        if (cause instanceof ReportedException reportedexception) {
             crashreport = reportedexception.getReport();
         } else {
-            crashreport = new CrashReport(s, throwable);
+            crashreport = new CrashReport(title, cause);
         }
 
         return crashreport;

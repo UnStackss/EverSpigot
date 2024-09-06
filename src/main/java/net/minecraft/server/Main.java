@@ -24,40 +24,41 @@ import joptsimple.util.PathProperties;
 import net.minecraft.CrashReport;
 import net.minecraft.DefaultUncaughtExceptionHandler;
 import net.minecraft.SharedConstants;
-import net.minecraft.SystemUtils;
-import net.minecraft.commands.CommandDispatcher;
-import net.minecraft.core.IRegistry;
-import net.minecraft.core.IRegistryCustom;
+import net.minecraft.Util;
+import net.minecraft.commands.Commands;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtException;
 import net.minecraft.nbt.ReportedNbtException;
-import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.obfuscate.DontObfuscate;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
 import net.minecraft.server.dedicated.DedicatedServerSettings;
-import net.minecraft.server.level.progress.WorldLoadListenerLogger;
-import net.minecraft.server.packs.repository.ResourcePackRepository;
-import net.minecraft.server.packs.repository.ResourcePackSourceVanilla;
-import net.minecraft.util.MathHelper;
-import net.minecraft.util.datafix.DataConverterRegistry;
+import net.minecraft.server.level.progress.LoggerChunkProgressListener;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.server.packs.repository.ServerPacksSource;
+import net.minecraft.util.Mth;
+import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.util.profiling.jfr.Environment;
 import net.minecraft.util.profiling.jfr.JvmProfiler;
 import net.minecraft.util.worldupdate.WorldUpgrader;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
-import net.minecraft.world.level.WorldSettings;
-import net.minecraft.world.level.chunk.storage.RegionFileCompression;
-import net.minecraft.world.level.dimension.WorldDimension;
+import net.minecraft.world.level.chunk.storage.RegionFileVersion;
+import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.WorldDimensions;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
-import net.minecraft.world.level.storage.Convertable;
 import net.minecraft.world.level.storage.LevelDataAndDimensions;
-import net.minecraft.world.level.storage.SaveData;
-import net.minecraft.world.level.storage.WorldDataServer;
-import net.minecraft.world.level.storage.WorldInfo;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.LevelSummary;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.slf4j.Logger;
 
 // CraftBukkit start
@@ -65,9 +66,6 @@ import com.google.common.base.Charsets;
 import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.SharedConstants;
-import net.minecraft.server.packs.EnumResourcePackType;
-import net.minecraft.world.level.dimension.WorldDimension;
-import net.minecraft.world.level.storage.SavedFile;
 import org.bukkit.configuration.file.YamlConfiguration;
 // CraftBukkit end
 
@@ -113,7 +111,7 @@ public class Main {
             Path path = (Path) optionset.valueOf("pidFile"); // CraftBukkit
 
             if (path != null) {
-                writePidFile(path);
+                Main.writePidFile(path);
             }
 
             CrashReport.preload();
@@ -121,16 +119,16 @@ public class Main {
                 JvmProfiler.INSTANCE.start(Environment.SERVER);
             }
 
-            DispenserRegistry.bootStrap();
-            DispenserRegistry.validate();
-            SystemUtils.startTimerHackThread();
+            Bootstrap.bootStrap();
+            Bootstrap.validate();
+            Util.startTimerHackThread();
             Path path1 = Paths.get("server.properties");
             DedicatedServerSettings dedicatedserversettings = new DedicatedServerSettings(optionset); // CraftBukkit - CLI argument support
 
             dedicatedserversettings.forceSave();
-            RegionFileCompression.configure(dedicatedserversettings.getProperties().regionFileComression);
+            RegionFileVersion.configure(dedicatedserversettings.getProperties().regionFileComression);
             Path path2 = Paths.get("eula.txt");
-            EULA eula = new EULA(path2);
+            Eula eula = new Eula(path2);
 
             if (optionset.has("initSettings")) { // CraftBukkit
                 // CraftBukkit start - SPIGOT-5761: Create bukkit.yml and commands.yml if not present
@@ -168,19 +166,19 @@ public class Main {
             Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), file);
             // CraftBukkit start
             String s = (String) Optional.ofNullable((String) optionset.valueOf("world")).orElse(dedicatedserversettings.getProperties().levelName);
-            Convertable convertable = Convertable.createDefault(file.toPath());
-            Convertable.ConversionSession convertable_conversionsession = convertable.validateAndCreateAccess(s, WorldDimension.OVERWORLD);
+            LevelStorageSource convertable = LevelStorageSource.createDefault(file.toPath());
+            LevelStorageSource.LevelStorageAccess convertable_conversionsession = convertable.validateAndCreateAccess(s, LevelStem.OVERWORLD);
             // CraftBukkit end
             Dynamic dynamic;
 
             if (convertable_conversionsession.hasWorldData()) {
-                WorldInfo worldinfo;
+                LevelSummary worldinfo;
 
                 try {
                     dynamic = convertable_conversionsession.getDataTag();
                     worldinfo = convertable_conversionsession.getSummary(dynamic);
                 } catch (NbtException | ReportedNbtException | IOException ioexception) {
-                    Convertable.b convertable_b = convertable_conversionsession.getLevelDirectory();
+                    LevelStorageSource.LevelDirectory convertable_b = convertable_conversionsession.getLevelDirectory();
 
                     Main.LOGGER.warn("Failed to load world data from {}", convertable_b.dataFile(), ioexception);
                     Main.LOGGER.info("Attempting to use fallback");
@@ -217,9 +215,9 @@ public class Main {
                 Main.LOGGER.warn("Safe mode active, only vanilla datapack will be loaded");
             }
 
-            ResourcePackRepository resourcepackrepository = ResourcePackSourceVanilla.createPackRepository(convertable_conversionsession);
+            PackRepository resourcepackrepository = ServerPacksSource.createPackRepository(convertable_conversionsession);
             // CraftBukkit start
-            File bukkitDataPackFolder = new File(convertable_conversionsession.getLevelPath(SavedFile.DATAPACK_DIR).toFile(), "bukkit");
+            File bukkitDataPackFolder = new File(convertable_conversionsession.getLevelPath(LevelResource.DATAPACK_DIR).toFile(), "bukkit");
             if (!bukkitDataPackFolder.exists()) {
                 bukkitDataPackFolder.mkdirs();
             }
@@ -228,32 +226,32 @@ public class Main {
                 com.google.common.io.Files.write("{\n"
                         + "    \"pack\": {\n"
                         + "        \"description\": \"Data pack for resources provided by Bukkit plugins\",\n"
-                        + "        \"pack_format\": " + SharedConstants.getCurrentVersion().getPackVersion(EnumResourcePackType.SERVER_DATA) + "\n"
+                        + "        \"pack_format\": " + SharedConstants.getCurrentVersion().getPackVersion(PackType.SERVER_DATA) + "\n"
                         + "    }\n"
                         + "}\n", mcMeta, com.google.common.base.Charsets.UTF_8);
             } catch (java.io.IOException ex) {
                 throw new RuntimeException("Could not initialize Bukkit datapack", ex);
             }
-            AtomicReference<WorldLoader.a> worldLoader = new AtomicReference<>();
+            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
             // CraftBukkit end
 
             WorldStem worldstem;
 
             try {
-                WorldLoader.c worldloader_c = loadOrCreateConfig(dedicatedserversettings.getProperties(), dynamic1, flag, resourcepackrepository);
+                WorldLoader.InitConfig worldloader_c = Main.loadOrCreateConfig(dedicatedserversettings.getProperties(), dynamic1, flag, resourcepackrepository);
 
-                worldstem = (WorldStem) SystemUtils.blockUntilDone((executor) -> {
+                worldstem = (WorldStem) Util.blockUntilDone((executor) -> {
                     return WorldLoader.load(worldloader_c, (worldloader_a) -> {
                         worldLoader.set(worldloader_a); // CraftBukkit
-                        IRegistry<WorldDimension> iregistry = worldloader_a.datapackDimensions().registryOrThrow(Registries.LEVEL_STEM);
+                        Registry<LevelStem> iregistry = worldloader_a.datapackDimensions().registryOrThrow(Registries.LEVEL_STEM);
 
                         if (dynamic1 != null) {
-                            LevelDataAndDimensions leveldataanddimensions = Convertable.getLevelDataAndDimensions(dynamic1, worldloader_a.dataConfiguration(), iregistry, worldloader_a.datapackWorldgen());
+                            LevelDataAndDimensions leveldataanddimensions = LevelStorageSource.getLevelDataAndDimensions(dynamic1, worldloader_a.dataConfiguration(), iregistry, worldloader_a.datapackWorldgen());
 
-                            return new WorldLoader.b<>(leveldataanddimensions.worldData(), leveldataanddimensions.dimensions().dimensionsRegistryAccess());
+                            return new WorldLoader.DataLoadOutput<>(leveldataanddimensions.worldData(), leveldataanddimensions.dimensions().dimensionsRegistryAccess());
                         } else {
                             Main.LOGGER.info("No existing world data, creating new world");
-                            WorldSettings worldsettings;
+                            LevelSettings worldsettings;
                             WorldOptions worldoptions;
                             WorldDimensions worlddimensions;
 
@@ -264,17 +262,17 @@ public class Main {
                             } else {
                                 DedicatedServerProperties dedicatedserverproperties = dedicatedserversettings.getProperties();
 
-                                worldsettings = new WorldSettings(dedicatedserverproperties.levelName, dedicatedserverproperties.gamemode, dedicatedserverproperties.hardcore, dedicatedserverproperties.difficulty, false, new GameRules(), worldloader_a.dataConfiguration());
+                                worldsettings = new LevelSettings(dedicatedserverproperties.levelName, dedicatedserverproperties.gamemode, dedicatedserverproperties.hardcore, dedicatedserverproperties.difficulty, false, new GameRules(), worldloader_a.dataConfiguration());
                                 worldoptions = optionset.has("bonusChest") ? dedicatedserverproperties.worldOptions.withBonusChest(true) : dedicatedserverproperties.worldOptions; // CraftBukkit
                                 worlddimensions = dedicatedserverproperties.createDimensions(worldloader_a.datapackWorldgen());
                             }
 
-                            WorldDimensions.b worlddimensions_b = worlddimensions.bake(iregistry);
+                            WorldDimensions.Complete worlddimensions_b = worlddimensions.bake(iregistry);
                             Lifecycle lifecycle = worlddimensions_b.lifecycle().add(worldloader_a.datapackWorldgen().allRegistriesLifecycle());
 
-                            return new WorldLoader.b<>(new WorldDataServer(worldsettings, worldoptions, worlddimensions_b.specialWorldProperty(), lifecycle), worlddimensions_b.dimensionsRegistryAccess());
+                            return new WorldLoader.DataLoadOutput<>(new PrimaryLevelData(worldsettings, worldoptions, worlddimensions_b.specialWorldProperty(), lifecycle), worlddimensions_b.dimensionsRegistryAccess());
                         }
-                    }, WorldStem::new, SystemUtils.backgroundExecutor(), executor);
+                    }, WorldStem::new, Util.backgroundExecutor(), executor);
                 }).get();
             } catch (Exception exception) {
                 Main.LOGGER.warn("Failed to load datapacks, can't proceed with server load. You can either fix your datapacks or reset to vanilla with --safeMode", exception);
@@ -296,7 +294,7 @@ public class Main {
             convertable_conversionsession.saveDataTag(iregistrycustom_dimension, savedata);
             */
             final DedicatedServer dedicatedserver = (DedicatedServer) MinecraftServer.spin((thread) -> {
-                DedicatedServer dedicatedserver1 = new DedicatedServer(optionset, worldLoader.get(), thread, convertable_conversionsession, resourcepackrepository, worldstem, dedicatedserversettings, DataConverterRegistry.getDataFixer(), services, WorldLoadListenerLogger::createFromGameruleRadius);
+                DedicatedServer dedicatedserver1 = new DedicatedServer(optionset, worldLoader.get(), thread, convertable_conversionsession, resourcepackrepository, worldstem, dedicatedserversettings, DataFixers.getDataFixer(), services, LoggerChunkProgressListener::createFromGameruleRadius);
 
                 /*
                 dedicatedserver1.setPort((Integer) optionset.valueOf(optionspec11));
@@ -344,32 +342,32 @@ public class Main {
         }
     }
 
-    private static WorldLoader.c loadOrCreateConfig(DedicatedServerProperties dedicatedserverproperties, @Nullable Dynamic<?> dynamic, boolean flag, ResourcePackRepository resourcepackrepository) {
+    private static WorldLoader.InitConfig loadOrCreateConfig(DedicatedServerProperties serverPropertiesHandler, @Nullable Dynamic<?> dynamic, boolean safeMode, PackRepository dataPackManager) {
         boolean flag1;
         WorldDataConfiguration worlddataconfiguration;
 
         if (dynamic != null) {
-            WorldDataConfiguration worlddataconfiguration1 = Convertable.readDataConfig(dynamic);
+            WorldDataConfiguration worlddataconfiguration1 = LevelStorageSource.readDataConfig(dynamic);
 
             flag1 = false;
             worlddataconfiguration = worlddataconfiguration1;
         } else {
             flag1 = true;
-            worlddataconfiguration = new WorldDataConfiguration(dedicatedserverproperties.initialDataPackConfiguration, FeatureFlags.DEFAULT_FLAGS);
+            worlddataconfiguration = new WorldDataConfiguration(serverPropertiesHandler.initialDataPackConfiguration, FeatureFlags.DEFAULT_FLAGS);
         }
 
-        WorldLoader.d worldloader_d = new WorldLoader.d(resourcepackrepository, worlddataconfiguration, flag, flag1);
+        WorldLoader.PackConfig worldloader_d = new WorldLoader.PackConfig(dataPackManager, worlddataconfiguration, safeMode, flag1);
 
-        return new WorldLoader.c(worldloader_d, CommandDispatcher.ServerType.DEDICATED, dedicatedserverproperties.functionPermissionLevel);
+        return new WorldLoader.InitConfig(worldloader_d, Commands.CommandSelection.DEDICATED, serverPropertiesHandler.functionPermissionLevel);
     }
 
-    public static void forceUpgrade(Convertable.ConversionSession convertable_conversionsession, DataFixer datafixer, boolean flag, BooleanSupplier booleansupplier, IRegistryCustom iregistrycustom, boolean flag1) {
-        Main.LOGGER.info("Forcing world upgrade! {}", convertable_conversionsession.getLevelId()); // CraftBukkit
-        WorldUpgrader worldupgrader = new WorldUpgrader(convertable_conversionsession, datafixer, iregistrycustom, flag, flag1);
-        IChatBaseComponent ichatbasecomponent = null;
+    public static void forceUpgrade(LevelStorageSource.LevelStorageAccess session, DataFixer dataFixer, boolean eraseCache, BooleanSupplier continueCheck, RegistryAccess dynamicRegistryManager, boolean recreateRegionFiles) {
+        Main.LOGGER.info("Forcing world upgrade! {}", session.getLevelId()); // CraftBukkit
+        WorldUpgrader worldupgrader = new WorldUpgrader(session, dataFixer, dynamicRegistryManager, eraseCache, recreateRegionFiles);
+        Component ichatbasecomponent = null;
 
         while (!worldupgrader.isFinished()) {
-            IChatBaseComponent ichatbasecomponent1 = worldupgrader.getStatus();
+            Component ichatbasecomponent1 = worldupgrader.getStatus();
 
             if (ichatbasecomponent != ichatbasecomponent1) {
                 ichatbasecomponent = ichatbasecomponent1;
@@ -381,10 +379,10 @@ public class Main {
             if (i > 0) {
                 int j = worldupgrader.getConverted() + worldupgrader.getSkipped();
 
-                Main.LOGGER.info("{}% completed ({} / {} chunks)...", new Object[]{MathHelper.floor((float) j / (float) i * 100.0F), j, i});
+                Main.LOGGER.info("{}% completed ({} / {} chunks)...", new Object[]{Mth.floor((float) j / (float) i * 100.0F), j, i});
             }
 
-            if (!booleansupplier.getAsBoolean()) {
+            if (!continueCheck.getAsBoolean()) {
                 worldupgrader.cancel();
             } else {
                 try {

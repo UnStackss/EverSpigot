@@ -2,10 +2,9 @@ package net.minecraft.world.level.entity;
 
 import java.util.UUID;
 import java.util.stream.Stream;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.AxisAlignedBB;
-
+import net.minecraft.world.phys.AABB;
 // CraftBukkit start
 import org.bukkit.event.entity.EntityRemoveEvent;
 // CraftBukkit end
@@ -16,21 +15,21 @@ public interface EntityAccess {
 
     UUID getUUID();
 
-    BlockPosition blockPosition();
+    BlockPos blockPosition();
 
-    AxisAlignedBB getBoundingBox();
+    AABB getBoundingBox();
 
-    void setLevelCallback(EntityInLevelCallback entityinlevelcallback);
+    void setLevelCallback(EntityInLevelCallback changeListener);
 
     Stream<? extends EntityAccess> getSelfAndPassengers();
 
     Stream<? extends EntityAccess> getPassengersAndSelf();
 
-    void setRemoved(Entity.RemovalReason entity_removalreason);
+    void setRemoved(Entity.RemovalReason reason);
 
     // CraftBukkit start - add Bukkit remove cause
     default void setRemoved(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-        setRemoved(entity_removalreason);
+        this.setRemoved(entity_removalreason);
     }
     // CraftBukkit end
 

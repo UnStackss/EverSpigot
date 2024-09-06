@@ -7,25 +7,24 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import net.minecraft.SystemUtils;
-import net.minecraft.advancements.CriterionTriggers;
+import net.minecraft.Util;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.nbt.DynamicOpsNBT;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.world.EnumHand;
-import net.minecraft.world.EnumInteractionResult;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.level.World;
-import net.minecraft.world.level.material.EnumPistonReaction;
-import net.minecraft.world.phys.AxisAlignedBB;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
-
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 // CraftBukkit start
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.phys.AABB;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.event.entity.EntityDamageEvent;
 // CraftBukkit end
@@ -33,9 +32,9 @@ import org.bukkit.event.entity.EntityDamageEvent;
 public class Interaction extends Entity implements Attackable, Targeting {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final DataWatcherObject<Float> DATA_WIDTH_ID = DataWatcher.defineId(Interaction.class, DataWatcherRegistry.FLOAT);
-    private static final DataWatcherObject<Float> DATA_HEIGHT_ID = DataWatcher.defineId(Interaction.class, DataWatcherRegistry.FLOAT);
-    private static final DataWatcherObject<Boolean> DATA_RESPONSE_ID = DataWatcher.defineId(Interaction.class, DataWatcherRegistry.BOOLEAN);
+    private static final EntityDataAccessor<Float> DATA_WIDTH_ID = SynchedEntityData.defineId(Interaction.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_HEIGHT_ID = SynchedEntityData.defineId(Interaction.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> DATA_RESPONSE_ID = SynchedEntityData.defineId(Interaction.class, EntityDataSerializers.BOOLEAN);
     private static final String TAG_WIDTH = "width";
     private static final String TAG_HEIGHT = "height";
     private static final String TAG_ATTACK = "attack";
@@ -46,80 +45,80 @@ public class Interaction extends Entity implements Attackable, Targeting {
     @Nullable
     public Interaction.PlayerAction interaction;
 
-    public Interaction(EntityTypes<?> entitytypes, World world) {
-        super(entitytypes, world);
+    public Interaction(EntityType<?> type, Level world) {
+        super(type, world);
         this.noPhysics = true;
     }
 
     @Override
-    protected void defineSynchedData(DataWatcher.a datawatcher_a) {
-        datawatcher_a.define(Interaction.DATA_WIDTH_ID, 1.0F);
-        datawatcher_a.define(Interaction.DATA_HEIGHT_ID, 1.0F);
-        datawatcher_a.define(Interaction.DATA_RESPONSE_ID, false);
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(Interaction.DATA_WIDTH_ID, 1.0F);
+        builder.define(Interaction.DATA_HEIGHT_ID, 1.0F);
+        builder.define(Interaction.DATA_RESPONSE_ID, false);
     }
 
     @Override
-    protected void readAdditionalSaveData(NBTTagCompound nbttagcompound) {
-        if (nbttagcompound.contains("width", 99)) {
-            this.setWidth(nbttagcompound.getFloat("width"));
+    protected void readAdditionalSaveData(CompoundTag nbt) {
+        if (nbt.contains("width", 99)) {
+            this.setWidth(nbt.getFloat("width"));
         }
 
-        if (nbttagcompound.contains("height", 99)) {
-            this.setHeight(nbttagcompound.getFloat("height"));
+        if (nbt.contains("height", 99)) {
+            this.setHeight(nbt.getFloat("height"));
         }
 
-        DataResult<com.mojang.datafixers.util.Pair<Interaction.PlayerAction, net.minecraft.nbt.NBTBase>> dataresult; // CraftBukkit - decompile error
+        DataResult<com.mojang.datafixers.util.Pair<Interaction.PlayerAction, net.minecraft.nbt.Tag>> dataresult; // CraftBukkit - decompile error
         Logger logger;
 
-        if (nbttagcompound.contains("attack")) {
-            dataresult = Interaction.PlayerAction.CODEC.decode(DynamicOpsNBT.INSTANCE, nbttagcompound.get("attack"));
+        if (nbt.contains("attack")) {
+            dataresult = Interaction.PlayerAction.CODEC.decode(NbtOps.INSTANCE, nbt.get("attack"));
             logger = Interaction.LOGGER;
             Objects.requireNonNull(logger);
-            dataresult.resultOrPartial(SystemUtils.prefix("Interaction entity", logger::error)).ifPresent((pair) -> {
+            dataresult.resultOrPartial(Util.prefix("Interaction entity", logger::error)).ifPresent((pair) -> {
                 this.attack = (Interaction.PlayerAction) pair.getFirst();
             });
         } else {
             this.attack = null;
         }
 
-        if (nbttagcompound.contains("interaction")) {
-            dataresult = Interaction.PlayerAction.CODEC.decode(DynamicOpsNBT.INSTANCE, nbttagcompound.get("interaction"));
+        if (nbt.contains("interaction")) {
+            dataresult = Interaction.PlayerAction.CODEC.decode(NbtOps.INSTANCE, nbt.get("interaction"));
             logger = Interaction.LOGGER;
             Objects.requireNonNull(logger);
-            dataresult.resultOrPartial(SystemUtils.prefix("Interaction entity", logger::error)).ifPresent((pair) -> {
+            dataresult.resultOrPartial(Util.prefix("Interaction entity", logger::error)).ifPresent((pair) -> {
                 this.interaction = (Interaction.PlayerAction) pair.getFirst();
             });
         } else {
             this.interaction = null;
         }
 
-        this.setResponse(nbttagcompound.getBoolean("response"));
+        this.setResponse(nbt.getBoolean("response"));
         this.setBoundingBox(this.makeBoundingBox());
     }
 
     @Override
-    protected void addAdditionalSaveData(NBTTagCompound nbttagcompound) {
-        nbttagcompound.putFloat("width", this.getWidth());
-        nbttagcompound.putFloat("height", this.getHeight());
+    protected void addAdditionalSaveData(CompoundTag nbt) {
+        nbt.putFloat("width", this.getWidth());
+        nbt.putFloat("height", this.getHeight());
         if (this.attack != null) {
-            Interaction.PlayerAction.CODEC.encodeStart(DynamicOpsNBT.INSTANCE, this.attack).ifSuccess((nbtbase) -> {
-                nbttagcompound.put("attack", nbtbase);
+            Interaction.PlayerAction.CODEC.encodeStart(NbtOps.INSTANCE, this.attack).ifSuccess((nbtbase) -> {
+                nbt.put("attack", nbtbase);
             });
         }
 
         if (this.interaction != null) {
-            Interaction.PlayerAction.CODEC.encodeStart(DynamicOpsNBT.INSTANCE, this.interaction).ifSuccess((nbtbase) -> {
-                nbttagcompound.put("interaction", nbtbase);
+            Interaction.PlayerAction.CODEC.encodeStart(NbtOps.INSTANCE, this.interaction).ifSuccess((nbtbase) -> {
+                nbt.put("interaction", nbtbase);
             });
         }
 
-        nbttagcompound.putBoolean("response", this.getResponse());
+        nbt.putBoolean("response", this.getResponse());
     }
 
     @Override
-    public void onSyncedDataUpdated(DataWatcherObject<?> datawatcherobject) {
-        super.onSyncedDataUpdated(datawatcherobject);
-        if (Interaction.DATA_HEIGHT_ID.equals(datawatcherobject) || Interaction.DATA_WIDTH_ID.equals(datawatcherobject)) {
+    public void onSyncedDataUpdated(EntityDataAccessor<?> data) {
+        super.onSyncedDataUpdated(data);
+        if (Interaction.DATA_HEIGHT_ID.equals(data) || Interaction.DATA_WIDTH_ID.equals(data)) {
             this.setBoundingBox(this.makeBoundingBox());
         }
 
@@ -136,8 +135,8 @@ public class Interaction extends Entity implements Attackable, Targeting {
     }
 
     @Override
-    public EnumPistonReaction getPistonPushReaction() {
-        return EnumPistonReaction.IGNORE;
+    public PushReaction getPistonPushReaction() {
+        return PushReaction.IGNORE;
     }
 
     @Override
@@ -146,8 +145,8 @@ public class Interaction extends Entity implements Attackable, Targeting {
     }
 
     @Override
-    public boolean skipAttackInteraction(Entity entity) {
-        if (entity instanceof EntityHuman entityhuman) {
+    public boolean skipAttackInteraction(Entity attacker) {
+        if (attacker instanceof Player entityhuman) {
             // CraftBukkit start
             DamageSource source = entityhuman.damageSources().playerAttack(entityhuman);
             EntityDamageEvent event = CraftEventFactory.callNonLivingEntityDamageEvent(this, source, 1.0F, false);
@@ -156,8 +155,8 @@ public class Interaction extends Entity implements Attackable, Targeting {
             }
             // CraftBukkit end
             this.attack = new Interaction.PlayerAction(entityhuman.getUUID(), this.level().getGameTime());
-            if (entityhuman instanceof EntityPlayer entityplayer) {
-                CriterionTriggers.PLAYER_HURT_ENTITY.trigger(entityplayer, this, source, (float) event.getFinalDamage(), 1.0F, false); // CraftBukkit
+            if (entityhuman instanceof ServerPlayer entityplayer) {
+                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(entityplayer, this, source, (float) event.getFinalDamage(), 1.0F, false); // CraftBukkit
             }
 
             return !this.getResponse();
@@ -167,12 +166,12 @@ public class Interaction extends Entity implements Attackable, Targeting {
     }
 
     @Override
-    public EnumInteractionResult interact(EntityHuman entityhuman, EnumHand enumhand) {
+    public InteractionResult interact(Player player, InteractionHand hand) {
         if (this.level().isClientSide) {
-            return this.getResponse() ? EnumInteractionResult.SUCCESS : EnumInteractionResult.CONSUME;
+            return this.getResponse() ? InteractionResult.SUCCESS : InteractionResult.CONSUME;
         } else {
-            this.interaction = new Interaction.PlayerAction(entityhuman.getUUID(), this.level().getGameTime());
-            return EnumInteractionResult.CONSUME;
+            this.interaction = new Interaction.PlayerAction(player.getUUID(), this.level().getGameTime());
+            return InteractionResult.CONSUME;
         }
     }
 
@@ -181,51 +180,51 @@ public class Interaction extends Entity implements Attackable, Targeting {
 
     @Nullable
     @Override
-    public EntityLiving getLastAttacker() {
+    public LivingEntity getLastAttacker() {
         return this.attack != null ? this.level().getPlayerByUUID(this.attack.player()) : null;
     }
 
     @Nullable
     @Override
-    public EntityLiving getTarget() {
+    public LivingEntity getTarget() {
         return this.interaction != null ? this.level().getPlayerByUUID(this.interaction.player()) : null;
     }
 
-    public void setWidth(float f) {
-        this.entityData.set(Interaction.DATA_WIDTH_ID, f);
+    public void setWidth(float width) {
+        this.entityData.set(Interaction.DATA_WIDTH_ID, width);
     }
 
     public float getWidth() {
         return (Float) this.entityData.get(Interaction.DATA_WIDTH_ID);
     }
 
-    public void setHeight(float f) {
-        this.entityData.set(Interaction.DATA_HEIGHT_ID, f);
+    public void setHeight(float height) {
+        this.entityData.set(Interaction.DATA_HEIGHT_ID, height);
     }
 
     public float getHeight() {
         return (Float) this.entityData.get(Interaction.DATA_HEIGHT_ID);
     }
 
-    public void setResponse(boolean flag) {
-        this.entityData.set(Interaction.DATA_RESPONSE_ID, flag);
+    public void setResponse(boolean response) {
+        this.entityData.set(Interaction.DATA_RESPONSE_ID, response);
     }
 
     public boolean getResponse() {
         return (Boolean) this.entityData.get(Interaction.DATA_RESPONSE_ID);
     }
 
-    private EntitySize getDimensions() {
-        return EntitySize.scalable(this.getWidth(), this.getHeight());
+    private EntityDimensions getDimensions() {
+        return EntityDimensions.scalable(this.getWidth(), this.getHeight());
     }
 
     @Override
-    public EntitySize getDimensions(EntityPose entitypose) {
+    public EntityDimensions getDimensions(Pose pose) {
         return this.getDimensions();
     }
 
     @Override
-    protected AxisAlignedBB makeBoundingBox() {
+    protected AABB makeBoundingBox() {
         return this.getDimensions().makeBoundingBox(this.position());
     }
 

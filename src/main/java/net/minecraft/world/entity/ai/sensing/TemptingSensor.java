@@ -8,14 +8,14 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityCreature;
-import net.minecraft.world.entity.IEntitySelector;
-import net.minecraft.world.entity.ai.BehaviorController;
+import net.minecraft.world.entity.EntitySelector;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.ai.targeting.PathfinderTargetCondition;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 // CraftBukkit start
@@ -26,34 +26,34 @@ import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 // CraftBukkit end
 
-public class TemptingSensor extends Sensor<EntityCreature> {
+public class TemptingSensor extends Sensor<PathfinderMob> {
 
     public static final int TEMPTATION_RANGE = 10;
-    private static final PathfinderTargetCondition TEMPT_TARGETING = PathfinderTargetCondition.forNonCombat().range(10.0D).ignoreLineOfSight();
+    private static final TargetingConditions TEMPT_TARGETING = TargetingConditions.forNonCombat().range(10.0D).ignoreLineOfSight();
     private final Predicate<ItemStack> temptations;
 
     public TemptingSensor(Predicate<ItemStack> predicate) {
         this.temptations = predicate;
     }
 
-    protected void doTick(WorldServer worldserver, EntityCreature entitycreature) {
-        BehaviorController<?> behaviorcontroller = entitycreature.getBrain();
-        Stream<net.minecraft.server.level.EntityPlayer> stream = worldserver.players().stream().filter(IEntitySelector.NO_SPECTATORS).filter((entityplayer) -> { // CraftBukkit - decompile error
-            return TemptingSensor.TEMPT_TARGETING.test(entitycreature, entityplayer);
+    protected void doTick(ServerLevel world, PathfinderMob entity) {
+        Brain<?> behaviorcontroller = entity.getBrain();
+        Stream<net.minecraft.server.level.ServerPlayer> stream = world.players().stream().filter(EntitySelector.NO_SPECTATORS).filter((entityplayer) -> { // CraftBukkit - decompile error
+            return TemptingSensor.TEMPT_TARGETING.test(entity, entityplayer);
         }).filter((entityplayer) -> {
-            return entitycreature.closerThan(entityplayer, 10.0D);
+            return entity.closerThan(entityplayer, 10.0D);
         }).filter(this::playerHoldingTemptation).filter((entityplayer) -> {
-            return !entitycreature.hasPassenger((Entity) entityplayer);
+            return !entity.hasPassenger((Entity) entityplayer);
         });
 
-        Objects.requireNonNull(entitycreature);
-        List<EntityHuman> list = (List) stream.sorted(Comparator.comparingDouble(entitycreature::distanceToSqr)).collect(Collectors.toList());
+        Objects.requireNonNull(entity);
+        List<Player> list = (List) stream.sorted(Comparator.comparingDouble(entity::distanceToSqr)).collect(Collectors.toList());
 
         if (!list.isEmpty()) {
-            EntityHuman entityhuman = (EntityHuman) list.get(0);
+            Player entityhuman = (Player) list.get(0);
 
             // CraftBukkit start
-            EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(entitycreature, entityhuman, EntityTargetEvent.TargetReason.TEMPT);
+            EntityTargetLivingEntityEvent event = CraftEventFactory.callEntityTargetLivingEvent(entity, entityhuman, EntityTargetEvent.TargetReason.TEMPT);
             if (event.isCancelled()) {
                 return;
             }
@@ -69,12 +69,12 @@ public class TemptingSensor extends Sensor<EntityCreature> {
 
     }
 
-    private boolean playerHoldingTemptation(EntityHuman entityhuman) {
-        return this.isTemptation(entityhuman.getMainHandItem()) || this.isTemptation(entityhuman.getOffhandItem());
+    private boolean playerHoldingTemptation(Player player) {
+        return this.isTemptation(player.getMainHandItem()) || this.isTemptation(player.getOffhandItem());
     }
 
-    private boolean isTemptation(ItemStack itemstack) {
-        return this.temptations.test(itemstack);
+    private boolean isTemptation(ItemStack stack) {
+        return this.temptations.test(stack);
     }
 
     @Override

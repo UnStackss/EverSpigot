@@ -17,8 +17,7 @@ import net.minecraft.world.item.armortrim.TrimMaterial;
 import net.minecraft.world.item.armortrim.TrimMaterials;
 import net.minecraft.world.item.armortrim.TrimPattern;
 import net.minecraft.world.item.armortrim.TrimPatterns;
-import net.minecraft.world.level.World;
-
+import net.minecraft.world.level.Level;
 // CraftBukkit start
 import org.bukkit.NamespacedKey;
 import org.bukkit.craftbukkit.inventory.CraftRecipe;
@@ -28,26 +27,26 @@ import org.bukkit.inventory.Recipe;
 
 public class SmithingTrimRecipe implements SmithingRecipe {
 
-    final RecipeItemStack template;
-    final RecipeItemStack base;
-    final RecipeItemStack addition;
+    final Ingredient template;
+    final Ingredient base;
+    final Ingredient addition;
 
-    public SmithingTrimRecipe(RecipeItemStack recipeitemstack, RecipeItemStack recipeitemstack1, RecipeItemStack recipeitemstack2) {
-        this.template = recipeitemstack;
-        this.base = recipeitemstack1;
-        this.addition = recipeitemstack2;
+    public SmithingTrimRecipe(Ingredient template, Ingredient base, Ingredient addition) {
+        this.template = template;
+        this.base = base;
+        this.addition = addition;
     }
 
-    public boolean matches(SmithingRecipeInput smithingrecipeinput, World world) {
-        return this.template.test(smithingrecipeinput.template()) && this.base.test(smithingrecipeinput.base()) && this.addition.test(smithingrecipeinput.addition());
+    public boolean matches(SmithingRecipeInput input, Level world) {
+        return this.template.test(input.template()) && this.base.test(input.base()) && this.addition.test(input.addition());
     }
 
-    public ItemStack assemble(SmithingRecipeInput smithingrecipeinput, HolderLookup.a holderlookup_a) {
-        ItemStack itemstack = smithingrecipeinput.base();
+    public ItemStack assemble(SmithingRecipeInput input, HolderLookup.Provider lookup) {
+        ItemStack itemstack = input.base();
 
         if (this.base.test(itemstack)) {
-            Optional<Holder.c<TrimMaterial>> optional = TrimMaterials.getFromIngredient(holderlookup_a, smithingrecipeinput.addition());
-            Optional<Holder.c<TrimPattern>> optional1 = TrimPatterns.getFromTemplate(holderlookup_a, smithingrecipeinput.template());
+            Optional<Holder.Reference<TrimMaterial>> optional = TrimMaterials.getFromIngredient(lookup, input.addition());
+            Optional<Holder.Reference<TrimPattern>> optional1 = TrimPatterns.getFromTemplate(lookup, input.template());
 
             if (optional.isPresent() && optional1.isPresent()) {
                 ArmorTrim armortrim = (ArmorTrim) itemstack.get(DataComponents.TRIM);
@@ -67,10 +66,10 @@ public class SmithingTrimRecipe implements SmithingRecipe {
     }
 
     @Override
-    public ItemStack getResultItem(HolderLookup.a holderlookup_a) {
+    public ItemStack getResultItem(HolderLookup.Provider registriesLookup) {
         ItemStack itemstack = new ItemStack(Items.IRON_CHESTPLATE);
-        Optional<Holder.c<TrimPattern>> optional = holderlookup_a.lookupOrThrow(Registries.TRIM_PATTERN).listElements().findFirst();
-        Optional<Holder.c<TrimMaterial>> optional1 = holderlookup_a.lookupOrThrow(Registries.TRIM_MATERIAL).get(TrimMaterials.REDSTONE);
+        Optional<Holder.Reference<TrimPattern>> optional = registriesLookup.lookupOrThrow(Registries.TRIM_PATTERN).listElements().findFirst();
+        Optional<Holder.Reference<TrimMaterial>> optional1 = registriesLookup.lookupOrThrow(Registries.TRIM_MATERIAL).get(TrimMaterials.REDSTONE);
 
         if (optional.isPresent() && optional1.isPresent()) {
             itemstack.set(DataComponents.TRIM, new ArmorTrim((Holder) optional1.get(), (Holder) optional.get()));
@@ -80,18 +79,18 @@ public class SmithingTrimRecipe implements SmithingRecipe {
     }
 
     @Override
-    public boolean isTemplateIngredient(ItemStack itemstack) {
-        return this.template.test(itemstack);
+    public boolean isTemplateIngredient(ItemStack stack) {
+        return this.template.test(stack);
     }
 
     @Override
-    public boolean isBaseIngredient(ItemStack itemstack) {
-        return this.base.test(itemstack);
+    public boolean isBaseIngredient(ItemStack stack) {
+        return this.base.test(stack);
     }
 
     @Override
-    public boolean isAdditionIngredient(ItemStack itemstack) {
-        return this.addition.test(itemstack);
+    public boolean isAdditionIngredient(ItemStack stack) {
+        return this.addition.test(stack);
     }
 
     @Override
@@ -101,7 +100,7 @@ public class SmithingTrimRecipe implements SmithingRecipe {
 
     @Override
     public boolean isIncomplete() {
-        return Stream.of(this.template, this.base, this.addition).anyMatch(RecipeItemStack::isEmpty);
+        return Stream.of(this.template, this.base, this.addition).anyMatch(Ingredient::isEmpty);
     }
 
     // CraftBukkit start
@@ -111,43 +110,43 @@ public class SmithingTrimRecipe implements SmithingRecipe {
     }
     // CraftBukkit end
 
-    public static class a implements RecipeSerializer<SmithingTrimRecipe> {
+    public static class Serializer implements RecipeSerializer<SmithingTrimRecipe> {
 
         private static final MapCodec<SmithingTrimRecipe> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
-            return instance.group(RecipeItemStack.CODEC.fieldOf("template").forGetter((smithingtrimrecipe) -> {
+            return instance.group(Ingredient.CODEC.fieldOf("template").forGetter((smithingtrimrecipe) -> {
                 return smithingtrimrecipe.template;
-            }), RecipeItemStack.CODEC.fieldOf("base").forGetter((smithingtrimrecipe) -> {
+            }), Ingredient.CODEC.fieldOf("base").forGetter((smithingtrimrecipe) -> {
                 return smithingtrimrecipe.base;
-            }), RecipeItemStack.CODEC.fieldOf("addition").forGetter((smithingtrimrecipe) -> {
+            }), Ingredient.CODEC.fieldOf("addition").forGetter((smithingtrimrecipe) -> {
                 return smithingtrimrecipe.addition;
             })).apply(instance, SmithingTrimRecipe::new);
         });
-        public static final StreamCodec<RegistryFriendlyByteBuf, SmithingTrimRecipe> STREAM_CODEC = StreamCodec.of(SmithingTrimRecipe.a::toNetwork, SmithingTrimRecipe.a::fromNetwork);
+        public static final StreamCodec<RegistryFriendlyByteBuf, SmithingTrimRecipe> STREAM_CODEC = StreamCodec.of(SmithingTrimRecipe.Serializer::toNetwork, SmithingTrimRecipe.Serializer::fromNetwork);
 
-        public a() {}
+        public Serializer() {}
 
         @Override
         public MapCodec<SmithingTrimRecipe> codec() {
-            return SmithingTrimRecipe.a.CODEC;
+            return SmithingTrimRecipe.Serializer.CODEC;
         }
 
         @Override
         public StreamCodec<RegistryFriendlyByteBuf, SmithingTrimRecipe> streamCodec() {
-            return SmithingTrimRecipe.a.STREAM_CODEC;
+            return SmithingTrimRecipe.Serializer.STREAM_CODEC;
         }
 
-        private static SmithingTrimRecipe fromNetwork(RegistryFriendlyByteBuf registryfriendlybytebuf) {
-            RecipeItemStack recipeitemstack = (RecipeItemStack) RecipeItemStack.CONTENTS_STREAM_CODEC.decode(registryfriendlybytebuf);
-            RecipeItemStack recipeitemstack1 = (RecipeItemStack) RecipeItemStack.CONTENTS_STREAM_CODEC.decode(registryfriendlybytebuf);
-            RecipeItemStack recipeitemstack2 = (RecipeItemStack) RecipeItemStack.CONTENTS_STREAM_CODEC.decode(registryfriendlybytebuf);
+        private static SmithingTrimRecipe fromNetwork(RegistryFriendlyByteBuf buf) {
+            Ingredient recipeitemstack = (Ingredient) Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
+            Ingredient recipeitemstack1 = (Ingredient) Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
+            Ingredient recipeitemstack2 = (Ingredient) Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
 
             return new SmithingTrimRecipe(recipeitemstack, recipeitemstack1, recipeitemstack2);
         }
 
-        private static void toNetwork(RegistryFriendlyByteBuf registryfriendlybytebuf, SmithingTrimRecipe smithingtrimrecipe) {
-            RecipeItemStack.CONTENTS_STREAM_CODEC.encode(registryfriendlybytebuf, smithingtrimrecipe.template);
-            RecipeItemStack.CONTENTS_STREAM_CODEC.encode(registryfriendlybytebuf, smithingtrimrecipe.base);
-            RecipeItemStack.CONTENTS_STREAM_CODEC.encode(registryfriendlybytebuf, smithingtrimrecipe.addition);
+        private static void toNetwork(RegistryFriendlyByteBuf buf, SmithingTrimRecipe recipe) {
+            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, recipe.template);
+            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, recipe.base);
+            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, recipe.addition);
         }
     }
 }

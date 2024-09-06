@@ -4,66 +4,65 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Optional;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryCodecs;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityLightning;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.EnumMobSpawn;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.item.enchantment.EnchantedItemInUse;
-import net.minecraft.world.level.World;
-import net.minecraft.world.phys.Vec3D;
-
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 // CraftBukkit start
 import net.minecraft.world.item.Items;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.weather.LightningStrikeEvent;
 // CraftBukkit end
 
-public record SummonEntityEffect(HolderSet<EntityTypes<?>> entityTypes, boolean joinTeam) implements EnchantmentEntityEffect {
+public record SummonEntityEffect(HolderSet<EntityType<?>> entityTypes, boolean joinTeam) implements EnchantmentEntityEffect {
 
     public static final MapCodec<SummonEntityEffect> CODEC = RecordCodecBuilder.mapCodec((instance) -> {
         return instance.group(RegistryCodecs.homogeneousList(Registries.ENTITY_TYPE).fieldOf("entity").forGetter(SummonEntityEffect::entityTypes), Codec.BOOL.optionalFieldOf("join_team", false).forGetter(SummonEntityEffect::joinTeam)).apply(instance, SummonEntityEffect::new);
     });
 
     @Override
-    public void apply(WorldServer worldserver, int i, EnchantedItemInUse enchantediteminuse, Entity entity, Vec3D vec3d) {
-        BlockPosition blockposition = BlockPosition.containing(vec3d);
+    public void apply(ServerLevel world, int level, EnchantedItemInUse context, Entity user, Vec3 pos) {
+        BlockPos blockposition = BlockPos.containing(pos);
 
-        if (World.isInSpawnableBounds(blockposition)) {
-            Optional<Holder<EntityTypes<?>>> optional = this.entityTypes().getRandomElement(worldserver.getRandom());
+        if (Level.isInSpawnableBounds(blockposition)) {
+            Optional<Holder<EntityType<?>>> optional = this.entityTypes().getRandomElement(world.getRandom());
 
             if (!optional.isEmpty()) {
-                Entity entity1 = ((EntityTypes) ((Holder) optional.get()).value()).create(worldserver, null, blockposition, EnumMobSpawn.TRIGGERED, false, false); // CraftBukkit
+                Entity entity1 = ((EntityType) ((Holder) optional.get()).value()).create(world, null, blockposition, MobSpawnType.TRIGGERED, false, false); // CraftBukkit
 
                 if (entity1 != null) {
-                    if (entity1 instanceof EntityLightning) {
-                        EntityLightning entitylightning = (EntityLightning) entity1;
-                        EntityLiving entityliving = enchantediteminuse.owner();
+                    if (entity1 instanceof LightningBolt) {
+                        LightningBolt entitylightning = (LightningBolt) entity1;
+                        LivingEntity entityliving = context.owner();
 
-                        if (entityliving instanceof EntityPlayer) {
-                            EntityPlayer entityplayer = (EntityPlayer) entityliving;
+                        if (entityliving instanceof ServerPlayer) {
+                            ServerPlayer entityplayer = (ServerPlayer) entityliving;
 
                             entitylightning.setCause(entityplayer);
                         }
                         // CraftBukkit start
-                        worldserver.strikeLightning(entity1, (enchantediteminuse.itemStack().getItem() == Items.TRIDENT) ? LightningStrikeEvent.Cause.TRIDENT : LightningStrikeEvent.Cause.ENCHANTMENT);
+                        world.strikeLightning(entity1, (context.itemStack().getItem() == Items.TRIDENT) ? LightningStrikeEvent.Cause.TRIDENT : LightningStrikeEvent.Cause.ENCHANTMENT);
                     } else {
-                        worldserver.addFreshEntityWithPassengers(entity, CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
+                        world.addFreshEntityWithPassengers(user, CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
                         // CraftBukkit end
                     }
 
-                    if (this.joinTeam && entity.getTeam() != null) {
-                        worldserver.getScoreboard().addPlayerToTeam(entity1.getScoreboardName(), entity.getTeam());
+                    if (this.joinTeam && user.getTeam() != null) {
+                        world.getScoreboard().addPlayerToTeam(entity1.getScoreboardName(), user.getTeam());
                     }
 
-                    entity1.moveTo(vec3d.x, vec3d.y, vec3d.z, entity1.getYRot(), entity1.getXRot());
+                    entity1.moveTo(pos.x, pos.y, pos.z, entity1.getYRot(), entity1.getXRot());
                 }
             }
         }

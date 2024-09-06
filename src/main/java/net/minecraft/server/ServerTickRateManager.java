@@ -1,10 +1,10 @@
 package net.minecraft.server;
 
-import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundTickingStatePacket;
 import net.minecraft.network.protocol.game.ClientboundTickingStepPacket;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.util.TimeRange;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.TimeUtil;
 import net.minecraft.world.TickRateManager;
 
 public class ServerTickRateManager extends TickRateManager {
@@ -16,8 +16,8 @@ public class ServerTickRateManager extends TickRateManager {
     private boolean previousIsFrozen = false;
     private final MinecraftServer server;
 
-    public ServerTickRateManager(MinecraftServer minecraftserver) {
-        this.server = minecraftserver;
+    public ServerTickRateManager(MinecraftServer server) {
+        this.server = server;
     }
 
     public boolean isSprinting() {
@@ -25,8 +25,8 @@ public class ServerTickRateManager extends TickRateManager {
     }
 
     @Override
-    public void setFrozen(boolean flag) {
-        super.setFrozen(flag);
+    public void setFrozen(boolean frozen) {
+        super.setFrozen(frozen);
         this.updateStateToClients();
     }
 
@@ -38,11 +38,11 @@ public class ServerTickRateManager extends TickRateManager {
         this.server.getPlayerList().broadcastAll(ClientboundTickingStepPacket.from(this));
     }
 
-    public boolean stepGameIfPaused(int i) {
+    public boolean stepGameIfPaused(int ticks) {
         if (!this.isFrozen()) {
             return false;
         } else {
-            this.frozenTicksToRun = i;
+            this.frozenTicksToRun = ticks;
             this.updateStepTicks();
             return true;
         }
@@ -60,7 +60,7 @@ public class ServerTickRateManager extends TickRateManager {
 
     public boolean stopSprinting() {
         // CraftBukkit start, add sendLog parameter
-        return stopSprinting(true);
+        return this.stopSprinting(true);
     }
 
     public boolean stopSprinting(boolean sendLog) {
@@ -73,12 +73,12 @@ public class ServerTickRateManager extends TickRateManager {
         }
     }
 
-    public boolean requestGameToSprint(int i) {
+    public boolean requestGameToSprint(int ticks) {
         boolean flag = this.remainingSprintTicks > 0L;
 
         this.sprintTimeSpend = 0L;
-        this.scheduledCurrentSprintTicks = (long) i;
-        this.remainingSprintTicks = (long) i;
+        this.scheduledCurrentSprintTicks = (long) ticks;
+        this.remainingSprintTicks = (long) ticks;
         this.previousIsFrozen = this.isFrozen();
         this.setFrozen(false);
         return flag;
@@ -86,8 +86,8 @@ public class ServerTickRateManager extends TickRateManager {
 
     private void finishTickSprint(boolean sendLog) { // CraftBukkit - add sendLog parameter
         long i = this.scheduledCurrentSprintTicks - this.remainingSprintTicks;
-        double d0 = Math.max(1.0D, (double) this.sprintTimeSpend) / (double) TimeRange.NANOSECONDS_PER_MILLISECOND;
-        int j = (int) ((double) (TimeRange.MILLISECONDS_PER_SECOND * i) / d0);
+        double d0 = Math.max(1.0D, (double) this.sprintTimeSpend) / (double) TimeUtil.NANOSECONDS_PER_MILLISECOND;
+        int j = (int) ((double) (TimeUtil.MILLISECONDS_PER_SECOND * i) / d0);
         String s = String.format("%.2f", i == 0L ? (double) this.millisecondsPerTick() : d0 / (double) i);
 
         this.scheduledCurrentSprintTicks = 0L;
@@ -95,7 +95,7 @@ public class ServerTickRateManager extends TickRateManager {
         // CraftBukkit start - add sendLog parameter
         if (sendLog) {
             this.server.createCommandSourceStack().sendSuccess(() -> {
-                return IChatBaseComponent.translatable("commands.tick.sprint.report", j, s);
+                return Component.translatable("commands.tick.sprint.report", j, s);
             }, true);
         }
         // CraftBukkit end
@@ -122,14 +122,14 @@ public class ServerTickRateManager extends TickRateManager {
     }
 
     @Override
-    public void setTickRate(float f) {
-        super.setTickRate(f);
+    public void setTickRate(float tickRate) {
+        super.setTickRate(tickRate);
         this.server.onTickRateChanged();
         this.updateStateToClients();
     }
 
-    public void updateJoiningPlayer(EntityPlayer entityplayer) {
-        entityplayer.connection.send(ClientboundTickingStatePacket.from(this));
-        entityplayer.connection.send(ClientboundTickingStepPacket.from(this));
+    public void updateJoiningPlayer(ServerPlayer player) {
+        player.connection.send(ClientboundTickingStatePacket.from(this));
+        player.connection.send(ClientboundTickingStepPacket.from(this));
     }
 }

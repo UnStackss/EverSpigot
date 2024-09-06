@@ -3,14 +3,14 @@ package net.minecraft.world.inventory;
 import java.util.Iterator;
 import java.util.List;
 import net.minecraft.core.NonNullList;
-import net.minecraft.world.ContainerUtil;
-import net.minecraft.world.entity.player.AutoRecipeStackManager;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.ItemStack;
 
 // CraftBukkit start
 import java.util.List;
-import net.minecraft.world.IInventory;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.entity.CraftHumanEntity;
@@ -18,18 +18,18 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryType;
 // CraftBukkit end
 
-public class TransientCraftingContainer implements InventoryCrafting {
+public class TransientCraftingContainer implements CraftingContainer {
 
     private final NonNullList<ItemStack> items;
     private final int width;
     private final int height;
-    private final Container menu;
+    private final AbstractContainerMenu menu;
 
     // CraftBukkit start - add fields
     public List<HumanEntity> transaction = new java.util.ArrayList<HumanEntity>();
     private RecipeHolder<?> currentRecipe;
-    public IInventory resultInventory;
-    private EntityHuman owner;
+    public Container resultInventory;
+    private Player owner;
     private int maxStack = MAX_STACK;
 
     public List<ItemStack> getContents() {
@@ -37,43 +37,43 @@ public class TransientCraftingContainer implements InventoryCrafting {
     }
 
     public void onOpen(CraftHumanEntity who) {
-        transaction.add(who);
+        this.transaction.add(who);
     }
 
     public InventoryType getInvType() {
-        return items.size() == 4 ? InventoryType.CRAFTING : InventoryType.WORKBENCH;
+        return this.items.size() == 4 ? InventoryType.CRAFTING : InventoryType.WORKBENCH;
     }
 
     public void onClose(CraftHumanEntity who) {
-        transaction.remove(who);
+        this.transaction.remove(who);
     }
 
     public List<HumanEntity> getViewers() {
-        return transaction;
+        return this.transaction;
     }
 
     public org.bukkit.inventory.InventoryHolder getOwner() {
-        return (owner == null) ? null : owner.getBukkitEntity();
+        return (this.owner == null) ? null : this.owner.getBukkitEntity();
     }
 
     @Override
     public int getMaxStackSize() {
-        return maxStack;
+        return this.maxStack;
     }
 
     public void setMaxStackSize(int size) {
-        maxStack = size;
-        resultInventory.setMaxStackSize(size);
+        this.maxStack = size;
+        this.resultInventory.setMaxStackSize(size);
     }
 
     @Override
     public Location getLocation() {
-        return menu instanceof ContainerWorkbench ? ((ContainerWorkbench) menu).access.getLocation() : owner.getBukkitEntity().getLocation();
+        return this.menu instanceof CraftingMenu ? ((CraftingMenu) this.menu).access.getLocation() : this.owner.getBukkitEntity().getLocation();
     }
 
     @Override
     public RecipeHolder<?> getCurrentRecipe() {
-        return currentRecipe;
+        return this.currentRecipe;
     }
 
     @Override
@@ -81,21 +81,21 @@ public class TransientCraftingContainer implements InventoryCrafting {
         this.currentRecipe = currentRecipe;
     }
 
-    public TransientCraftingContainer(Container container, int i, int j, EntityHuman player) {
+    public TransientCraftingContainer(AbstractContainerMenu container, int i, int j, Player player) {
         this(container, i, j);
         this.owner = player;
     }
     // CraftBukkit end
 
-    public TransientCraftingContainer(Container container, int i, int j) {
-        this(container, i, j, NonNullList.withSize(i * j, ItemStack.EMPTY));
+    public TransientCraftingContainer(AbstractContainerMenu handler, int width, int height) {
+        this(handler, width, height, NonNullList.withSize(width * height, ItemStack.EMPTY));
     }
 
-    public TransientCraftingContainer(Container container, int i, int j, NonNullList<ItemStack> nonnulllist) {
-        this.items = nonnulllist;
-        this.menu = container;
-        this.width = i;
-        this.height = j;
+    public TransientCraftingContainer(AbstractContainerMenu handler, int width, int height, NonNullList<ItemStack> stacks) {
+        this.items = stacks;
+        this.menu = handler;
+        this.width = width;
+        this.height = height;
     }
 
     @Override
@@ -121,18 +121,18 @@ public class TransientCraftingContainer implements InventoryCrafting {
     }
 
     @Override
-    public ItemStack getItem(int i) {
-        return i >= this.getContainerSize() ? ItemStack.EMPTY : (ItemStack) this.items.get(i);
+    public ItemStack getItem(int slot) {
+        return slot >= this.getContainerSize() ? ItemStack.EMPTY : (ItemStack) this.items.get(slot);
     }
 
     @Override
-    public ItemStack removeItemNoUpdate(int i) {
-        return ContainerUtil.takeItem(this.items, i);
+    public ItemStack removeItemNoUpdate(int slot) {
+        return ContainerHelper.takeItem(this.items, slot);
     }
 
     @Override
-    public ItemStack removeItem(int i, int j) {
-        ItemStack itemstack = ContainerUtil.removeItem(this.items, i, j);
+    public ItemStack removeItem(int slot, int amount) {
+        ItemStack itemstack = ContainerHelper.removeItem(this.items, slot, amount);
 
         if (!itemstack.isEmpty()) {
             this.menu.slotsChanged(this);
@@ -142,8 +142,8 @@ public class TransientCraftingContainer implements InventoryCrafting {
     }
 
     @Override
-    public void setItem(int i, ItemStack itemstack) {
-        this.items.set(i, itemstack);
+    public void setItem(int slot, ItemStack stack) {
+        this.items.set(slot, stack);
         this.menu.slotsChanged(this);
     }
 
@@ -151,7 +151,7 @@ public class TransientCraftingContainer implements InventoryCrafting {
     public void setChanged() {}
 
     @Override
-    public boolean stillValid(EntityHuman entityhuman) {
+    public boolean stillValid(Player player) {
         return true;
     }
 
@@ -176,13 +176,13 @@ public class TransientCraftingContainer implements InventoryCrafting {
     }
 
     @Override
-    public void fillStackedContents(AutoRecipeStackManager autorecipestackmanager) {
+    public void fillStackedContents(StackedContents finder) {
         Iterator iterator = this.items.iterator();
 
         while (iterator.hasNext()) {
             ItemStack itemstack = (ItemStack) iterator.next();
 
-            autorecipestackmanager.accountSimpleStack(itemstack);
+            finder.accountSimpleStack(itemstack);
         }
 
     }

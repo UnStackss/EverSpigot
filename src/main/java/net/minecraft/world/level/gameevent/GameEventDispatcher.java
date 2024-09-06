@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import net.minecraft.core.BlockPosition;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.SectionPosition;
-import net.minecraft.network.protocol.game.PacketDebug;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.world.level.chunk.Chunk;
-import net.minecraft.world.phys.Vec3D;
-
+import net.minecraft.core.SectionPos;
+import net.minecraft.network.protocol.game.DebugPackets;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.Vec3;
 // CraftBukkit start
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.CraftGameEvent;
@@ -21,35 +20,35 @@ import org.bukkit.event.world.GenericGameEvent;
 
 public class GameEventDispatcher {
 
-    private final WorldServer level;
+    private final ServerLevel level;
 
-    public GameEventDispatcher(WorldServer worldserver) {
-        this.level = worldserver;
+    public GameEventDispatcher(ServerLevel world) {
+        this.level = world;
     }
 
-    public void post(Holder<GameEvent> holder, Vec3D vec3d, GameEvent.a gameevent_a) {
-        int i = ((GameEvent) holder.value()).notificationRadius();
-        BlockPosition blockposition = BlockPosition.containing(vec3d);
+    public void post(Holder<GameEvent> event, Vec3 emitterPos, GameEvent.Context emitter) {
+        int i = ((GameEvent) event.value()).notificationRadius();
+        BlockPos blockposition = BlockPos.containing(emitterPos);
         // CraftBukkit start
-        GenericGameEvent event = new GenericGameEvent(CraftGameEvent.minecraftToBukkit(holder.value()), CraftLocation.toBukkit(blockposition, level.getWorld()), (gameevent_a.sourceEntity() == null) ? null : gameevent_a.sourceEntity().getBukkitEntity(), i, !Bukkit.isPrimaryThread());
-        level.getCraftServer().getPluginManager().callEvent(event);
-        if (event.isCancelled()) {
+        GenericGameEvent event1 = new GenericGameEvent(CraftGameEvent.minecraftToBukkit(event.value()), CraftLocation.toBukkit(blockposition, this.level.getWorld()), (emitter.sourceEntity() == null) ? null : emitter.sourceEntity().getBukkitEntity(), i, !Bukkit.isPrimaryThread());
+        this.level.getCraftServer().getPluginManager().callEvent(event1);
+        if (event1.isCancelled()) {
             return;
         }
-        i = event.getRadius();
+        i = event1.getRadius();
         // CraftBukkit end
-        int j = SectionPosition.blockToSectionCoord(blockposition.getX() - i);
-        int k = SectionPosition.blockToSectionCoord(blockposition.getY() - i);
-        int l = SectionPosition.blockToSectionCoord(blockposition.getZ() - i);
-        int i1 = SectionPosition.blockToSectionCoord(blockposition.getX() + i);
-        int j1 = SectionPosition.blockToSectionCoord(blockposition.getY() + i);
-        int k1 = SectionPosition.blockToSectionCoord(blockposition.getZ() + i);
-        List<GameEvent.b> list = new ArrayList();
-        GameEventListenerRegistry.a gameeventlistenerregistry_a = (gameeventlistener, vec3d1) -> {
-            if (gameeventlistener.getDeliveryMode() == GameEventListener.a.BY_DISTANCE) {
-                list.add(new GameEvent.b(holder, vec3d, gameevent_a, gameeventlistener, vec3d1));
+        int j = SectionPos.blockToSectionCoord(blockposition.getX() - i);
+        int k = SectionPos.blockToSectionCoord(blockposition.getY() - i);
+        int l = SectionPos.blockToSectionCoord(blockposition.getZ() - i);
+        int i1 = SectionPos.blockToSectionCoord(blockposition.getX() + i);
+        int j1 = SectionPos.blockToSectionCoord(blockposition.getY() + i);
+        int k1 = SectionPos.blockToSectionCoord(blockposition.getZ() + i);
+        List<GameEvent.ListenerInfo> list = new ArrayList();
+        GameEventListenerRegistry.ListenerVisitor gameeventlistenerregistry_a = (gameeventlistener, vec3d1) -> {
+            if (gameeventlistener.getDeliveryMode() == GameEventListener.DeliveryMode.BY_DISTANCE) {
+                list.add(new GameEvent.ListenerInfo(event, emitterPos, emitter, gameeventlistener, vec3d1));
             } else {
-                gameeventlistener.handleGameEvent(this.level, holder, gameevent_a, vec3d);
+                gameeventlistener.handleGameEvent(this.level, event, emitter, emitterPos);
             }
 
         };
@@ -57,11 +56,11 @@ public class GameEventDispatcher {
 
         for (int l1 = j; l1 <= i1; ++l1) {
             for (int i2 = l; i2 <= k1; ++i2) {
-                Chunk chunk = this.level.getChunkSource().getChunkNow(l1, i2);
+                LevelChunk chunk = this.level.getChunkSource().getChunkNow(l1, i2);
 
                 if (chunk != null) {
                     for (int j2 = k; j2 <= j1; ++j2) {
-                        flag |= chunk.getListenerRegistry(j2).visitInRangeListeners(holder, vec3d, gameevent_a, gameeventlistenerregistry_a);
+                        flag |= chunk.getListenerRegistry(j2).visitInRangeListeners(event, emitterPos, emitter, gameeventlistenerregistry_a);
                     }
                 }
             }
@@ -72,17 +71,17 @@ public class GameEventDispatcher {
         }
 
         if (flag) {
-            PacketDebug.sendGameEventInfo(this.level, holder, vec3d);
+            DebugPackets.sendGameEventInfo(this.level, event, emitterPos);
         }
 
     }
 
-    private void handleGameEventMessagesInQueue(List<GameEvent.b> list) {
-        Collections.sort(list);
-        Iterator iterator = list.iterator();
+    private void handleGameEventMessagesInQueue(List<GameEvent.ListenerInfo> messages) {
+        Collections.sort(messages);
+        Iterator iterator = messages.iterator();
 
         while (iterator.hasNext()) {
-            GameEvent.b gameevent_b = (GameEvent.b) iterator.next();
+            GameEvent.ListenerInfo gameevent_b = (GameEvent.ListenerInfo) iterator.next();
             GameEventListener gameeventlistener = gameevent_b.recipient();
 
             gameeventlistener.handleGameEvent(this.level, gameevent_b.gameEvent(), gameevent_b.context(), gameevent_b.source());

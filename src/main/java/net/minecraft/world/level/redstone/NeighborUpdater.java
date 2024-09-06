@@ -3,17 +3,16 @@ package net.minecraft.world.level.redstone;
 import java.util.Locale;
 import javax.annotation.Nullable;
 import net.minecraft.CrashReport;
-import net.minecraft.CrashReportSystemDetails;
+import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.level.GeneratorAccess;
-import net.minecraft.world.level.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.IBlockData;
-// CraftBukkit start
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
@@ -22,65 +21,65 @@ import org.bukkit.event.block.BlockPhysicsEvent;
 
 public interface NeighborUpdater {
 
-    EnumDirection[] UPDATE_ORDER = new EnumDirection[]{EnumDirection.WEST, EnumDirection.EAST, EnumDirection.DOWN, EnumDirection.UP, EnumDirection.NORTH, EnumDirection.SOUTH};
+    Direction[] UPDATE_ORDER = new Direction[]{Direction.WEST, Direction.EAST, Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH};
 
-    void shapeUpdate(EnumDirection enumdirection, IBlockData iblockdata, BlockPosition blockposition, BlockPosition blockposition1, int i, int j);
+    void shapeUpdate(Direction direction, BlockState neighborState, BlockPos pos, BlockPos neighborPos, int flags, int maxUpdateDepth);
 
-    void neighborChanged(BlockPosition blockposition, Block block, BlockPosition blockposition1);
+    void neighborChanged(BlockPos pos, Block sourceBlock, BlockPos sourcePos);
 
-    void neighborChanged(IBlockData iblockdata, BlockPosition blockposition, Block block, BlockPosition blockposition1, boolean flag);
+    void neighborChanged(BlockState state, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify);
 
-    default void updateNeighborsAtExceptFromFacing(BlockPosition blockposition, Block block, @Nullable EnumDirection enumdirection) {
-        EnumDirection[] aenumdirection = NeighborUpdater.UPDATE_ORDER;
+    default void updateNeighborsAtExceptFromFacing(BlockPos pos, Block sourceBlock, @Nullable Direction except) {
+        Direction[] aenumdirection = NeighborUpdater.UPDATE_ORDER;
         int i = aenumdirection.length;
 
         for (int j = 0; j < i; ++j) {
-            EnumDirection enumdirection1 = aenumdirection[j];
+            Direction enumdirection1 = aenumdirection[j];
 
-            if (enumdirection1 != enumdirection) {
-                this.neighborChanged(blockposition.relative(enumdirection1), block, blockposition);
+            if (enumdirection1 != except) {
+                this.neighborChanged(pos.relative(enumdirection1), sourceBlock, pos);
             }
         }
 
     }
 
-    static void executeShapeUpdate(GeneratorAccess generatoraccess, EnumDirection enumdirection, IBlockData iblockdata, BlockPosition blockposition, BlockPosition blockposition1, int i, int j) {
-        IBlockData iblockdata1 = generatoraccess.getBlockState(blockposition);
-        IBlockData iblockdata2 = iblockdata1.updateShape(enumdirection, iblockdata, generatoraccess, blockposition, blockposition1);
+    static void executeShapeUpdate(LevelAccessor world, Direction direction, BlockState neighborState, BlockPos pos, BlockPos neighborPos, int flags, int maxUpdateDepth) {
+        BlockState iblockdata1 = world.getBlockState(pos);
+        BlockState iblockdata2 = iblockdata1.updateShape(direction, neighborState, world, pos, neighborPos);
 
-        Block.updateOrDestroy(iblockdata1, iblockdata2, generatoraccess, blockposition, i, j);
+        Block.updateOrDestroy(iblockdata1, iblockdata2, world, pos, flags, maxUpdateDepth);
     }
 
-    static void executeUpdate(World world, IBlockData iblockdata, BlockPosition blockposition, Block block, BlockPosition blockposition1, boolean flag) {
+    static void executeUpdate(Level world, BlockState state, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
         try {
             // CraftBukkit start
-            CraftWorld cworld = ((WorldServer) world).getWorld();
+            CraftWorld cworld = ((ServerLevel) world).getWorld();
             if (cworld != null) {
-                BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(world, blockposition), CraftBlockData.fromData(iblockdata), CraftBlock.at(world, blockposition1));
-                ((WorldServer) world).getCraftServer().getPluginManager().callEvent(event);
+                BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(world, pos), CraftBlockData.fromData(state), CraftBlock.at(world, sourcePos));
+                ((ServerLevel) world).getCraftServer().getPluginManager().callEvent(event);
 
                 if (event.isCancelled()) {
                     return;
                 }
             }
             // CraftBukkit end
-            iblockdata.handleNeighborChanged(world, blockposition, block, blockposition1, flag);
+            state.handleNeighborChanged(world, pos, sourceBlock, sourcePos, notify);
             // Spigot Start
         } catch (StackOverflowError ex) {
-            world.lastPhysicsProblem = new BlockPosition(blockposition);
+            world.lastPhysicsProblem = new BlockPos(pos);
             // Spigot End
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.forThrowable(throwable, "Exception while updating neighbours");
-            CrashReportSystemDetails crashreportsystemdetails = crashreport.addCategory("Block being updated");
+            CrashReportCategory crashreportsystemdetails = crashreport.addCategory("Block being updated");
 
             crashreportsystemdetails.setDetail("Source block type", () -> {
                 try {
-                    return String.format(Locale.ROOT, "ID #%s (%s // %s)", BuiltInRegistries.BLOCK.getKey(block), block.getDescriptionId(), block.getClass().getCanonicalName());
+                    return String.format(Locale.ROOT, "ID #%s (%s // %s)", BuiltInRegistries.BLOCK.getKey(sourceBlock), sourceBlock.getDescriptionId(), sourceBlock.getClass().getCanonicalName());
                 } catch (Throwable throwable1) {
-                    return "ID #" + String.valueOf(BuiltInRegistries.BLOCK.getKey(block));
+                    return "ID #" + String.valueOf(BuiltInRegistries.BLOCK.getKey(sourceBlock));
                 }
             });
-            CrashReportSystemDetails.populateBlockDetails(crashreportsystemdetails, world, blockposition, iblockdata);
+            CrashReportCategory.populateBlockDetails(crashreportsystemdetails, world, pos, state);
             throw new ReportedException(crashreport);
         }
     }

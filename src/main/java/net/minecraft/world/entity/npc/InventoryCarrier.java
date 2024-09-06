@@ -1,10 +1,10 @@
 package net.minecraft.world.entity.npc;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.InventorySubcontainer;
-import net.minecraft.world.entity.EntityInsentient;
-import net.minecraft.world.entity.item.EntityItem;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 // CraftBukkit start
@@ -15,13 +15,13 @@ public interface InventoryCarrier {
 
     String TAG_INVENTORY = "Inventory";
 
-    InventorySubcontainer getInventory();
+    SimpleContainer getInventory();
 
-    static void pickUpItem(EntityInsentient entityinsentient, InventoryCarrier inventorycarrier, EntityItem entityitem) {
-        ItemStack itemstack = entityitem.getItem();
+    static void pickUpItem(Mob entity, InventoryCarrier inventoryOwner, ItemEntity item) {
+        ItemStack itemstack = item.getItem();
 
-        if (entityinsentient.wantsToPickUp(itemstack)) {
-            InventorySubcontainer inventorysubcontainer = inventorycarrier.getInventory();
+        if (entity.wantsToPickUp(itemstack)) {
+            SimpleContainer inventorysubcontainer = inventoryOwner.getInventory();
             boolean flag = inventorysubcontainer.canAddItem(itemstack);
 
             if (!flag) {
@@ -29,19 +29,19 @@ public interface InventoryCarrier {
             }
 
             // CraftBukkit start
-            ItemStack remaining = new InventorySubcontainer(inventorysubcontainer).addItem(itemstack);
-            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(entityinsentient, entityitem, remaining.getCount(), false).isCancelled()) {
+            ItemStack remaining = new SimpleContainer(inventorysubcontainer).addItem(itemstack);
+            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(entity, item, remaining.getCount(), false).isCancelled()) {
                 return;
             }
             // CraftBukkit end
 
-            entityinsentient.onItemPickup(entityitem);
+            entity.onItemPickup(item);
             int i = itemstack.getCount();
             ItemStack itemstack1 = inventorysubcontainer.addItem(itemstack);
 
-            entityinsentient.take(entityitem, i - itemstack1.getCount());
+            entity.take(item, i - itemstack1.getCount());
             if (itemstack1.isEmpty()) {
-                entityitem.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                item.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
             } else {
                 itemstack.setCount(itemstack1.getCount());
             }
@@ -49,14 +49,14 @@ public interface InventoryCarrier {
 
     }
 
-    default void readInventoryFromTag(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        if (nbttagcompound.contains("Inventory", 9)) {
-            this.getInventory().fromTag(nbttagcompound.getList("Inventory", 10), holderlookup_a);
+    default void readInventoryFromTag(CompoundTag nbt, HolderLookup.Provider holderlookup_a) {
+        if (nbt.contains("Inventory", 9)) {
+            this.getInventory().fromTag(nbt.getList("Inventory", 10), holderlookup_a);
         }
 
     }
 
-    default void writeInventoryToTag(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        nbttagcompound.put("Inventory", this.getInventory().createTag(holderlookup_a));
+    default void writeInventoryToTag(CompoundTag nbt, HolderLookup.Provider holderlookup_a) {
+        nbt.put("Inventory", this.getInventory().createTag(holderlookup_a));
     }
 }

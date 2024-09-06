@@ -2,7 +2,7 @@ package org.spigotmc;
 
 import java.io.File;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.server.level.ServerLevel;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -18,10 +18,10 @@ public class SpigotCommand extends Command {
 
     @Override
     public boolean execute(CommandSender sender, String commandLabel, String[] args) {
-        if (!testPermission(sender)) return true;
+        if (!this.testPermission(sender)) return true;
 
         if (args.length != 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(ChatColor.RED + "Usage: " + this.usageMessage);
             return false;
         }
 
@@ -31,7 +31,7 @@ public class SpigotCommand extends Command {
 
             MinecraftServer console = MinecraftServer.getServer();
             org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
-            for (WorldServer world : console.getAllLevels()) {
+            for (ServerLevel world : console.getAllLevels()) {
                 world.spigotConfig.init();
             }
             console.server.reloadCount++;

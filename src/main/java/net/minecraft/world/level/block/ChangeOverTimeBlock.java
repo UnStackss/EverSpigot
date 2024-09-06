@@ -2,25 +2,25 @@ package net.minecraft.world.level.block;
 
 import java.util.Iterator;
 import java.util.Optional;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.block.state.IBlockData;
+import net.minecraft.world.level.block.state.BlockState;
 
 public interface ChangeOverTimeBlock<T extends Enum<T>> {
 
     int SCAN_DISTANCE = 4;
 
-    Optional<IBlockData> getNext(IBlockData iblockdata);
+    Optional<BlockState> getNext(BlockState state);
 
     float getChanceModifier();
 
-    default void changeOverTime(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
+    default void changeOverTime(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
         float f = 0.05688889F;
 
-        if (randomsource.nextFloat() < 0.05688889F) {
-            this.getNextState(iblockdata, worldserver, blockposition, randomsource).ifPresent((iblockdata1) -> {
-                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(worldserver, blockposition, iblockdata1); // CraftBukkit
+        if (random.nextFloat() < 0.05688889F) {
+            this.getNextState(state, world, pos, random).ifPresent((iblockdata1) -> {
+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(world, pos, iblockdata1); // CraftBukkit
             });
         }
 
@@ -28,22 +28,22 @@ public interface ChangeOverTimeBlock<T extends Enum<T>> {
 
     T getAge();
 
-    default Optional<IBlockData> getNextState(IBlockData iblockdata, WorldServer worldserver, BlockPosition blockposition, RandomSource randomsource) {
+    default Optional<BlockState> getNextState(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
         int i = this.getAge().ordinal();
         int j = 0;
         int k = 0;
-        Iterator iterator = BlockPosition.withinManhattan(blockposition, 4, 4, 4).iterator();
+        Iterator iterator = BlockPos.withinManhattan(pos, 4, 4, 4).iterator();
 
         while (iterator.hasNext()) {
-            BlockPosition blockposition1 = (BlockPosition) iterator.next();
-            int l = blockposition1.distManhattan(blockposition);
+            BlockPos blockposition1 = (BlockPos) iterator.next();
+            int l = blockposition1.distManhattan(pos);
 
             if (l > 4) {
                 break;
             }
 
-            if (!blockposition1.equals(blockposition)) {
-                Block block = worldserver.getBlockState(blockposition1).getBlock();
+            if (!blockposition1.equals(pos)) {
+                Block block = world.getBlockState(blockposition1).getBlock();
 
                 if (block instanceof ChangeOverTimeBlock) {
                     ChangeOverTimeBlock<?> changeovertimeblock = (ChangeOverTimeBlock) block;
@@ -69,6 +69,6 @@ public interface ChangeOverTimeBlock<T extends Enum<T>> {
         float f = (float) (k + 1) / (float) (k + j + 1);
         float f1 = f * f * this.getChanceModifier();
 
-        return randomsource.nextFloat() < f1 ? this.getNext(iblockdata) : Optional.empty();
+        return random.nextFloat() < f1 ? this.getNext(state) : Optional.empty();
     }
 }

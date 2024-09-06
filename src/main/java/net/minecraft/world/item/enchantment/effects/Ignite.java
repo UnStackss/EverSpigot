@@ -2,12 +2,11 @@ package net.minecraft.world.item.enchantment.effects;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.level.WorldServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.enchantment.EnchantedItemInUse;
 import net.minecraft.world.item.enchantment.LevelBasedValue;
-import net.minecraft.world.phys.Vec3D;
-
+import net.minecraft.world.phys.Vec3;
 // CraftBukkit start
 import org.bukkit.event.entity.EntityCombustByEntityEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -22,13 +21,13 @@ public record Ignite(LevelBasedValue duration) implements EnchantmentEntityEffec
     });
 
     @Override
-    public void apply(WorldServer worldserver, int i, EnchantedItemInUse enchantediteminuse, Entity entity, Vec3D vec3d) {
+    public void apply(ServerLevel world, int level, EnchantedItemInUse context, Entity user, Vec3 pos) {
         // CraftBukkit start - Call a combust event when somebody hits with a fire enchanted item
         EntityCombustEvent entityCombustEvent;
-        if (enchantediteminuse.owner() != null) {
-            entityCombustEvent = new EntityCombustByEntityEvent(enchantediteminuse.owner().getBukkitEntity(), entity.getBukkitEntity(), this.duration.calculate(i));
+        if (context.owner() != null) {
+            entityCombustEvent = new EntityCombustByEntityEvent(context.owner().getBukkitEntity(), user.getBukkitEntity(), this.duration.calculate(level));
         } else {
-            entityCombustEvent = new EntityCombustEvent(entity.getBukkitEntity(), this.duration.calculate(i));
+            entityCombustEvent = new EntityCombustEvent(user.getBukkitEntity(), this.duration.calculate(level));
         }
 
         org.bukkit.Bukkit.getPluginManager().callEvent(entityCombustEvent);
@@ -36,7 +35,7 @@ public record Ignite(LevelBasedValue duration) implements EnchantmentEntityEffec
             return;
         }
 
-        entity.igniteForSeconds(entityCombustEvent.getDuration(), false);
+        user.igniteForSeconds(entityCombustEvent.getDuration(), false);
         // CraftBukkit end
     }
 

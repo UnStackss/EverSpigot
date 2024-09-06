@@ -2,21 +2,21 @@ package net.minecraft.world.level.block.entity;
 
 import java.util.List;
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.core.EnumDirection;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.protocol.game.PacketPlayOutTileEntityData;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.RandomizableContainer;
-import net.minecraft.world.entity.player.EntityHuman;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
-import net.minecraft.world.level.block.state.IBlockData;
-import net.minecraft.world.level.block.state.properties.BlockProperties;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.ticks.ContainerSingleItem;
 
@@ -30,7 +30,7 @@ import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.HumanEntity;
 // CraftBukkit end
 
-public class DecoratedPotBlockEntity extends TileEntity implements RandomizableContainer, ContainerSingleItem.a {
+public class DecoratedPotBlockEntity extends BlockEntity implements RandomizableContainer, ContainerSingleItem.BlockContainerSingleItem {
 
     // CraftBukkit start - add fields and methods
     public List<HumanEntity> transaction = new ArrayList<>();
@@ -43,33 +43,33 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
 
     @Override
     public void onOpen(CraftHumanEntity who) {
-        transaction.add(who);
+        this.transaction.add(who);
     }
 
     @Override
     public void onClose(CraftHumanEntity who) {
-        transaction.remove(who);
+        this.transaction.remove(who);
     }
 
     @Override
     public List<HumanEntity> getViewers() {
-        return transaction;
+        return this.transaction;
     }
 
     @Override
     public int getMaxStackSize() {
-       return maxStack;
+       return this.maxStack;
     }
 
     @Override
     public void setMaxStackSize(int i) {
-        maxStack = i;
+        this.maxStack = i;
     }
 
     @Override
     public Location getLocation() {
-        if (level == null) return null;
-        return CraftLocation.toBukkit(worldPosition, level.getWorld());
+        if (this.level == null) return null;
+        return CraftLocation.toBukkit(this.worldPosition, this.level.getWorld());
     }
     // CraftBukkit end
 
@@ -78,36 +78,36 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
     public static final int EVENT_POT_WOBBLES = 1;
     public long wobbleStartedAtTick;
     @Nullable
-    public DecoratedPotBlockEntity.a lastWobbleStyle;
+    public DecoratedPotBlockEntity.WobbleStyle lastWobbleStyle;
     public PotDecorations decorations;
     private ItemStack item;
     @Nullable
     protected ResourceKey<LootTable> lootTable;
     protected long lootTableSeed;
 
-    public DecoratedPotBlockEntity(BlockPosition blockposition, IBlockData iblockdata) {
-        super(TileEntityTypes.DECORATED_POT, blockposition, iblockdata);
+    public DecoratedPotBlockEntity(BlockPos pos, BlockState state) {
+        super(BlockEntityType.DECORATED_POT, pos, state);
         this.item = ItemStack.EMPTY;
         this.decorations = PotDecorations.EMPTY;
     }
 
     @Override
-    protected void saveAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.saveAdditional(nbttagcompound, holderlookup_a);
-        this.decorations.save(nbttagcompound);
-        if (!this.trySaveLootTable(nbttagcompound) && !this.item.isEmpty()) {
-            nbttagcompound.put("item", this.item.save(holderlookup_a));
+    protected void saveAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.saveAdditional(nbt, registryLookup);
+        this.decorations.save(nbt);
+        if (!this.trySaveLootTable(nbt) && !this.item.isEmpty()) {
+            nbt.put("item", this.item.save(registryLookup));
         }
 
     }
 
     @Override
-    protected void loadAdditional(NBTTagCompound nbttagcompound, HolderLookup.a holderlookup_a) {
-        super.loadAdditional(nbttagcompound, holderlookup_a);
-        this.decorations = PotDecorations.load(nbttagcompound);
-        if (!this.tryLoadLootTable(nbttagcompound)) {
-            if (nbttagcompound.contains("item", 10)) {
-                this.item = (ItemStack) ItemStack.parse(holderlookup_a, nbttagcompound.getCompound("item")).orElse(ItemStack.EMPTY);
+    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registryLookup) {
+        super.loadAdditional(nbt, registryLookup);
+        this.decorations = PotDecorations.load(nbt);
+        if (!this.tryLoadLootTable(nbt)) {
+            if (nbt.contains("item", 10)) {
+                this.item = (ItemStack) ItemStack.parse(registryLookup, nbt.getCompound("item")).orElse(ItemStack.EMPTY);
             } else {
                 this.item = ItemStack.EMPTY;
             }
@@ -116,25 +116,25 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
     }
 
     @Override
-    public PacketPlayOutTileEntityData getUpdatePacket() {
-        return PacketPlayOutTileEntityData.create(this);
+    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override
-    public NBTTagCompound getUpdateTag(HolderLookup.a holderlookup_a) {
-        return this.saveCustomOnly(holderlookup_a);
+    public CompoundTag getUpdateTag(HolderLookup.Provider registryLookup) {
+        return this.saveCustomOnly(registryLookup);
     }
 
-    public EnumDirection getDirection() {
-        return (EnumDirection) this.getBlockState().getValue(BlockProperties.HORIZONTAL_FACING);
+    public Direction getDirection() {
+        return (Direction) this.getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING);
     }
 
     public PotDecorations getDecorations() {
         return this.decorations;
     }
 
-    public void setFromItem(ItemStack itemstack) {
-        this.applyComponentsFromItemStack(itemstack);
+    public void setFromItem(ItemStack stack) {
+        this.applyComponentsFromItemStack(stack);
     }
 
     public ItemStack getPotAsItem() {
@@ -144,10 +144,10 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
         return itemstack;
     }
 
-    public static ItemStack createDecoratedPotItem(PotDecorations potdecorations) {
+    public static ItemStack createDecoratedPotItem(PotDecorations sherds) {
         ItemStack itemstack = Items.DECORATED_POT.getDefaultInstance();
 
-        itemstack.set(DataComponents.POT_DECORATIONS, potdecorations);
+        itemstack.set(DataComponents.POT_DECORATIONS, sherds);
         return itemstack;
     }
 
@@ -158,8 +158,8 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
     }
 
     @Override
-    public void setLootTable(@Nullable ResourceKey<LootTable> resourcekey) {
-        this.lootTable = resourcekey;
+    public void setLootTable(@Nullable ResourceKey<LootTable> lootTable) {
+        this.lootTable = lootTable;
     }
 
     @Override
@@ -168,41 +168,41 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
     }
 
     @Override
-    public void setLootTableSeed(long i) {
-        this.lootTableSeed = i;
+    public void setLootTableSeed(long lootTableSeed) {
+        this.lootTableSeed = lootTableSeed;
     }
 
     @Override
-    protected void collectImplicitComponents(DataComponentMap.a datacomponentmap_a) {
-        super.collectImplicitComponents(datacomponentmap_a);
-        datacomponentmap_a.set(DataComponents.POT_DECORATIONS, this.decorations);
-        datacomponentmap_a.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(this.item)));
+    protected void collectImplicitComponents(DataComponentMap.Builder componentMapBuilder) {
+        super.collectImplicitComponents(componentMapBuilder);
+        componentMapBuilder.set(DataComponents.POT_DECORATIONS, this.decorations);
+        componentMapBuilder.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(this.item)));
     }
 
     @Override
-    protected void applyImplicitComponents(TileEntity.b tileentity_b) {
-        super.applyImplicitComponents(tileentity_b);
-        this.decorations = (PotDecorations) tileentity_b.getOrDefault(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY);
-        this.item = ((ItemContainerContents) tileentity_b.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)).copyOne();
+    protected void applyImplicitComponents(BlockEntity.DataComponentInput components) {
+        super.applyImplicitComponents(components);
+        this.decorations = (PotDecorations) components.getOrDefault(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY);
+        this.item = ((ItemContainerContents) components.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)).copyOne();
     }
 
     @Override
-    public void removeComponentsFromTag(NBTTagCompound nbttagcompound) {
-        super.removeComponentsFromTag(nbttagcompound);
-        nbttagcompound.remove("sherds");
-        nbttagcompound.remove("item");
+    public void removeComponentsFromTag(CompoundTag nbt) {
+        super.removeComponentsFromTag(nbt);
+        nbt.remove("sherds");
+        nbt.remove("item");
     }
 
     @Override
     public ItemStack getTheItem() {
-        this.unpackLootTable((EntityHuman) null);
+        this.unpackLootTable((Player) null);
         return this.item;
     }
 
     @Override
-    public ItemStack splitTheItem(int i) {
-        this.unpackLootTable((EntityHuman) null);
-        ItemStack itemstack = this.item.split(i);
+    public ItemStack splitTheItem(int count) {
+        this.unpackLootTable((Player) null);
+        ItemStack itemstack = this.item.split(count);
 
         if (this.item.isEmpty()) {
             this.item = ItemStack.EMPTY;
@@ -212,40 +212,40 @@ public class DecoratedPotBlockEntity extends TileEntity implements RandomizableC
     }
 
     @Override
-    public void setTheItem(ItemStack itemstack) {
-        this.unpackLootTable((EntityHuman) null);
-        this.item = itemstack;
+    public void setTheItem(ItemStack stack) {
+        this.unpackLootTable((Player) null);
+        this.item = stack;
     }
 
     @Override
-    public TileEntity getContainerBlockEntity() {
+    public BlockEntity getContainerBlockEntity() {
         return this;
     }
 
-    public void wobble(DecoratedPotBlockEntity.a decoratedpotblockentity_a) {
+    public void wobble(DecoratedPotBlockEntity.WobbleStyle wobbleType) {
         if (this.level != null && !this.level.isClientSide()) {
-            this.level.blockEvent(this.getBlockPos(), this.getBlockState().getBlock(), 1, decoratedpotblockentity_a.ordinal());
+            this.level.blockEvent(this.getBlockPos(), this.getBlockState().getBlock(), 1, wobbleType.ordinal());
         }
     }
 
     @Override
-    public boolean triggerEvent(int i, int j) {
-        if (this.level != null && i == 1 && j >= 0 && j < DecoratedPotBlockEntity.a.values().length) {
+    public boolean triggerEvent(int type, int data) {
+        if (this.level != null && type == 1 && data >= 0 && data < DecoratedPotBlockEntity.WobbleStyle.values().length) {
             this.wobbleStartedAtTick = this.level.getGameTime();
-            this.lastWobbleStyle = DecoratedPotBlockEntity.a.values()[j];
+            this.lastWobbleStyle = DecoratedPotBlockEntity.WobbleStyle.values()[data];
             return true;
         } else {
-            return super.triggerEvent(i, j);
+            return super.triggerEvent(type, data);
         }
     }
 
-    public static enum a {
+    public static enum WobbleStyle {
 
         POSITIVE(7), NEGATIVE(10);
 
         public final int duration;
 
-        private a(final int i) {
+        private WobbleStyle(final int i) {
             this.duration = i;
         }
     }
