@@ -1,0 +1,23 @@
+package net.minecraft.world.item;
+
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+
+public class GlowInkSacItem extends Item implements SignApplicator {
+    public GlowInkSacItem(Item.Properties settings) {
+        super(settings);
+    }
+
+    @Override
+    public boolean tryApplyToSign(Level world, SignBlockEntity signBlockEntity, boolean front, Player player) {
+        if (signBlockEntity.updateText(text -> text.setHasGlowingText(true), front)) {
+            world.playSound(null, signBlockEntity.getBlockPos(), SoundEvents.GLOW_INK_SAC_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
+            return true;
+        } else {
+            return false;
+        }
+    }
+}

@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Main-Class: org.bukkit.craftbukkit.Main
+Implementation-Title: Paper
+Implementation-Version: 1.21.1-DEV-b4def47
+Implementation-Vendor: 2024-09-07 20:57:45 +0200
+Specification-Title: Paper
+Specification-Version: 1.21.1-R0.1-SNAPSHOT
+Specification-Vendor: Paper Team
+Brand-Id: papermc:paper
+Brand-Name: EverSpigot
+Build-Number: 
+Build-Time: 2024-09-07T18:59:36.234770500Z
+Git-Branch: master
+Git-Commit: b4def47
+CraftBukkit-Package-Version: v1_21_R1
+
+Name: org/bukkit
+Sealed: true
+
+Name: net/bukkit
+Sealed: true
+
+Name: com/bukkit
+Sealed: true
+
