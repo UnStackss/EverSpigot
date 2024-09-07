@@ -1,5 +1,6 @@
 package io.papermc.paper.command;
 
+import dev.unstackss.EverSpigot;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 
@@ -26,5 +27,11 @@ public final class PaperCommands {
             server.server.getCommandMap().register(s, "Paper", command);
         });
         server.server.getCommandMap().register("bukkit", new PaperPluginsCommand());
+
+
+        // Start EverSpigot
+        EverSpigot.onServerStarting(server);
+        // Stop EverSpigot
+
     }
 }
