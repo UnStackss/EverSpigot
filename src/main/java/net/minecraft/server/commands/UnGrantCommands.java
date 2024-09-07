@@ -12,12 +12,15 @@ import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.players.PlayerList;
 
-public class DeOpCommands {
+// EverSpigot
+public class UnGrantCommands {
     private static final SimpleCommandExceptionType ERROR_NOT_OP = new SimpleCommandExceptionType(Component.translatable("commands.deop.failed"));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
-            Commands.literal("deop")
+            // EverSpigot
+            // Commands.literal("deop")
+            Commands.literal("ungrant")
                 .requires(source -> source.hasPermission(3))
                 .then(
                     Commands.argument("targets", GameProfileArgument.gameProfile())

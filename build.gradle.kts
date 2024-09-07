@@ -65,6 +65,11 @@ dependencies {
     implementation("me.lucko:spark-api:0.1-20240720.200737-2")
     implementation("me.lucko:spark-paper:1.10.100-SNAPSHOT")
     // Paper end - spark
+
+    // Start EverSpigot
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.1")
+    // Stop EverSpigot
 }
 
 paperweight {
@@ -91,7 +96,7 @@ tasks.jar {
             "Specification-Version" to project.version,
             "Specification-Vendor" to "Paper Team",
             "Brand-Id" to "papermc:paper",
-            "Brand-Name" to "Paper",
+            "Brand-Name" to "EverSpigot", // EverSpigot
             "Build-Number" to (build ?: ""),
             "Build-Time" to Instant.now().toString(),
             "Git-Branch" to gitBranch, // Paper

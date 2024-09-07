@@ -70,17 +70,14 @@ public class PaperVersionFetcher implements VersionFetcher {
             }
         }
 
+        // EverSpigot
         return switch (distance) {
-            case DISTANCE_ERROR -> text("Error obtaining version information", NamedTextColor.YELLOW);
-            case 0 -> text("You are running the latest version", NamedTextColor.GREEN);
-            case DISTANCE_UNKNOWN -> text("Unknown version", NamedTextColor.YELLOW);
-            default -> text("You are " + distance + " version(s) behind", NamedTextColor.YELLOW)
-                .append(Component.newline())
-                .append(text("Download the new version at: ")
-                    .append(text(DOWNLOAD_PAGE, NamedTextColor.GOLD)
-                        .hoverEvent(text("Click to open", NamedTextColor.WHITE))
-                        .clickEvent(ClickEvent.openUrl(DOWNLOAD_PAGE))));
+            case DISTANCE_ERROR -> Component.empty();
+            case 0 -> Component.empty();
+            case DISTANCE_UNKNOWN -> Component.empty();
+            default -> Component.empty();
         };
+
     }
 
     private static int fetchDistanceFromSiteApi(final ServerBuildInfo build, final int jenkinsBuild) {

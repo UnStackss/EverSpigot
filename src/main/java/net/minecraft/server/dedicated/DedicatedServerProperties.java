@@ -59,8 +59,8 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
     public final boolean spawnAnimals = this.get("spawn-animals", true);
     public final boolean spawnNpcs = this.get("spawn-npcs", true);
     public final boolean pvp = this.get("pvp", true);
-    public final boolean allowFlight = this.get("allow-flight", false);
-    public final String motd = this.get("motd", "A Minecraft Server");
+    public final boolean allowFlight = this.get("allow-flight", true); // EverSpigot
+    public final String motd = this.get("motd", "§fA §bEverSpigot §fServer§r");
     public final String bugReportLink = this.get("bug-report-link", "");
     public final boolean forceGameMode = this.get("force-gamemode", false);
     public final boolean enforceWhitelist = this.get("enforce-whitelist", false);
@@ -139,7 +139,7 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
         this.rateLimitPacketsPerSecond = this.get("rate-limit", 0);
         this.viewDistance = this.get("view-distance", 10);
         this.simulationDistance = this.get("simulation-distance", 10);
-        this.maxPlayers = this.get("max-players", 20);
+        this.maxPlayers = this.get("max-players", 500); // EverSpigot
         this.networkCompressionThreshold = this.get("network-compression-threshold", 256);
         this.broadcastRconToOps = this.get("broadcast-rcon-to-ops", true);
         this.broadcastConsoleToOps = this.get("broadcast-console-to-ops", true);
@@ -157,7 +157,7 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
         this.textFilteringConfig = this.get("text-filtering-config", "");
         this.playerIdleTimeout = this.getMutable("player-idle-timeout", 0);
         this.whiteList = this.getMutable("white-list", false);
-        this.enforceSecureProfile = this.get("enforce-secure-profile", true);
+        this.enforceSecureProfile = this.get("enforce-secure-profile", false); // EverSpigot
         this.logIPs = this.get("log-ips", true);
         this.acceptsTransfers = this.get("accepts-transfers", false);
         String s = this.get("level-seed", "");

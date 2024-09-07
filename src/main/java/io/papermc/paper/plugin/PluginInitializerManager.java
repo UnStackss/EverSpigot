@@ -1,6 +1,7 @@
 package io.papermc.paper.plugin;
 
 import com.mojang.logging.LogUtils;
+import dev.unstackss.ServerIconManager;
 import io.papermc.paper.configuration.PaperConfigurations;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler;
@@ -25,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class PluginInitializerManager {
-
     private static final Logger LOGGER = LogUtils.getClassLogger();
     private static PluginInitializerManager impl;
     private final Path pluginDirectory;

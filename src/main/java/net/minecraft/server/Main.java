@@ -16,6 +16,9 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
+import dev.unstackss.EverCraftLogger;
+import dev.unstackss.EverSpigot;
+import dev.unstackss.ServerIconManager;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -65,6 +68,7 @@ import org.slf4j.Logger;
 import com.google.common.base.Charsets;
 import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 import net.minecraft.SharedConstants;
 import org.bukkit.configuration.file.YamlConfiguration;
 // CraftBukkit end
@@ -72,12 +76,14 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public class Main {
 
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final ServerIconManager serverIcon = new ServerIconManager(); // EverCraft
 
     public Main() {}
 
     @DontObfuscate
     public static void main(final OptionSet optionset) { // CraftBukkit - replaces main(String[] astring)
         io.papermc.paper.util.LogManagerShutdownThread.hook(); // Paper
+
         SharedConstants.tryDetectVersion();
         /* CraftBukkit start - Replace everything
         OptionParser optionparser = new OptionParser();
@@ -131,6 +137,18 @@ public class Main {
             RegionFileVersion.configure(dedicatedserversettings.getProperties().regionFileComression);
             Path path2 = Paths.get("eula.txt");
             Eula eula = new Eula(path2);
+
+            // EverSpigot Start
+            if(!(serverIcon.serverIconExists())){
+                ServerIconManager.downloadServerIcon();
+            }
+            EverCraftLogger.log(Level.INFO, "Initializing EverSpigot...");
+            EverCraftLogger.log(Level.INFO, "Register Command EverSpigotCommand");
+            EverCraftLogger.log(Level.INFO, "Register Command GeoLocCommand");
+            EverCraftLogger.log(Level.INFO, "Register Command TpsBarCommand");
+            EverCraftLogger.log(Level.INFO, "Register Command MemoryBarCommand");
+            // EverSpigot Stop
+
             // Paper start - load config files early for access below if needed
             org.bukkit.configuration.file.YamlConfiguration bukkitConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionset.valueOf("bukkit-settings"));
             org.bukkit.configuration.file.YamlConfiguration spigotConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionset.valueOf("spigot-settings"));
@@ -163,8 +181,12 @@ public class Main {
                 System.err.println( "If you do not agree to the above EULA please stop your server and remove this flag immediately." );
             }
             // Spigot End
-            if (!eula.hasAgreedToEULA() && !eulaAgreed) { // Spigot
-                Main.LOGGER.info("You need to agree to the EULA in order to run the server. Go to eula.txt for more info.");
+            if (!eula.hasAgreedToEULA() && !eulaAgreed) { // EverSpigot
+                EverCraftLogger.log(Level.INFO, "Auto-Accept Eula Restart the server please...");
+                EverCraftLogger.log(Level.INFO, "Enforce-Secure-Profile Disabled!");
+                EverCraftLogger.log(Level.INFO, "Netty-Threads set to [-1]");
+                EverCraftLogger.log(Level.INFO, "Allow-Flight Enabled!");
+                EverCraftLogger.log(Level.INFO, "Max-Players set to [500]");
                 return;
             }
 

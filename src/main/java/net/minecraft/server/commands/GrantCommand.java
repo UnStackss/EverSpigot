@@ -12,12 +12,15 @@ import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.players.PlayerList;
 
-public class OpCommand {
+// EverSpigot
+public class GrantCommand {
     private static final SimpleCommandExceptionType ERROR_ALREADY_OP = new SimpleCommandExceptionType(Component.translatable("commands.op.failed"));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
-            Commands.literal("op")
+            // EverSpigot
+            // Commands.literal("op")
+            Commands.literal("grant")
                 .requires(source -> source.hasPermission(3))
                 .then(
                     Commands.argument("targets", GameProfileArgument.gameProfile())

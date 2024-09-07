@@ -4,14 +4,23 @@ import io.papermc.paper.command.PaperSubcommand;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
 
 @DefaultQualifier(NonNull.class)
 public final class VersionCommand implements PaperSubcommand {
+
+    private static final String PERMISSION = "everspigot.command.version";
+
     @Override
     public boolean execute(final CommandSender sender, final String subCommand, final String[] args) {
+        if (!sender.hasPermission(PERMISSION)) {
+            sender.sendMessage("§cNon hai il permesso per eseguire questo comando.");
+            return true;
+        }
+
         final @Nullable Command ver = MinecraftServer.getServer().server.getCommandMap().getCommand("version");
         if (ver != null) {
             ver.execute(sender, "paper", new String[0]);
