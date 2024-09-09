@@ -16,6 +16,7 @@ EverSpigot è un fork di Paper Spigot sviluppato specificamente per il server Ev
 - **MOTD personalizzato**: Personalizza il messaggio di benvenuto del server.
 - **Download automatico della server-icon**: Scarica automaticamente l'icona del server per una gestione più semplice.
 - **Eula Auto-Accept**: Accetta in automatico l'Eula di gioco.
+- **Changed Graphic Mode**: Modificata la modalita' grafica del server in gui.
 
 ## Comandi
 
@@ -90,6 +91,10 @@ EverSpigot è un fork di Paper Spigot sviluppato specificamente per il server Ev
 
 <p align="center">
   <img src="https://i.imgur.com/Fz9vM8N.png" alt="Screenshot 11" width="600"/>
+</p>
+
+<p align="center">
+  <img src="https://i.imgur.com/09irFch.png" alt="Screenshot 11" width="600"/>
 </p>
 
 </details>
