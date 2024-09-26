@@ -52,10 +52,16 @@ Ecco un elenco dei comandi disponibili in EverSpigot:
 3. **Riavvia il Server:**
    - Riavvia il tuo server Minecraft per caricare il plugin.
 
-## Licenza
+## Configurazione Gradle per Nativo e API
 
-Questo progetto è distribuito sotto licenza MIT. Vedi il file [LICENSE](LICENSE) per maggiori dettagli.
+Per integrare `Nativo` e `EverSpigotAPI` nel tuo progetto Gradle, aggiungi il seguente codice al tuo file `build.gradle.kts`:
 
-## Contatti
+```kotlin
+repositories {
+    maven { url = uri("https://nexus.unstackss.dev/repository/maven-releases/") }
+}
 
-Per domande o supporto, contatta [support@unstackss.dev] o apri un problema sulla [pagina GitHub](https://github.com/UnStackss/EverSpigot/issues).
+dependencies {
+    compileOnly("dev.unstackss:EverSpigotAPI:1.21.1:api21R1")
+}
+```
