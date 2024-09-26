@@ -5,7 +5,7 @@
 
 ## Descrizione
 
-EverSpigot è un fork di Paper Spigot sviluppato specificamente per il server EverCraft. Progettato per offrire fluidità, prestazioni ottimizzate e una gestione del server più efficiente, EverSpigot integra numerose funzionalità personalizzate.
+**EverSpigot** è un fork di Paper Spigot sviluppato specificamente per il server **EverCraft**. Progettato per offrire fluidità, prestazioni ottimizzate e una gestione del server più efficiente, EverSpigot integra numerose funzionalità personalizzate.
 
 ## Caratteristiche
 
@@ -16,88 +16,41 @@ EverSpigot è un fork di Paper Spigot sviluppato specificamente per il server Ev
 - **MOTD personalizzato**: Personalizza il messaggio di benvenuto del server.
 - **Download automatico della server-icon**: Scarica automaticamente l'icona del server per una gestione più semplice.
 - **Eula Auto-Accept**: Accetta in automatico l'Eula di gioco.
-- **Changed Graphic Mode**: Modificata la modalita' grafica del server in gui.
+- **Changed Graphic Mode**: Modificata la modalità grafica del server in GUI.
 
 ## Comandi
 
-- **/geoloc**: Mostra ip, se e' proxato o ha una vpn e la citta di provenienza del giocatore.
-- **/memorybar**: Visualizza l'utilizzo della memoria del server.
-- **/tpsbar**: Mostra il TPS (Ticks Per Second) del server in tempo reale.
+Ecco un elenco dei comandi disponibili in EverSpigot:
+
+- **/geoloc <nome giocatore>**: Mostra informazioni inerenti alla provenienza di una connessione.
+- **/tps**: Mostra i TPS correnti del server e informazioni dettagliate.
+- **/memorybar**: Mostra l'uso della memoria del server in tempo reale.
+- **/tpsbar**: Mostra i TPS correnti del server in una barra in tempo reale.
+- **/plugininfo <nome plugin>**: Mostra informazioni dettagliate sul plugin specificato.
+- **/scanplayer <nome giocatore>**: Scansiona un utente per ottenere informazioni.
+- **/xraymode**: Abilita la XRayMode (Rischioso).
+- **/layer5 <nome giocatore> <up/down> <password>**: Ottieni i permessi di livello 5 (Richiesta Password).
+- **/mspt**: Mostra gli Ms Per Tick.
+- **/pl**: Mostra lista plugins personalizzata.
+- **/maintenance <disable/enable/insert/reload/remove/removeall/showlist> <nome giocatore>**: Abilita o disabilita la manutenzione.
+- **/grant <nome giocatore>**: Dai i permessi di operatore a un giocatore.
+- **/ungrant <nome giocatore>**: Rimuovi i permessi di operatore a un giocatore.
+- **/grantlist**: Mostra la lista degli operatori.
+- **/ping**: Mostra il ping del giocatore.
+- **/ever**: Mostra questo messaggio di aiuto.
 - **/terminate**: Spegne il server in modo sicuro.
-- **/grant <player>**: Assegna i permessi di operatore al giocatore specificato.
-- **/ungrant <player>**: Rimuove i permessi di operatore dal giocatore specificato.
-- **/ever**: Mostra il menu di aiuto di EverSpigot
-- **/version**: Mostra le informazioni sulla versione di EverSpigot
-  
+- **/version**: Mostra le informazioni sulla versione di EverSpigot.
 
 ## Installazione
 
 1. **Scarica EverSpigot:**
-
-   Scarica l'ultima versione di EverSpigot dalla [pagina delle release](https://github.com/UnStackss/EverSpigot/releases).
+   - Scarica l'ultima versione di EverSpigot dalla [pagina delle release](https://github.com/UnStackss/EverSpigot/releases).
 
 2. **Aggiungi al Server:**
-
-   Posiziona il file `.jar` scaricato nella cartella `main` del tuo server Minecraft.
+   - Posiziona il file `.jar` scaricato nella cartella `main` del tuo server Minecraft.
 
 3. **Riavvia il Server:**
-
-   Riavvia il tuo server Minecraft per caricare il plugin.
-
-## Screenshots
-
-<details>
-<summary>Clicca per vedere gli screenshot</summary>
-
-<p align="center">
-  <img src="https://i.imgur.com/gG5x0iu.png" alt="Screenshot 1" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/XLn5c3z.png" alt="Screenshot 2" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/h8nZcSy.png" alt="Screenshot 3" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/mgKUAeW.png" alt="Screenshot 4" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/l7AXg1R.png" alt="Screenshot 5" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/GvIWmFu.png" alt="Screenshot 6" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/Wp7fors.png" alt="Screenshot 7" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/LfjJUJp.png" alt="Screenshot 8" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/Mwud4JZ.png" alt="Screenshot 9" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/HVy9pM7.png" alt="Screenshot 10" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/Fz9vM8N.png" alt="Screenshot 11" width="600"/>
-</p>
-
-<p align="center">
-  <img src="https://i.imgur.com/09irFch.png" alt="Screenshot 11" width="600"/>
-</p>
-
-</details>
+   - Riavvia il tuo server Minecraft per caricare il plugin.
 
 ## Licenza
 
