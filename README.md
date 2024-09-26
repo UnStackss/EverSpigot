@@ -38,7 +38,6 @@ Ecco un elenco dei comandi disponibili in EverSpigot:
 - **/grantlist**: Mostra la lista degli operatori.
 - **/ping**: Mostra il ping del giocatore.
 - **/ever**: Mostra questo messaggio di aiuto.
-- **/terminate**: Spegne il server in modo sicuro.
 - **/version**: Mostra le informazioni sulla versione di EverSpigot.
 
 ## Installazione
