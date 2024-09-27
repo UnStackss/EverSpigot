@@ -61,6 +61,6 @@ repositories {
 }
 
 dependencies {
-    compileOnly("dev.unstackss:EverSpigotAPI:1.21.1:api21R1")
+    compileOnly("dev.unstackss:EverSpigotAPI:1.21.1:api21R2")
 }
 ```
